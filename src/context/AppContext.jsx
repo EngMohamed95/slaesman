@@ -11,7 +11,6 @@ export const AppProvider = ({ children }) => {
   const [onboarded, setOnboarded] = useState(() => {
     return localStorage.getItem('salesmate_onboarded') === 'true';
   });
-
   const [plan, setPlan] = useState(() => {
     return localStorage.getItem('salesmate_plan') || 'Pro'; // Basic, Pro, Growth
   });
@@ -25,6 +24,56 @@ export const AppProvider = ({ children }) => {
       email: 'salma@salesmate.ai'
     };
   });
+
+  // Global Currency State
+  const [selectedCurrency, setSelectedCurrency] = useState('SAR');
+  const [detectedCountry, setDetectedCountry] = useState('المملكة العربية السعودية 🇸🇦');
+  const [isDetecting, setIsDetecting] = useState(true);
+
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        setIsDetecting(true);
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const data = await response.json();
+          const countryCode = data.country_code;
+          const countryName = data.country_name;
+          const countryFlag = data.country_emoji || '';
+          setDetectedCountry(`${countryName} ${countryFlag}`);
+          
+          if (countryCode === 'SA') setSelectedCurrency('SAR');
+          else if (countryCode === 'AE') setSelectedCurrency('AED');
+          else if (countryCode === 'EG') setSelectedCurrency('EGP');
+          else if (countryCode === 'JO') setSelectedCurrency('JOD');
+          else setSelectedCurrency('USD');
+        } else {
+          throw new Error('Fallback to timezone');
+        }
+      } catch (err) {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        if (tz.includes('Riyadh') || tz.includes('Qatar') || tz.includes('Kuwait')) {
+          setSelectedCurrency('SAR');
+          setDetectedCountry('المملكة العربية السعودية 🇸🇦');
+        } else if (tz.includes('Dubai')) {
+          setSelectedCurrency('AED');
+          setDetectedCountry('الإمارات العربية المتحدة 🇦🇪');
+        } else if (tz.includes('Cairo')) {
+          setSelectedCurrency('EGP');
+          setDetectedCountry('جمهورية مصر العربية 🇪🇬');
+        } else if (tz.includes('Amman')) {
+          setSelectedCurrency('JOD');
+          setDetectedCountry('الأردن 🇯🇴');
+        } else {
+          setSelectedCurrency('USD');
+          setDetectedCountry('دولي 🇺🇸');
+        }
+      } finally {
+        setIsDetecting(false);
+      }
+    };
+    detectLocation();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -76,7 +125,12 @@ export const AppProvider = ({ children }) => {
       plan,
       setPlan,
       profile,
-      setProfile
+      setProfile,
+      selectedCurrency,
+      setSelectedCurrency,
+      detectedCountry,
+      setDetectedCountry,
+      isDetecting
     }}>
       {children}
     </AppContext.Provider>
@@ -84,3 +138,4 @@ export const AppProvider = ({ children }) => {
 };
 
 export const useApp = () => useContext(AppContext);
+

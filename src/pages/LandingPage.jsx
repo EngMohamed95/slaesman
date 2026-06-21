@@ -3,12 +3,24 @@ import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
 import { 
   Sparkles, CheckCircle2, ShieldAlert, ArrowRight, 
-  MessageSquare, Users, BarChart3, Megaphone, Check 
+  MessageSquare, Users, BarChart3, Megaphone, Check, Globe 
 } from 'lucide-react';
+
+const CURRENCIES = {
+  SAR: { symbolAr: 'ريال', symbolEn: 'SAR', flag: '🇸🇦', nameAr: 'ريال سعودي', nameEn: 'Saudi Riyal', prices: { Basic: 99, Pro: 199, Growth: 399 } },
+  USD: { symbolAr: '$', symbolEn: 'USD', flag: '🇺🇸', nameAr: 'دولار أمريكي', nameEn: 'US Dollar', prices: { Basic: 27, Pro: 53, Growth: 107 } },
+  AED: { symbolAr: 'درهم', symbolEn: 'AED', flag: '🇦🇪', nameAr: 'درهم إماراتي', nameEn: 'UAE Dirham', prices: { Basic: 97, Pro: 195, Growth: 390 } },
+  EGP: { symbolAr: 'جنيه', symbolEn: 'EGP', flag: '🇪🇬', nameAr: 'جنيه مصري', nameEn: 'Egyptian Pound', prices: { Basic: 1290, Pro: 2590, Growth: 5190 } },
+  JOD: { symbolAr: 'دينار', symbolEn: 'JOD', flag: '🇯🇴', nameAr: 'دينار أردني', nameEn: 'Jordanian Dinar', prices: { Basic: 19, Pro: 38, Growth: 76 } }
+};
 
 export default function LandingPage({ setPage }) {
   const { t, isRTL } = useLanguage();
-  const { user } = useApp();
+  const { user, selectedCurrency, detectedCountry, isDetecting } = useApp();
+
+  const currencyInfo = CURRENCIES[selectedCurrency] || CURRENCIES.SAR;
+  const symbol = isRTL ? currencyInfo.symbolAr : currencyInfo.symbolEn;
+
 
   return (
     <div className="landing-page fade-in" style={{ background: 'var(--bg-darker)', minHeight: '100vh', color: 'white' }}>
@@ -193,20 +205,44 @@ export default function LandingPage({ setPage }) {
       {/* Pricing Section */}
       <section id="pricing-sec" style={{ padding: '6rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '1rem' }}>{t('billingTitle')}</h2>
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '4rem' }}>{t('billingSubtitle')}</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1rem' }}>{t('billingSubtitle')}</p>
+        
+        {/* Dynamic Country Geolocation Badge on Landing Page */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.85rem',
+          color: 'var(--secondary)',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid var(--card-border)',
+          borderRadius: '999px',
+          padding: '0.4rem 1.2rem',
+          width: 'max-content',
+          margin: '0 auto 3rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>
+          <Globe size={14} />
+          <span>
+            {isRTL ? "موقعك المكتشف حالياً: " : "Detected country: "} <strong>{detectedCountry}</strong> {isRTL ? "- تم تحويل العملة تلقائياً" : "- currency converted automatically"}
+          </span>
+        </div>
 
         <div className="grid-3">
           {/* Basic */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ color: 'var(--text-muted)' }}>{t('planBasic')}</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', margin: '1rem 0' }}>
-                {isRTL ? "99 ريال" : "$29"} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t('priceMonth')}</span>
+              <h3 style={{ color: 'var(--text-muted)', textAlign: 'start' }}>{t('planBasic')}</h3>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', margin: '1rem 0', display: 'flex', alignItems: 'baseline', gap: '0.25rem', justifyContent: 'flex-start' }}>
+                <span style={{ fontSize: '2.25rem', fontWeight: 800 }}>{currencyInfo.prices.Basic}</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginInlineStart: '0.25rem' }}>{symbol}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)', marginInlineStart: '0.25rem' }}>{t('priceMonth')}</span>
               </div>
-              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem' }}>
+              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem', textAlign: 'start' }}>
                 <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresCRM')}</li>
                 <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresReminders')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresAILimited')}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "توليد ذكاء اصطناعي محدود (20 شهرياً)" : "Limited AI generation (20/mo)"}</li>
               </ul>
             </div>
             <button className="btn btn-secondary" style={{ marginTop: '2rem' }} onClick={() => setPage('register')}>{isRTL ? "ابدأ الآن" : "Get Started"}</button>
@@ -228,15 +264,17 @@ export default function LandingPage({ setPage }) {
               }}>
                 {isRTL ? "الأكثر شعبية" : "Most Popular"}
               </div>
-              <h3>{t('planPro')}</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '1rem 0' }}>
-                {isRTL ? "199 ريال" : "$59"} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t('priceMonth')}</span>
+              <h3 style={{ textAlign: 'start' }}>{t('planPro')}</h3>
+              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '1rem 0', display: 'flex', alignItems: 'baseline', gap: '0.25rem', justifyContent: 'flex-start' }}>
+                <span style={{ fontSize: '2.5rem', fontWeight: 800 }}>{currencyInfo.prices.Pro}</span>
+                <span style={{ fontSize: '1rem', color: 'var(--text-main)', marginInlineStart: '0.25rem' }}>{symbol}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)', marginInlineStart: '0.25rem' }}>{t('priceMonth')}</span>
               </div>
-              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem' }}>
+              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem', textAlign: 'start' }}>
                 <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresCRM')}</li>
                 <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresReminders')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresAIFull')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresSocial')}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "مساعد شخصي ذكي غير محدود 24/7" : "Unlimited personal AI assistant 24/7"}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "جدولة وصناعة محتوى تواصل اجتماعي أسبوعي" : "Weekly social content generation & schedules"}</li>
               </ul>
             </div>
             <button className="btn btn-primary" style={{ marginTop: '2rem' }} onClick={() => setPage('register')}>{isRTL ? "اشترك الآن" : "Choose Pro"}</button>
@@ -245,22 +283,25 @@ export default function LandingPage({ setPage }) {
           {/* Growth */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <h3 style={{ color: 'var(--secondary)' }}>{t('planGrowth')}</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', margin: '1rem 0' }}>
-                {isRTL ? "399 ريال" : "$119"} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t('priceMonth')}</span>
+              <h3 style={{ color: 'var(--secondary)', textAlign: 'start' }}>{t('planGrowth')}</h3>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', margin: '1rem 0', display: 'flex', alignItems: 'baseline', gap: '0.25rem', justifyContent: 'flex-start' }}>
+                <span style={{ fontSize: '2.25rem', fontWeight: 800 }}>{currencyInfo.prices.Growth}</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginInlineStart: '0.25rem' }}>{symbol}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)', marginInlineStart: '0.25rem' }}>{t('priceMonth')}</span>
               </div>
-              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem' }}>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresCRM')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresAIFull')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresSocial')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresCampaigns')}</li>
-                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {t('featuresSupport')}</li>
+              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem', textAlign: 'start' }}>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "نظام إدارة علاقات العملاء CRM كامل" : "Full premium CRM suite"}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "مساعد شخصي ذكي غير محدود 24/7" : "Unlimited personal AI assistant 24/7"}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "جدولة وصناعة محتوى تواصل اجتماعي أسبوعي" : "Weekly social content generation & schedules"}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "إمكانية إرسال طلبات الحملات الإعلانية" : "Sponsored advertising request capabilities"}</li>
+                <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={16} style={{ color: 'var(--success)' }} /> {isRTL ? "دعم فني ذو أولوية عبر الواتساب" : "Priority WhatsApp customer support"}</li>
               </ul>
             </div>
             <button className="btn btn-secondary" style={{ marginTop: '2rem' }} onClick={() => setPage('register')}>{isRTL ? "تواصل معنا" : "Choose Growth"}</button>
           </div>
         </div>
       </section>
+
 
       {/* CTA Footer */}
       <footer style={{

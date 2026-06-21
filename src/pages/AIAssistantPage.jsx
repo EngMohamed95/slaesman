@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
+import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { Sparkles, MessageSquare, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
 
 // Helper to parse pasted chat text into structured message bubble objects
@@ -132,10 +133,73 @@ export default function AIAssistantPage() {
 
   const selectedLead = leads.find(l => l.id === selectedLeadId);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (activeTab !== 'chatAnalysis' && !selectedLead) return;
     setLoading(true);
     setAiOutput('');
+
+    if (isGeminiActive()) {
+      try {
+        let prompt = '';
+        let systemInstruction = 'You are an expert sales assistant, specializing in real estate and customer service. Respond clearly and professionally in the language of the query/client (Arabic or English).';
+
+        if (activeTab === 'chatAnalysis') {
+          if (!pastedChatText.trim()) {
+            setAiOutput(isRTL ? "الرجاء إدخال نص المحادثة للبدء." : "Please enter conversation transcript.");
+            setLoading(false);
+            return;
+          }
+
+          if (selectedTask === 'reply') {
+            prompt = `Analyze the following WhatsApp chat transcript and write a highly professional, polite, and persuasive follow-up response to the client. Keep the response formatted as a ready-to-copy text message.\n\nTranscript:\n${pastedChatText}`;
+          } else if (selectedTask === 'requirements') {
+            prompt = `Analyze this WhatsApp chat transcript. Extract:
+1. Client Name
+2. Target Property type or service
+3. Budget mentioned
+4. Extracted contact numbers/emails
+5. A brief summary evaluation of their interest.
+Return the output as a structured list in Arabic if query/chat is in Arabic, else in English.\n\nTranscript:\n${pastedChatText}`;
+          } else {
+            prompt = `Suggest a detailed step-by-step action plan to follow up with the client based on this WhatsApp chat transcript.\n\nTranscript:\n${pastedChatText}`;
+          }
+        } else {
+          const leadName = isRTL ? (selectedLead.nameAr || selectedLead.name) : selectedLead.name;
+          const leadService = isRTL ? (selectedLead.serviceAr || selectedLead.service) : selectedLead.service;
+          const leadNotes = isRTL ? (selectedLead.notesAr || selectedLead.notes) : selectedLead.notes;
+
+          if (activeTab === 'objections') {
+            systemInstruction = 'You are a real estate sales closer and negotiations coach. Write a persuasive response for the salesperson to handle a specific client objection.';
+            prompt = `Draft a direct, professional, and convincing response for salesperson to address a client's objection.
+Client Name: ${leadName}
+Target Property/Service: ${leadService}
+Client's Objection: ${selectedObjection === 'price' ? 'Price is too expensive' : selectedObjection === 'think' ? 'Needs time to think / consult partner' : selectedObjection === 'location' ? 'Location is too far' : 'Renting is better than buying right now'}
+Respond in the language matching the client's name/objection details (Arabic if name has Arabic letters, else English).`;
+          } else if (activeTab === 'scripts') {
+            systemInstruction = 'You are an expert cold call scriptwriter for real estate sales.';
+            prompt = `Write an interactive follow-up phone call script for the sales agent to contact this lead. Include three stages: Greeting & Rapport, Feedback Hook, and Urgency Hook.
+Client Name: ${leadName}
+Target Property/Service: ${leadService}
+Lead Notes: ${leadNotes}
+Respond in the language matching the client's name (Arabic if name has Arabic letters, else English).`;
+          } else {
+            prompt = `Summarize the sales notes for the following lead and suggest a custom next best action step to close the deal.
+Client Name: ${leadName}
+Target Property/Service: ${leadService}
+Lead Notes: ${leadNotes}
+Current Status: ${selectedLead.status}
+Respond in the language matching the client's name (Arabic if name has Arabic letters, else English).`;
+          }
+        }
+
+        const responseText = await callGeminiApi(prompt, systemInstruction);
+        setAiOutput(responseText);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.error('Gemini assistant generation failed, falling back:', err);
+      }
+    }
 
     setTimeout(() => {
       let result = '';
@@ -143,7 +207,7 @@ export default function AIAssistantPage() {
       if (activeTab === 'chatAnalysis') {
         if (!pastedChatText.trim()) {
           result = isRTL 
-            ? "الرجاء إدخال أو لصق محادثة العميل الخارجية أولاً للبدء بالتحليل." 
+            ? "الرجاء إدخال أو لصف محادثة العميل الخارجية أولاً للبدء بالتحليل." 
             : "Please enter or paste the external customer conversation transcript first to start the analysis.";
           setAiOutput(result);
           setLoading(false);
@@ -215,7 +279,7 @@ export default function AIAssistantPage() {
         } else {
           const leadNotes = isRTL ? (selectedLead.notesAr || selectedLead.notes) : selectedLead.notes;
           result = isRTL
-            ? `[ملخص ملاحظات العميل ${leadName}]\n\n- المصدر: ${selectedLead.sourceAr || selectedLead.source}\n- الميزانية المحددة: ${selectedLead.budget.toLocaleString()} ريال\n- خلاصة الموقف: العميل يبدي اهتماماً كبيراً بمواصفات العقار ولكنه قلق بشأن شروط الدفع وجدول التسليم.\n- التوصية البيعية: تقديم خيار الدفع المؤجل أو تمديد فترات الأقساط لحسم الصفقة.`
+            ? `[ملخص ملاحظات العميل ${leadName}]\n\n- المصدر: ${selectedLead.sourceAr || selectedLead.source}\n- الميزانية المحددة: ${selectedLead.budget.toLocaleString()} ريال\n- خلاصة الموقف: العميل يبدي اهتماماً كبيراً بمواصفات العقار ولكنه قلق بشأن شروط الدفع وجدول التسليم.\n- التوصية البيعية: تقديم خيار الدفع المؤجب أو تمديد فترات الأقساط لحسم الصفقة.`
             : `[AI Lead Summary for ${leadName}]\n\n- Source: ${selectedLead.source}\n- Target Budget: $${selectedLead.budget.toLocaleString()}\n- Current Status: Interested in layouts but highly sensitive to payment structures and delivery dates.\n- Recommended Action: Provide custom deferred payment templates to close the agreement.`;
         }
       }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
+import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X } from 'lucide-react';
 
 // Mock contacts for MacBook / phone address book fallback
@@ -161,12 +162,22 @@ const analyzeWhatsAppChat = (text, isRTL) => {
 };
 
 export default function CRMPage({ setPage, setSelectedLeadId }) {
-  const { leads, addLead, deleteLead, addTask } = useCRM();
+  const { leads, addLead, updateLead, deleteLead, addTask } = useCRM();
   const { t, isRTL } = useLanguage();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+
+  // Classification & Campaign Wizard States
+  const [activeTab, setActiveTab] = useState('all'); // all, interested, followup
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [sentLeadIds, setSentLeadIds] = useState([]);
+  const [campaignTemplate, setCampaignTemplate] = useState('intro');
+  const [campaignText, setCampaignText] = useState(isRTL 
+    ? "مرحباً أ. {name}، معك أحمد من إيليت العقارية. سعدت بالتواصل معك بخصوص اهتمامك بمشروع {service}. هل يناسبك الاتصال الهاتفي غداً الساعة 4 عصراً لمناقشة التفاصيل؟" 
+    : "Hi {name}, this is Ahmad from Elite Properties. Thanks for reaching out regarding the {service}. Would a phone call tomorrow at 4 PM work to discuss the pricing structures?"
+  );
   
   // Add Lead Form State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -269,13 +280,63 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     setShowAddModal(false);
   };
 
-  const handleChatAnalysis = () => {
+  const handleChatAnalysis = async () => {
     if (!pastedChat.trim()) {
       alert(isRTL ? 'الرجاء إدخال نص المحادثة أولاً' : 'Please enter chat text first');
       return;
     }
     setIsAnalyzing(true);
     setAnalysisStep(1);
+
+    if (isGeminiActive()) {
+      try {
+        setAnalysisStep(2);
+        const systemInstruction = `You are a sales CRM parser assistant. Your task is to extract structured lead details from the provided WhatsApp chat transcript. Respond ONLY with a valid JSON object matching this schema:
+{
+  "name": "lead full name (use Arabic if chat is in Arabic, else English)",
+  "phone": "lead phone number (keep digits and country code, e.g. +966500000000)",
+  "email": "lead email address or empty string if not found",
+  "service": "interested property/service (e.g. Apartment, 3-Bedroom Villa in Yas Island)",
+  "budget": "budget in numbers only (e.g. 1500000, do not use text, if empty use 0)",
+  "interestLevel": "High" or "Medium" or "Low",
+  "suggestions": "Three bullet points action items for the sales agent in Arabic if chat is in Arabic, else English"
+}`;
+        
+        const responseText = await callGeminiApi(pastedChat, systemInstruction, true);
+        setAnalysisStep(3);
+
+        const result = JSON.parse(responseText);
+
+        setNewName(result.name || (isRTL ? 'عميل واتساب جديد' : 'New WhatsApp Lead'));
+        setNewPhone(result.phone || '+966500000000');
+        if (result.email) setNewEmail(result.email);
+        if (result.service) setNewService(result.service);
+        if (result.budget && Number(result.budget) > 0) {
+          setNewBudget(result.budget.toString());
+          setNewExpectedValue(result.budget.toString());
+        } else {
+          setNewBudget('0');
+          setNewExpectedValue('0');
+        }
+        setNewInterestLevel(result.interestLevel || 'Medium');
+        setNewSource('WhatsApp');
+
+        const finalNotes = (isRTL 
+          ? `[ملخص محادثة واتساب بالذكاء الاصطناعي الحقيقي]:\nتم استخراج البيانات بواسطة Gemini 2.5 Flash.\n\n--- توصيات المساعد الذكي ---\n${result.suggestions}`
+          : `[Real AI WhatsApp Chat Summary]:\nData extracted by Gemini 2.5 Flash.\n\n--- AI Suggestions ---\n${result.suggestions}`
+        );
+        setNewNotes(finalNotes);
+        setAiSuggestions(result.suggestions);
+
+        setIsAnalyzing(false);
+        setAnalysisStep(0);
+        setImportMode(null);
+        alert(isRTL ? 'تم تحليل المحادثة بالذكاء الاصطناعي وتعبئة البيانات بنجاح!' : 'Conversation analyzed by AI and data populated successfully!');
+        return;
+      } catch (err) {
+        console.error('Gemini parsing failed, falling back to local analysis:', err);
+      }
+    }
 
     setTimeout(() => {
       setAnalysisStep(2);
@@ -342,8 +403,19 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     setShowContactsModal(true);
   };
 
-  // Filter leads
-  const filteredLeads = leads.filter(lead => {
+  // Segment leads by active tab
+  const tabLeads = leads.filter(lead => {
+    if (activeTab === 'interested') {
+      return lead.interestLevel === 'High' || lead.status === 'Interested' || lead.status === 'Close to Deal';
+    }
+    if (activeTab === 'followup') {
+      return lead.status === 'Needs Follow-up' || lead.status === 'No Response' || lead.status === 'Postponed';
+    }
+    return true; // 'all'
+  });
+
+  // Filter tabLeads by search & status & source
+  const filteredLeads = tabLeads.filter(lead => {
     const query = search.toLowerCase();
     const matchesSearch = 
       lead.name.toLowerCase().includes(query) ||
@@ -368,6 +440,98 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
         </div>
         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
           <Plus size={16} /> {t('addLead')}
+        </button>
+      </div>
+
+      {/* Classification Tabs & Bulk WhatsApp Campaign action button */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        marginBottom: '1.5rem',
+        padding: '0.5rem',
+        background: 'rgba(255, 255, 255, 0.01)',
+        border: '1px solid var(--card-border)',
+        borderRadius: '0.75rem',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {[
+            { id: 'all', label: t('tabAllLeads'), count: leads.length },
+            { 
+              id: 'interested', 
+              label: t('tabInterestedLeads'), 
+              count: leads.filter(l => l.interestLevel === 'High' || l.status === 'Interested' || l.status === 'Close to Deal').length 
+            },
+            { 
+              id: 'followup', 
+              label: t('tabFollowUpLeads'), 
+              count: leads.filter(l => l.status === 'Needs Follow-up' || l.status === 'No Response' || l.status === 'Postponed').length 
+            }
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSentLeadIds([]);
+                }}
+                className="btn"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                  background: isActive ? 'var(--primary)' : 'transparent',
+                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
+                  color: isActive ? '#fff' : 'var(--text-muted)'
+                }}
+              >
+                <span>{tab.label}</span>
+                <span style={{
+                  fontSize: '0.75rem',
+                  padding: '0.1rem 0.4rem',
+                  borderRadius: '999px',
+                  background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  color: isActive ? '#fff' : 'var(--text-muted)'
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Campaign Action Button */}
+        <button
+          className="btn"
+          onClick={() => setShowCampaignModal(true)}
+          disabled={tabLeads.length === 0}
+          style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: '#fff',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+            opacity: tabLeads.length === 0 ? 0.5 : 1,
+            cursor: tabLeads.length === 0 ? 'not-allowed' : 'pointer'
+          }}
+        >
+          <MessageCircle size={16} />
+          <span>{t('bulkWhatsAppCampaign')}</span>
         </button>
       </div>
 
@@ -1108,6 +1272,303 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                 {isRTL ? "إغلاق" : "Close"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk WhatsApp Campaign Modal */}
+      {showCampaignModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1.5rem'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', position: 'relative' }}>
+            
+            {/* Header */}
+            <h3 style={{ margin: '0 0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageCircle size={22} style={{ color: '#25D366' }} />
+                {t('whatsappCampaignTitle')}
+              </span>
+              <button 
+                type="button" 
+                onClick={() => { setShowCampaignModal(false); setSentLeadIds([]); }} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </h3>
+
+            {/* Campaign info details */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--card-border)',
+              borderRadius: '0.75rem',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {isRTL ? "الشريحة المستهدفة للحملة:" : "Target Campaign Segment:"}
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--secondary)' }}>
+                  {activeTab === 'all' && (isRTL ? "جميع العملاء" : "All Leads")}
+                  {activeTab === 'interested' && (isRTL ? "العملاء المهتمين" : "Interested Leads")}
+                  {activeTab === 'followup' && (isRTL ? "عملاء المتابعة" : "Follow-up Leads")}
+                  {" "}({tabLeads.length} {isRTL ? "عميل" : "leads"})
+                </div>
+              </div>
+
+              {/* Progress Tracker */}
+              <div style={{ flex: 1, maxWidth: '280px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                  <span>{t('campaignProgress')}</span>
+                  <span style={{ fontWeight: 'bold' }}>{sentLeadIds.length} / {tabLeads.length}</span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${tabLeads.length > 0 ? (sentLeadIds.length / tabLeads.length) * 100 : 0}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Template Selector & Editor */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.5rem', marginBottom: '1.5rem' }} className="grid-responsive">
+              
+              {/* Template settings */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                  {t('campaignTemplate')}
+                </label>
+                
+                <select 
+                  value={campaignTemplate} 
+                  onChange={e => {
+                    setCampaignTemplate(e.target.value);
+                    // Update default text when changing
+                    if (e.target.value === 'intro') {
+                      setCampaignText(isRTL 
+                        ? "مرحباً أ. {name}، معك أحمد من إيليت العقارية. سعدت بالتواصل معك بخصوص اهتمامك بمشروع {service}. هل يناسبك الاتصال الهاتفي غداً الساعة 4 عصراً لمناقشة التفاصيل؟" 
+                        : "Hi {name}, this is Ahmad from Elite Properties. Thanks for reaching out regarding the {service}. Would a phone call tomorrow at 4 PM work to discuss the pricing structures?"
+                      );
+                    } else if (e.target.value === 'followup') {
+                      setCampaignText(isRTL 
+                        ? "أهلاً أ. {name}، أتمنى أن تكون بخير. أردت فقط الاطمئنان على استفسارك الأخير بخصوص {service}. يسعدني تزويدك بأي تفاصيل إضافية في حال احتجت لها." 
+                        : "Hi {name}, hope you're having a great week. I wanted to follow up on your inquiry about {service}. Let me know if you have any questions about the units or need more floor plans."
+                      );
+                    } else if (e.target.value === 'offer') {
+                      setCampaignText(isRTL 
+                        ? "مرحباً أ. {name}، بخصوص اهتمامك بـ {service}، أردت إبلاغك أن المطور يمنح خصماً حصرياً للعملاء الذين يوقعون العقود هذا الأسبوع. هل ترغب في ترتيب مكالمة سريعة لمناقشة الخصم؟" 
+                        : "Hi {name}, regarding your interest in {service}, the developer is offering an exclusive discount for contracts signed this week. Let me know if you would like me to arrange a brief call to review options."
+                      );
+                    } else {
+                      setCampaignText(isRTL ? "مرحباً أ. {name}، " : "Hi {name}, ");
+                    }
+                  }}
+                  style={{ marginBottom: '1rem' }}
+                >
+                  <option value="intro">{isRTL ? "قالب: التعريف الأول" : "Template: First Introduction"}</option>
+                  <option value="followup">{isRTL ? "قالب: متابعة لطيفة" : "Template: Soft Follow-up"}</option>
+                  <option value="offer">{isRTL ? "قالب: خصم وعرض خاص" : "Template: Special Discount Offer"}</option>
+                  <option value="custom">{isRTL ? "رسالة مخصصة فارغة" : "Blank Custom Message"}</option>
+                </select>
+
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px dashed var(--card-border)',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem',
+                  lineHeight: '1.4',
+                  textAlign: 'start'
+                }}>
+                  <strong style={{ color: 'var(--secondary)' }}>{isRTL ? "المتغيرات المتاحة:" : "Available Placeholders:"}</strong>
+                  <ul style={{ margin: '0.25rem 0 0', paddingInlineStart: '1.25rem' }}>
+                    <li><code>{"{name}"}</code>: {isRTL ? "اسم العميل" : "Client's Name"}</li>
+                    <li><code>{"{service}"}</code>: {isRTL ? "العقار المهتم به" : "Interested Service"}</li>
+                  </ul>
+                  <div style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                    {t('templateVariablesNotice')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Template content */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                  {isRTL ? "نص الرسالة الأساسي:" : "Message Body Template:"}
+                </label>
+                <textarea
+                  rows="6"
+                  value={campaignText}
+                  onChange={e => setCampaignText(e.target.value)}
+                  style={{ flex: 1, fontSize: '0.85rem', lineHeight: '1.5', textAlign: 'start' }}
+                />
+              </div>
+
+            </div>
+
+            {/* Recipient list with individual compile previews */}
+            <h4 style={{ margin: '1.5rem 0 0.75rem', fontSize: '1rem', textAlign: 'start', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{t('campaignRecipients')}</span>
+              {sentLeadIds.length === tabLeads.length && tabLeads.length > 0 && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 'bold', animation: 'fadeIn 0.3s ease' }}>
+                  ✓ {t('campaignSuccess')}
+                </span>
+              )}
+            </h4>
+
+            <div style={{
+              border: '1px solid var(--card-border)',
+              borderRadius: '0.75rem',
+              overflow: 'hidden',
+              maxHeight: '280px',
+              overflowY: 'auto',
+              background: '#070a13'
+            }}>
+              {tabLeads.length === 0 ? (
+                <div style={{ padding: '2rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  {t('noLeadsInSegment')}
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--card-border)' }}>
+                      <th style={{ padding: '0.75rem', textAlign: 'start' }}>{t('name')}</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'start' }}>{isRTL ? "معاينة الرسالة للعميل" : "Compiled Message Preview"}</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center', width: '120px' }}>{t('actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tabLeads.map(lead => {
+                      const leadName = isRTL ? (lead.nameAr || lead.name) : lead.name;
+                      const leadService = isRTL ? (lead.serviceAr || lead.service) : lead.service;
+                      
+                      // Compile message safely
+                      const compiledText = (campaignText || '')
+                        .replace(/\{name\}/g, leadName || '')
+                        .replace(/\{service\}/g, leadService || '');
+                      
+                      const isSent = sentLeadIds.includes(lead.id);
+
+                      return (
+                        <tr key={lead.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', background: isSent ? 'rgba(16, 185, 129, 0.02)' : 'transparent' }}>
+                          <td style={{ padding: '0.75rem', verticalAlign: 'top', textAlign: 'start' }}>
+                            <div style={{ fontWeight: 600 }}>{leadName}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{lead.phone}</div>
+                          </td>
+                          <td style={{ padding: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4', textAlign: 'start', verticalAlign: 'top' }}>
+                            <div style={{
+                              maxHeight: '60px',
+                              overflowY: 'auto',
+                              whiteSpace: 'pre-wrap',
+                              background: 'rgba(0,0,0,0.2)',
+                              padding: '0.4rem 0.6rem',
+                              borderRadius: '0.35rem',
+                              fontSize: '0.8rem',
+                              color: '#e2e8f0',
+                              border: '1px solid rgba(255,255,255,0.01)'
+                            }}>
+                              {compiledText}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            {isSent ? (
+                              <span style={{
+                                color: 'var(--success)',
+                                fontWeight: 600,
+                                fontSize: '0.8rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}>
+                                ✓ {t('sent')}
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn"
+                                onClick={() => {
+                                  // Open WhatsApp link
+                                  const cleanPhone = lead.phone.replace(/[^0-9+]/g, '');
+                                  const encoded = encodeURIComponent(compiledText);
+                                  window.open(`https://wa.me/${cleanPhone}?text=${encoded}`, '_blank');
+                                  
+                                  // Mark as sent in state
+                                  setSentLeadIds(prev => [...prev, lead.id]);
+                                  
+                                  // Update CRM lead: update lastContact to today
+                                  updateLead(lead.id, {
+                                    lastContact: new Date().toISOString().split('T')[0]
+                                  });
+
+                                  // Log a task or notification
+                                  addTask({
+                                    leadId: lead.id,
+                                    title: isRTL 
+                                      ? `تم إرسال رسالة واتساب جماعية لـ ${leadName}`
+                                      : `Sent bulk WhatsApp message to ${leadName}`,
+                                    titleAr: `تم إرسال رسالة واتساب جماعية لـ ${leadName}`,
+                                    dueDate: new Date().toISOString().split('T')[0],
+                                    completed: true,
+                                    priority: 'Low'
+                                  });
+                                }}
+                                style={{
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  border: 'none',
+                                  color: '#fff',
+                                  padding: '0.4rem 0.8rem',
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.35rem',
+                                  cursor: 'pointer',
+                                  fontWeight: 700,
+                                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)'
+                                }}
+                              >
+                                {t('sendTo')}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => { setShowCampaignModal(false); setSentLeadIds([]); }}
+                style={{ padding: '0.5rem 1.5rem' }}
+              >
+                {t('closeCampaign')}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

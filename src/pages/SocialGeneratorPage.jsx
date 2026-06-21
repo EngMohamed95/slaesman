@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { 
   Sparkles, Calendar, FileText, Compass, Send, 
   Paperclip, X, Download, Play, Square, Image, FileDown, Check 
@@ -265,8 +266,101 @@ export default function SocialGeneratorPage() {
     }
   };
 
+  const generateCampaignWithGemini = async (userPrompt, fileText = '') => {
+    try {
+      const systemInstruction = `You are a real estate creative director and marketing copywriter. Based on the user's input/chat prompt, you must generate a complete social media campaign. Return ONLY a valid JSON object matching the following structure:
+{
+  "imageTitle": "short catchy title in Arabic (max 5 words)",
+  "imageTitleEn": "short catchy title in English (max 5 words)",
+  "imageBody": "description & details in Arabic (max 12 words)",
+  "imageBodyEn": "description & details in English (max 12 words)",
+  "imageCTA": "call to action in Arabic (max 3 words)",
+  "imageCTAEn": "call to action in English (max 3 words)",
+  "imageBadge": "short badge like 'خصم 10%' or 'تقسيط مريح'",
+  "imageBadgeEn": "short badge like '10% OFF' or 'Easy Plan'",
+  "videoTitle": "video title in Arabic",
+  "videoTitleEn": "video title in English",
+  "videoScriptText": "a Reels/TikTok script in Arabic format (Scenes + Audio)",
+  "videoScriptTextEn": "a Reels/TikTok script in English format (Scenes + Audio)",
+  "pdfTitle": "PDF brochure title in Arabic",
+  "pdfTitleEn": "PDF brochure title in English",
+  "pdfDeveloper": "developer name in Arabic",
+  "pdfDeveloperEn": "developer name in English",
+  "pdfDescription": "brochure description in Arabic",
+  "pdfDescriptionEn": "brochure description in English",
+  "pdfSpecs": [
+    {"label": "الموقع", "val": "value"},
+    {"label": "المساحة", "val": "value"},
+    {"label": "تاريخ التسليم", "val": "value"},
+    {"label": "خطة السداد", "val": "value"}
+  ],
+  "pdfSpecsEn": [
+    {"label": "Location", "val": "value"},
+    {"label": "Size", "val": "value"},
+    {"label": "Delivery Date", "val": "value"},
+    {"label": "Payment Plan", "val": "value"}
+  ],
+  "pdfAmenities": [
+    "amenity 1 in Arabic",
+    "amenity 2 in Arabic",
+    "amenity 3 in Arabic",
+    "amenity 4 in Arabic",
+    "amenity 5 in Arabic"
+  ],
+  "pdfAmenitiesEn": [
+    "amenity 1 in English",
+    "amenity 2 in English",
+    "amenity 3 in English",
+    "amenity 4 in English",
+    "amenity 5 in English"
+  ],
+  "pdfPaymentPlan": [
+    {"step": "الدفعة الأولى", "pct": "value", "desc": "value"},
+    {"step": "الدفعة الثانية", "pct": "value", "desc": "value"},
+    {"step": "عند التسليم", "pct": "value", "desc": "value"}
+  ],
+  "pdfPaymentPlanEn": [
+    {"step": "Down Payment", "pct": "value", "desc": "value"},
+    {"step": "Second Installment", "pct": "value", "desc": "value"},
+    {"step": "On Handover", "pct": "value", "desc": "value"}
+  ],
+  "calendar": [
+    {"day": "الأحد", "platform": "Instagram", "topic": "topic in Arabic"},
+    {"day": "الثلاثاء", "platform": "TikTok", "topic": "topic in Arabic"},
+    {"day": "الخميس", "platform": "WhatsApp", "topic": "topic in Arabic"}
+  ],
+  "calendarEn": [
+    {"day": "Sunday", "platform": "Instagram", "topic": "topic in English"},
+    {"day": "Tuesday", "platform": "TikTok", "topic": "topic in English"},
+    {"day": "Thursday", "platform": "WhatsApp", "topic": "topic in English"}
+  ]
+}`;
+      
+      let fullPrompt = `Generate a campaign for this request: "${userPrompt}".`;
+      if (fileText) {
+        fullPrompt += `\nHere are the project details from the uploaded document:\n${fileText}`;
+      }
+
+      const responseText = await callGeminiApi(fullPrompt, systemInstruction, true);
+      const data = JSON.parse(responseText);
+      
+      setGeneratedContent(data);
+
+      const replyText = isRTL 
+        ? `ممتاز! قمت بتحليل تفاصيل طلبك وتوليد تصاميم وصور جديدة، بالإضافة لسيناريو فيديو كامل وبروشور PDF للعملاء، وتقويم نشر مخصص للحملة. يمكنك استعراضها وتصديرها الآن من اللوحة الجانبية.`
+        : `Excellent! I have compiled your request and generated custom social post graphics, TikTok/Reels video scripts, printable client PDF specifications, and a target publishing calendar. Review the tabs on the right side.`;
+
+      setChatHistory(prev => [...prev, { sender: 'ai', text: replyText }]);
+      setLoadingOutput(false);
+      return true;
+    } catch (err) {
+      console.error('Gemini content studio failed:', err);
+      return false;
+    }
+  };
+
   // Chat message submit handler
-  const handleChatSubmit = (e) => {
+  const handleChatSubmit = async (e) => {
     e?.preventDefault();
     if (!chatInput.trim()) return;
 
@@ -274,6 +368,11 @@ export default function SocialGeneratorPage() {
     setChatHistory(prev => [...prev, { sender: 'user', text: userText }]);
     setChatInput('');
     setLoadingOutput(true);
+
+    if (isGeminiActive()) {
+      const success = await generateCampaignWithGemini(userText);
+      if (success) return;
+    }
 
     setTimeout(() => {
       // Analyze input keywords
@@ -319,17 +418,28 @@ export default function SocialGeneratorPage() {
     
     setLoadingOutput(true);
 
-    setTimeout(() => {
-      const aiReply = isRTL
-        ? `تم استلام وتحليل ملف مواصفات المشروع \`${file.name}\` بنجاح! 
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const fileText = event.target.result;
+
+      if (isGeminiActive()) {
+        const success = await generateCampaignWithGemini(`Campaign from spec sheet ${file.name}`, fileText);
+        if (success) return;
+      }
+
+      setTimeout(() => {
+        const aiReply = isRTL
+          ? `تم استلام وتحليل ملف مواصفات المشروع \`${file.name}\` بنجاح! 
 لقد استخلصت تفاصيل الخدمة وقمت بتوليد التصاميم الإعلانية، سيناريو الفيديو للريلز، وكتيب البروشور الـ PDF المخصص للمبيعات. يمكنك استعراضها وتحميلها من التبويبات باليمين.`
-        : `Specifications file \`${file.name}\` has been parsed successfully!
+          : `Specifications file \`${file.name}\` has been parsed successfully!
 I have extracted project highlights and generated target social designs, a reels script, and a downloadable PDF sales brochure. Feel free to inspect and export them in the right column.`;
-      
-      setChatHistory(prev => [...prev, { sender: 'ai', text: aiReply }]);
-      updateGeneratedContent(fileNameClean);
-      setLoadingOutput(false);
-    }, 1500);
+        
+        setChatHistory(prev => [...prev, { sender: 'ai', text: aiReply }]);
+        updateGeneratedContent(fileNameClean);
+        setLoadingOutput(false);
+      }, 1500);
+    };
+    reader.readAsText(file);
   };
 
   // Canvas Image Exporter

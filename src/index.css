@@ -50,11 +50,7 @@ body {
 
 * {
   box-sizing: border-box;
-}
-
-/* RTL specific font adjustment */
-[dir="rtl"] {
-  font-family: 'Cairo', system-ui, sans-serif;
+  font-family: 'Cairo', system-ui, sans-serif !important;
 }
 
 /* Scrollbar styles */

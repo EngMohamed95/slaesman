@@ -14,7 +14,7 @@ export default function AdminPanelPage() {
   ]);
 
   const mockUsers = [
-    { id: 'u1', name: 'Salma Al-Harbi', email: 'salma@salesmate.ai', plan: 'Pro', registeredDate: '2026-05-10', paymentDate: '2026-07-10', paymentMethod: 'Visa', amount: '199 SAR', status: 'Active' },
+    { id: 'u1', name: 'Salma Al-Harbi', email: 'salma@adtodeal.com', plan: 'Pro', registeredDate: '2026-05-10', paymentDate: '2026-07-10', paymentMethod: 'Visa', amount: '199 SAR', status: 'Active' },
     { id: 'u2', name: 'Khalid Mansour', email: 'khalid@example.com', plan: 'Growth', registeredDate: '2026-05-24', paymentDate: '2026-07-24', paymentMethod: 'PayPal', amount: '399 SAR', status: 'Active' },
     { id: 'u3', name: 'Noura Salem', email: 'noura.s@example.com', plan: 'Basic', registeredDate: '2026-06-01', paymentDate: '2026-07-01', paymentMethod: 'PayPal', amount: '99 SAR', status: 'Active' },
     { id: 'u4', name: 'Ahmad Al-Saeed', email: 'ahmad.saeed@gmail.com', plan: 'Pro', registeredDate: '2026-07-12', paymentDate: '2026-07-12', paymentMethod: 'PayPal', amount: '199 SAR', status: 'Active' },

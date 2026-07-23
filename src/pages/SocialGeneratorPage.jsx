@@ -487,7 +487,7 @@ I have extracted project highlights and generated target social designs, a reels
     ctx.fillStyle = '#06b6d4';
     ctx.font = '800 24px Cairo, Arial';
     ctx.textAlign = 'center';
-    ctx.fillText("SALESMATE AI - CONTENT STUDIO", canvas.width / 2, 80);
+    ctx.fillText("ADTODEAL AI - CONTENT STUDIO", canvas.width / 2, 80);
 
     // Badge Pill
     const badgeText = isRTL ? generatedContent.imageBadge : generatedContent.imageBadgeEn;
@@ -536,7 +536,7 @@ I have extracted project highlights and generated target social designs, a reels
 
     // Trigger File Download
     const link = document.createElement('a');
-    link.download = `salesmate_${imageFormat}_design.png`;
+    link.download = `adtodeal_${imageFormat}_design.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
@@ -584,7 +584,7 @@ I have extracted project highlights and generated target social designs, a reels
     });
     
     content += `\n========================================================\n`;
-    content += `           GENERATE VIA SALESMATE CONTENT STUDIO        \n`;
+    content += `           GENERATE VIA ADTODEAL CONTENT STUDIO         \n`;
     content += `========================================================\n`;
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -866,7 +866,7 @@ I have extracted project highlights and generated target social designs, a reels
                         {/* Branding Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2 }}>
                           <span style={{ fontSize: '0.6rem', color: 'var(--secondary)', fontWeight: 800, letterSpacing: '0.05em' }}>
-                            SALESMATE AI
+                            ADTODEAL AI
                           </span>
                           <span style={{
                             background: 'rgba(245, 158, 11, 0.15)',
@@ -1032,7 +1032,7 @@ I have extracted project highlights and generated target social designs, a reels
 
                           {/* Phone overlay details */}
                           <div style={{ position: 'absolute', left: '10px', bottom: '10px', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontSize: '0.55rem', fontWeight: 'bold', color: '#fff' }}>@SalesMateAI</span>
+                            <span style={{ fontSize: '0.55rem', fontWeight: 'bold', color: '#fff' }}>@AdToDealAI</span>
                             <span style={{ fontSize: '0.55rem', color: '#9ca3af' }}>{isRTL ? "موسيقى ترويجية عقارية" : "Real estate background audio"}</span>
                           </div>
                         </div>
@@ -1127,7 +1127,7 @@ I have extracted project highlights and generated target social designs, a reels
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', flex: 1 }}>
                           <div style={{ borderBottom: '2px solid #4f46e5', paddingBottom: '1rem', marginBottom: '1rem' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4f46e5', letterSpacing: '0.1em' }}>
-                              SALESMATE REAL ESTATE MARKETING
+                              ADTODEAL REAL ESTATE MARKETING
                             </span>
                             <h2 style={{ margin: '0.5rem 0 0', color: '#111827', fontSize: '1.4rem', fontWeight: 800 }}>
                               {isRTL ? generatedContent.pdfTitle : generatedContent.pdfTitleEn}

@@ -146,7 +146,7 @@ export default function LandingPage({ setPage }) {
         <div className="card" style={{ borderColor: 'var(--success-glow)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--success)', marginBottom: '1.5rem' }}>
             <CheckCircle2 size={28} />
-            <h3 style={{ margin: 0, fontSize: '1.5rem' }}>{isRTL ? "الحل مع سيلز ميت AI" : "The SalesMate AI Solution"}</h3>
+            <h3 style={{ margin: 0, fontSize: '1.5rem' }}>{isRTL ? "الحل مع أد تو ديل AI" : "The AdToDeal AI Solution"}</h3>
           </div>
           <ul style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: 0, listStyle: 'none' }}>
             <li style={{ display: 'flex', gap: '0.75rem' }}>
@@ -311,7 +311,7 @@ export default function LandingPage({ setPage }) {
         color: 'var(--text-muted)',
         fontSize: '0.9rem'
       }}>
-        <p>© 2026 SalesMate AI. All rights reserved.</p>
+        <p>© 2026 AdToDeal AI. All rights reserved.</p>
       </footer>
     </div>
   );

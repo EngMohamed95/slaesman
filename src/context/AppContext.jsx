@@ -21,7 +21,7 @@ export const AppProvider = ({ children }) => {
       agencyName: 'Elite Properties',
       phone: '+966501234567',
       name: 'Salma Al-Harbi',
-      email: 'salma@salesmate.ai'
+      email: 'salma@adtodeal.com'
     };
   });
 

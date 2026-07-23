@@ -227,7 +227,7 @@ export default function SubscriptionPage() {
               </div>
 
               <button class="pay-btn" onclick="approvePayment()">${isRTL ? "الموافقة والاشتراك الآن" : "Agree & Subscribe"}</button>
-              <a href="#" class="cancel-link" onclick="window.close()">${isRTL ? "إلغاء والعودة للموقع" : "Cancel and return to SalesMate"}</a>
+              <a href="#" class="cancel-link" onclick="window.close()">${isRTL ? "إلغاء والعودة للموقع" : "Cancel and return to AdToDeal"}</a>
             </div>
 
             <script>

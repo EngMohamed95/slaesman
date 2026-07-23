@@ -107,7 +107,7 @@ const parseChatToMessages = (text) => {
 
     messages.push({
       sender,
-      senderName: senderName || (sender === 'agent' ? 'SalesMate' : 'Client'),
+      senderName: senderName || (sender === 'agent' ? 'AdToDeal' : 'Client'),
       text: messageText
     });
   });

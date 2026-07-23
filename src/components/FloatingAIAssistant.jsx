@@ -274,7 +274,7 @@ export default function FloatingAIAssistant() {
               </div>
               <div style={{ textAlign: 'start' }}>
                 <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', display: 'block' }}>
-                  {isRTL ? "مساعد سيلز ميت AI" : "SalesMate AI Assistant"}
+                  {isRTL ? "مساعد أد تو ديل AI" : "AdToDeal AI Assistant"}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--success)' }}>● {isRTL ? "متصل بالبيانات" : "Connected to CRM"}</span>
               </div>

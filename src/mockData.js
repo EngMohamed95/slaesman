@@ -167,7 +167,7 @@ export const INITIAL_TASKS = [
 
 export const TRANSLATIONS = {
   en: {
-    appName: "SalesMate AI",
+    appName: "AdToDeal AI",
     tagline: "Your Personal Sales Assistant",
     taglineDesc: "Follow up better, sell more, and never lose a lead again.",
     navDashboard: "Dashboard",
@@ -337,7 +337,7 @@ export const TRANSLATIONS = {
     saveSettings: "Save Configuration",
 
     // Onboarding
-    onboardingTitle: "Welcome to SalesMate AI!",
+    onboardingTitle: "Welcome to AdToDeal AI!",
     onboardingSubtitle: "Let's configure your digital assistant for your sales domain.",
     step1: "Domain Setup",
     step2: "Target Audience",
@@ -428,7 +428,7 @@ export const TRANSLATIONS = {
     totalAdSpend: "Total Ad Campaign Budget"
   },
   ar: {
-    appName: "سيلز ميت AI",
+    appName: "أد تو ديل AI",
     tagline: "مساعد المبيعات الشخصي الذكي",
     taglineDesc: "تابع عملائك بشكل أفضل، وزد مبيعاتك، ولا تفقد أي عميل محتمل بعد اليوم.",
     navDashboard: "لوحة التحكم",
@@ -598,7 +598,7 @@ export const TRANSLATIONS = {
     saveSettings: "حفظ الإعدادات",
 
     // Onboarding
-    onboardingTitle: "مرحباً بك في سيلز ميت AI!",
+    onboardingTitle: "مرحباً بك في أد تو ديل AI!",
     onboardingSubtitle: "دعنا نقوم بتهيئة مساعدك الرقمي ليتناسب مع أسلوب ومجال عملك.",
     step1: "إعداد مجال العمل",
     step2: "الجمهور المستهدف",

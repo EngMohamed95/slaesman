@@ -152,7 +152,7 @@ export default function AuthPages({ mode, setPage }) {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.62 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             <div class="title">${isRTL ? "اختر حساباً" : "Choose an account"}</div>
-            <div class="subtitle">${isRTL ? "للمتابعة إلى سيلز ميت AI" : "to continue to SalesMate AI"}</div>
+            <div class="subtitle">${isRTL ? "للمتابعة إلى أد تو ديل AI" : "to continue to AdToDeal AI"}</div>
           </div>
 
           <div class="accounts-list">

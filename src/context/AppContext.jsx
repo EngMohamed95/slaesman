@@ -98,19 +98,70 @@ export const AppProvider = ({ children }) => {
   const login = (email, password) => {
     // Mock login
     setUser({ email, role: email.includes('admin') ? 'admin' : 'salesperson' });
+    // Fetch saved plan for this email if it exists
+    const savedUserPlan = localStorage.getItem(`salesmate_plan_${email}`);
+    if (savedUserPlan) {
+      setPlan(savedUserPlan);
+    }
     return true;
   };
 
-  const register = (email, password) => {
+  const register = (email, password, chosenPlan = 'Pro') => {
     // Mock register
-    setUser({ email, role: 'salesperson' });
+    setUser({ email, role: email.includes('admin') ? 'admin' : 'salesperson' });
+    setPlan(chosenPlan);
+    localStorage.setItem(`salesmate_plan_${email}`, chosenPlan);
     setOnboarded(false);
+    // Reset query count for new basic users
+    localStorage.setItem('salesmate_ai_query_count', '0');
     return true;
   };
 
   const logout = () => {
     setUser(null);
     setOnboarded(false);
+  };
+
+  const validateFeatureAccess = (featureKey) => {
+    // Admin bypass
+    if (user?.role === 'admin') return true;
+    
+    if (plan === 'Basic') {
+      // Basic unlocks only dashboard, crm, tasks, reports, settings
+      const basicPages = ['dashboard', 'crm', 'tasks', 'reports', 'settings'];
+      return basicPages.includes(featureKey);
+    }
+    
+    if (plan === 'Pro') {
+      // Pro unlocks everything except campaigns and admin
+      return featureKey !== 'campaigns' && featureKey !== 'admin';
+    }
+    
+    if (plan === 'Growth') {
+      // Growth unlocks everything except admin panel which requires admin role
+      return featureKey !== 'admin' || user?.role === 'admin';
+    }
+    
+    return true;
+  };
+
+  const checkAILimit = () => {
+    if (plan !== 'Basic') return { allowed: true };
+    const count = Number(localStorage.getItem('salesmate_ai_query_count') || 0);
+    if (count >= 3) {
+      return { allowed: false, count };
+    }
+    return { allowed: true, count };
+  };
+
+  const incrementAICount = () => {
+    if (plan !== 'Basic') return;
+    const count = Number(localStorage.getItem('salesmate_ai_query_count') || 0);
+    localStorage.setItem('salesmate_ai_query_count', (count + 1).toString());
+  };
+
+  const resetAICount = () => {
+    localStorage.setItem('salesmate_ai_query_count', '0');
   };
 
   return (
@@ -130,7 +181,11 @@ export const AppProvider = ({ children }) => {
       setSelectedCurrency,
       detectedCountry,
       setDetectedCountry,
-      isDetecting
+      isDetecting,
+      validateFeatureAccess,
+      checkAILimit,
+      incrementAICount,
+      resetAICount
     }}>
       {children}
     </AppContext.Provider>

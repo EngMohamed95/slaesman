@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
+import { useApp } from '../context/AppContext';
+import UpgradePaywall from '../components/UpgradePaywall';
 import { 
   Megaphone, Calendar, Send, CheckCircle2, MessageSquare, 
   Database, FileSpreadsheet, Layers, Smartphone, Eye, Layout
@@ -44,6 +46,17 @@ const GoogleLogo = ({ size = 20 }) => (
 export default function CampaignRequestPage() {
   const { t, isRTL } = useLanguage();
   const { campaignRequests, addCampaignRequest } = useCRM();
+  const { validateFeatureAccess } = useApp();
+
+  if (!validateFeatureAccess('campaigns')) {
+    return (
+      <UpgradePaywall 
+        requiredPlan="Growth" 
+        featureNameAr="طلب تمويل وإطلاق الحملات الإعلانية" 
+        featureNameEn="AI Sponsored Ad Campaign Request" 
+      />
+    );
+  }
 
   // Selected advertising platforms
   const [selectedPlatforms, setSelectedPlatforms] = useState(['Meta']); // Meta, Snapchat, TikTok, Google

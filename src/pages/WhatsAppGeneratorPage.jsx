@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
+import { sendRealWhatsAppMessage } from '../utils/whatsapp';
 import { MessageSquare, ExternalLink, Send, ArrowLeft } from 'lucide-react';
 
 export default function WhatsAppGeneratorPage({ defaultLeadId }) {
@@ -10,6 +11,7 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
   const [selectedLeadId, setSelectedLeadId] = useState(defaultLeadId || leads[0]?.id || '');
   const [template, setTemplate] = useState('intro'); // intro, followup, viewing, payment, price
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   const selectedLead = leads.find(l => l.id === selectedLeadId);
 
@@ -46,12 +48,16 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
     setMessage(text);
   }, [selectedLeadId, template, isRTL]);
 
-  const handleOpenWhatsApp = () => {
+  const handleOpenWhatsApp = async () => {
     if (!selectedLead) return;
-    const cleanPhone = selectedLead.phone.replace(/[^0-9+]/g, '');
-    const encodedText = encodeURIComponent(message);
-    const url = `https://wa.me/${cleanPhone}?text=${encodedText}`;
-    window.open(url, '_blank');
+    setIsSending(true);
+    try {
+      await sendRealWhatsAppMessage(selectedLead.phone, message);
+    } catch (e) {
+      alert(isRTL ? `حدث خطأ أثناء إرسال الواتساب: ${e.message}` : `Error sending WhatsApp message: ${e.message}`);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (

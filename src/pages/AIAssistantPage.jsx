@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
+import { useApp } from '../context/AppContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { Sparkles, MessageSquare, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
 
@@ -114,6 +115,7 @@ const analyzeChatContent = (text, isRTL) => {
 export default function AIAssistantPage() {
   const { t, isRTL } = useLanguage();
   const { leads } = useCRM();
+  const { checkAILimit, incrementAICount } = useApp();
 
   const [selectedLeadId, setSelectedLeadId] = useState(leads[0]?.id || '');
   const [activeTab, setActiveTab] = useState('objections'); // objections, scripts, summarize
@@ -135,6 +137,16 @@ export default function AIAssistantPage() {
 
   const handleGenerate = async () => {
     if (activeTab !== 'chatAnalysis' && !selectedLead) return;
+
+    const limit = checkAILimit();
+    if (!limit.allowed) {
+      setAiOutput(isRTL 
+        ? "🚨 لقد استنفدت الحد المسموح به للحساب المجاني (3 عمليات توليد بالذكاء الاصطناعي).\n\nيرجى الترقية إلى الباقة الاحترافية (Pro) أو باقة النمو (Growth) للحصول على عمليات توليد غير محدودة وبدون قيود!"
+        : "🚨 You have reached the limit of the free tier (3 AI generations).\n\nPlease upgrade to the Pro or Growth plan to get unlimited, unrestricted AI generations!"
+      );
+      return;
+    }
+
     setLoading(true);
     setAiOutput('');
 
@@ -194,6 +206,7 @@ Respond in the language matching the client's name (Arabic if name has Arabic le
 
         const responseText = await callGeminiApi(prompt, systemInstruction);
         setAiOutput(responseText);
+        incrementAICount();
         setLoading(false);
         return;
       } catch (err) {
@@ -285,6 +298,7 @@ Respond in the language matching the client's name (Arabic if name has Arabic le
       }
 
       setAiOutput(result);
+      incrementAICount();
       setLoading(false);
     }, 800);
   };

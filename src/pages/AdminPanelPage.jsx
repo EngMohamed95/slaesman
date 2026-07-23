@@ -14,9 +14,12 @@ export default function AdminPanelPage() {
   ]);
 
   const mockUsers = [
-    { id: 'u1', name: 'Salma Al-Harbi', email: 'salma@salesmate.ai', plan: 'Pro', registeredDate: '2026-05-10' },
-    { id: 'u2', name: 'Khalid Mansour', email: 'khalid@example.com', plan: 'Growth', registeredDate: '2026-05-24' },
-    { id: 'u3', name: 'Noura Salem', email: 'noura.s@example.com', plan: 'Basic', registeredDate: '2026-06-01' }
+    { id: 'u1', name: 'Salma Al-Harbi', email: 'salma@salesmate.ai', plan: 'Pro', registeredDate: '2026-05-10', paymentDate: '2026-07-10', paymentMethod: 'Visa', amount: '199 SAR', status: 'Active' },
+    { id: 'u2', name: 'Khalid Mansour', email: 'khalid@example.com', plan: 'Growth', registeredDate: '2026-05-24', paymentDate: '2026-07-24', paymentMethod: 'PayPal', amount: '399 SAR', status: 'Active' },
+    { id: 'u3', name: 'Noura Salem', email: 'noura.s@example.com', plan: 'Basic', registeredDate: '2026-06-01', paymentDate: '2026-07-01', paymentMethod: 'PayPal', amount: '99 SAR', status: 'Active' },
+    { id: 'u4', name: 'Ahmad Al-Saeed', email: 'ahmad.saeed@gmail.com', plan: 'Pro', registeredDate: '2026-07-12', paymentDate: '2026-07-12', paymentMethod: 'PayPal', amount: '199 SAR', status: 'Active' },
+    { id: 'u5', name: 'John Doe', email: 'john.doe@apple.com', plan: 'Growth', registeredDate: '2026-07-15', paymentDate: '2026-07-15', paymentMethod: 'Visa', amount: '$107', status: 'Active' },
+    { id: 'u6', name: 'Fatima Al-Shammeri', email: 'f.shammeri@domain.sa', plan: 'Basic', registeredDate: '2026-06-20', paymentDate: '2026-06-20', paymentMethod: 'Mada', amount: '99 SAR', status: 'Cancelled' }
   ];
 
   const handleStatusChange = (id, newStatus, newStatusAr) => {
@@ -168,13 +171,16 @@ export default function AdminPanelPage() {
 
           {activeSubTab === 'users' && (
             <div style={{ overflowX: 'auto' }}>
-              <table>
+              <table style={{ minWidth: '900px' }}>
                 <thead>
                   <tr>
                     <th>{t('name')}</th>
                     <th>{t('email')}</th>
                     <th>{isRTL ? 'خطة الاشتراك' : 'Subscription Tier'}</th>
-                    <th>{isRTL ? 'تاريخ التسجيل' : 'Registered Date'}</th>
+                    <th>{isRTL ? 'الحالة' : 'Status'}</th>
+                    <th>{isRTL ? 'طريقة الدفع' : 'Payment Method'}</th>
+                    <th>{isRTL ? 'تاريخ الدفع' : 'Payment Date'}</th>
+                    <th>{isRTL ? 'المبلغ المدفوع' : 'Amount Paid'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,14 +189,25 @@ export default function AdminPanelPage() {
                       <td style={{ fontWeight: 'bold' }}>{user.name}</td>
                       <td>{user.email}</td>
                       <td>
-                        <span style={{ 
+                        <span className="badge" style={{ 
                           fontWeight: 'bold',
+                          background: user.plan === 'Growth' ? 'var(--secondary-glow)' : user.plan === 'Pro' ? 'var(--primary-glow)' : 'rgba(255,255,255,0.05)',
                           color: user.plan === 'Growth' ? 'var(--secondary)' : user.plan === 'Pro' ? 'var(--primary)' : 'var(--text-muted)'
                         }}>
                           {user.plan}
                         </span>
                       </td>
-                      <td>{user.registeredDate}</td>
+                      <td>
+                        <span className="badge" style={{
+                          background: user.status === 'Active' ? 'var(--success-glow)' : 'var(--danger-glow)',
+                          color: user.status === 'Active' ? 'var(--success)' : 'var(--danger)'
+                        }}>
+                          {user.status === 'Active' ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'ملغي' : 'Cancelled')}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{user.paymentMethod}</td>
+                      <td>{user.paymentDate}</td>
+                      <td style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{user.amount}</td>
                     </tr>
                   ))}
                 </tbody>

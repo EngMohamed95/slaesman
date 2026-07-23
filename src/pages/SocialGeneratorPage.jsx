@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useApp } from '../context/AppContext';
+import UpgradePaywall from '../components/UpgradePaywall';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { 
   Sparkles, Calendar, FileText, Compass, Send, 
@@ -102,6 +104,17 @@ Audio: "Units are selling fast. Click the link in bio to book your tour today!"`
 
 export default function SocialGeneratorPage() {
   const { t, isRTL } = useLanguage();
+  const { validateFeatureAccess } = useApp();
+
+  if (!validateFeatureAccess('socialCreator')) {
+    return (
+      <UpgradePaywall 
+        requiredPlan="Pro" 
+        featureNameAr="استوديو صناعة المحتوى العقاري" 
+        featureNameEn="AI Real Estate Content Studio" 
+      />
+    );
+  }
 
   // Active view states
   const [activeTab, setActiveTab] = useState('image'); // image, video, pdf, calendar

@@ -19,6 +19,7 @@ import ReportsPage from './pages/ReportsPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPanelPage from './pages/AdminPanelPage';
+import FloatingAIAssistant from './components/FloatingAIAssistant';
 
 // Import Icons
 import { 
@@ -29,9 +30,54 @@ import {
 function AppContent() {
   const { user, onboarded, logout } = useApp();
   const { t, lang, toggleLanguage, isRTL } = useLanguage();
-  const [page, setPage] = useState('landing'); // landing, login, register, onboarding, dashboard, etc.
-  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [page, setPage] = useState(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#/lead/')) return 'leadDetails';
+    return hash.substring(2) || 'landing';
+  });
+  const [selectedLeadId, setSelectedLeadId] = useState(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#/lead/')) return hash.substring(7);
+    return null;
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Listen to hash changes (for back/forward browser buttons)
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash || '#/landing';
+      if (hash.startsWith('#/lead/')) {
+        const id = hash.substring(7);
+        setSelectedLeadId(id);
+        setPage('leadDetails');
+      } else {
+        const p = hash.substring(2) || 'landing';
+        setPage(p);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Sync React states to URL hash
+  React.useEffect(() => {
+    const noLayoutPages = ['landing', 'login', 'register', 'onboarding'];
+    // If not logged in, force landing or auth page
+    if (!user && !noLayoutPages.includes(page)) {
+      window.location.hash = '/landing';
+      return;
+    }
+
+    let targetHash = `/${page}`;
+    if (page === 'leadDetails' && selectedLeadId) {
+      targetHash = `/lead/${selectedLeadId}`;
+    }
+
+    if (window.location.hash !== `#${targetHash}`) {
+      window.location.hash = targetHash;
+    }
+  }, [page, selectedLeadId, user]);
 
   // Render Page Content
   const renderPage = () => {
@@ -210,6 +256,7 @@ function AppContent() {
 
         {/* Render page element */}
         {renderPage()}
+        <FloatingAIAssistant />
       </div>
 
       {/* CSS adjustments for sidebar mobile drawer */}

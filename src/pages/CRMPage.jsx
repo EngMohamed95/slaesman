@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
-import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X } from 'lucide-react';
+import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw } from 'lucide-react';
 
 // Mock contacts for MacBook / phone address book fallback
 const MOCK_CONTACTS = [
@@ -13,6 +13,59 @@ const MOCK_CONTACTS = [
   { name: 'John Doe', nameEn: 'John Doe', phone: '+15550199', email: 'john.doe@apple.com', company: 'Apple Inc.' },
   { name: 'ريم القحطاني', nameEn: 'Reem Al-Qahtani', phone: '+966532223344', email: 'reem.q@yandex.com', company: 'النهدي للتطوير' },
   { name: 'محمد الصالح', nameEn: 'Mohammad Al-Saleh', phone: '+971501234567', email: 'm.saleh@realestate.ae', company: 'دبي عقار' }
+];
+
+const MOCK_WHATSAPP_CHATS = [
+  {
+    id: 'w1',
+    name: 'أحمد السعيد',
+    phone: '+966501234567',
+    lastMsg: 'عاوز أعرف أسعار شقق 3 غرف وتفاصيل التقسيط',
+    time: '12:30 م',
+    messages: [
+      { sender: 'customer', text: 'أهلاً بك، شوفت إعلانكم على إنستغرام بخصوص شقق وسط الرياض.' },
+      { sender: 'agent', text: 'مرحباً بك يا فندم! نعم متوفرة شقق فاخرة 3 غرف في قلب الرياض.' },
+      { sender: 'customer', text: 'ممتاز، عاوز أعرف الأسعار وطرق السداد، ميزانيتي في حدود 850 ألف ريال.' },
+      { sender: 'agent', text: 'ميزانيتكم ممتازة وتناسب خياراتنا. نوفر تقسيط على 7 سنوات بدون فوائد.' },
+      { sender: 'customer', text: 'عاوز أعرف تفاصيل التقسيط والأسعار بالضبط.' }
+    ]
+  },
+  {
+    id: 'w2',
+    name: 'خالد الحربي',
+    phone: '+966559876543',
+    lastMsg: 'هل المشروع جاهز للسكن ولا قيد الإنشاء؟ وموقعه وين بالظبط؟',
+    time: '11:15 ص',
+    messages: [
+      { sender: 'customer', text: 'السلام عليكم، بخصوص مشروع فلل الياسمين.' },
+      { sender: 'agent', text: 'وعليكم السلام ورحمة الله وبركاته. تفضل يا فندم.' },
+      { sender: 'customer', text: 'هل المشروع جاهز للسكن ولا قيد الإنشاء؟ وموقعه وين بالظبط؟ ميزانيتي في حدود 2.5 مليون ريال.' }
+    ]
+  },
+  {
+    id: 'w3',
+    name: 'سارة العتيبي',
+    phone: '+966561122334',
+    lastMsg: 'الميزانية المتاحة معي هي 1.2 مليون كحد أقصى، هل عندكم شقة تناسبني؟',
+    time: 'أمس',
+    messages: [
+      { sender: 'customer', text: 'مرحبا، أبحث عن شقة في النرجس.' },
+      { sender: 'agent', text: 'أهلاً بك يا سارة. نعم لدينا شقق 3 غرف فاخرة في النرجس.' },
+      { sender: 'customer', text: 'الميزانية المتاحة معي هي 1.2 مليون كحد أقصى، هل عندكم شقة تناسبني؟' }
+    ]
+  },
+  {
+    id: 'w4',
+    name: 'John Doe',
+    phone: '+15550199',
+    lastMsg: 'I am looking for a penthouse in Riyadh with a private pool',
+    time: '21/07/2026',
+    messages: [
+      { sender: 'customer', text: 'Hello, do you have any penthouses available?' },
+      { sender: 'agent', text: 'Hi! Yes, we have premium penthouses in central Riyadh.' },
+      { sender: 'customer', text: 'Awesome. I am looking for one with a private pool, budget is around 4.5 million SAR.' }
+    ]
+  }
 ];
 
 // Helper to parse pasted chat text into structured message bubble objects
@@ -206,6 +259,90 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
   useEffect(() => {
     setChatMessages(parseChatToMessages(pastedChat));
   }, [pastedChat]);
+
+  // WhatsApp Web Integration States
+  const [isWhatsappConnected, setIsWhatsappConnected] = useState(false);
+  const [isQrScanning, setIsQrScanning] = useState(false);
+  const [selectedWhatsappChatId, setSelectedWhatsappChatId] = useState('w1');
+
+  const handleSimulateQrScan = () => {
+    setIsQrScanning(true);
+    setTimeout(() => {
+      setIsQrScanning(false);
+      setIsWhatsappConnected(true);
+    }, 1800);
+  };
+
+  const handleSyncChatAnalysis = async (messagesArray, chatName, chatPhone) => {
+    setIsAnalyzing(true);
+    
+    // Compile messages text
+    const chatText = messagesArray.map(m => `${m.sender === 'customer' ? 'Customer' : 'Agent'}: ${m.text}`).join('\n');
+    
+    // Populate form parameters
+    if (isGeminiActive()) {
+      try {
+        const systemInstruction = `You are a sales CRM parser assistant. Your task is to extract structured lead details from the provided WhatsApp chat transcript. Respond ONLY with a valid JSON object matching this schema:
+{
+  "name": "lead name in Arabic if chat is Arabic, else English",
+  "phone": "lead phone number",
+  "email": "lead email address or empty string",
+  "service": "interested property/service",
+  "budget": "budget in numbers only",
+  "interestLevel": "High" or "Medium" or "Low",
+  "suggestions": "Three bullet points action items for the sales agent in Arabic if chat is in Arabic, else English"
+}`;
+        const responseText = await callGeminiApi(chatText, systemInstruction, true);
+        const result = JSON.parse(responseText);
+
+        setNewName(result.name || chatName);
+        setNewPhone(result.phone || chatPhone);
+        if (result.email) setNewEmail(result.email);
+        if (result.service) setNewService(result.service);
+        setNewBudget(result.budget?.toString() || '0');
+        setNewExpectedValue(result.budget?.toString() || '0');
+        setNewInterestLevel(result.interestLevel || 'Medium');
+        setNewSource('WhatsApp Sync');
+        
+        const finalNotes = isRTL 
+          ? `[تم ربط الواتساب ويب وسحب البيانات بـ AI]:\n--- توصيات المساعد الذكي ---\n${result.suggestions}`
+          : `[Conversation synced directly via WhatsApp Web by AI]:\n--- AI Suggestions ---\n${result.suggestions}`;
+        setNewNotes(finalNotes);
+        setAiSuggestions(result.suggestions);
+
+        setIsAnalyzing(false);
+        setImportMode(null);
+        alert(isRTL ? 'تم ربط الحساب وتحليل المحادثة بنجاح وتعبئة البيانات!' : 'Account synced and conversation parsed successfully!');
+        return;
+      } catch (e) {
+        console.warn("Gemini synced parser failed, falling back:", e);
+      }
+    }
+
+    // Local fallback parsing
+    setTimeout(() => {
+      setNewName(chatName);
+      setNewPhone(chatPhone);
+      setNewBudget('850000');
+      setNewExpectedValue('850000');
+      setNewInterestLevel('High');
+      setNewSource('WhatsApp Sync');
+      setNewService(isRTL ? 'شقة 3 غرف في وسط الرياض' : '3-Bedroom Apartment in Downtown Riyadh');
+
+      const finalSuggestions = isRTL
+        ? '• إرسال بروشور شقة وسط الرياض بالواتساب.\n• جدولة مكالمة هاتفية للمتابعة غداً.\n• عرض تفاصيل خطة التقسيط على 7 سنوات.'
+        : '• Send the Downtown Riyadh brochure via WhatsApp.\n• Schedule a follow-up call tomorrow.\n• Share details of the 7-year installment plan.';
+      const finalNotes = isRTL 
+        ? `[تم استيراد المحادثة مباشرة عبر واتساب ويب]:\n--- توصيات المساعد الذكي ---\n${finalSuggestions}`
+        : `[Conversation imported directly via WhatsApp Web Sync]:\n--- AI Suggestions ---\n${finalSuggestions}`;
+      setNewNotes(finalNotes);
+      setAiSuggestions(finalSuggestions);
+
+      setIsAnalyzing(false);
+      setImportMode(null);
+      alert(isRTL ? 'تم ربط الحساب وتحليل المحادثة وتعبئة البيانات!' : 'Account synced and conversation parsed successfully!');
+    }, 1200);
+  };
 
   // Extract unique sources for filters
   const uniqueSources = [...new Set(leads.map(l => l.source))];
@@ -406,10 +543,13 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
   // Segment leads by active tab
   const tabLeads = leads.filter(lead => {
     if (activeTab === 'interested') {
-      return lead.interestLevel === 'High' || lead.status === 'Interested' || lead.status === 'Close to Deal';
+      return lead.interestLevel === 'High' || lead.status === 'Interested' || lead.status === 'Close to Deal' || lead.status === 'Won';
     }
     if (activeTab === 'followup') {
       return lead.status === 'Needs Follow-up' || lead.status === 'No Response' || lead.status === 'Postponed';
+    }
+    if (activeTab === 'notinterested') {
+      return lead.status === 'Not Interested' || lead.status === 'Lost' || lead.interestLevel === 'Low';
     }
     return true; // 'all'
   });
@@ -459,16 +599,37 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
       }}>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {[
-            { id: 'all', label: t('tabAllLeads'), count: leads.length },
+            { 
+              id: 'all', 
+              label: t('tabAllLeads'), 
+              count: leads.length,
+              color: 'var(--primary)',
+              glow: 'var(--primary-glow)',
+              activeBg: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)'
+            },
             { 
               id: 'interested', 
               label: t('tabInterestedLeads'), 
-              count: leads.filter(l => l.interestLevel === 'High' || l.status === 'Interested' || l.status === 'Close to Deal').length 
+              count: leads.filter(l => l.interestLevel === 'High' || l.status === 'Interested' || l.status === 'Close to Deal' || l.status === 'Won').length,
+              color: 'var(--success)',
+              glow: 'var(--success-glow)',
+              activeBg: 'linear-gradient(135deg, var(--success) 0%, #34d399 100%)'
             },
             { 
               id: 'followup', 
               label: t('tabFollowUpLeads'), 
-              count: leads.filter(l => l.status === 'Needs Follow-up' || l.status === 'No Response' || l.status === 'Postponed').length 
+              count: leads.filter(l => l.status === 'Needs Follow-up' || l.status === 'No Response' || l.status === 'Postponed').length,
+              color: 'var(--accent)',
+              glow: 'var(--accent-glow)',
+              activeBg: 'linear-gradient(135deg, var(--accent) 0%, #fbbf24 100%)'
+            },
+            { 
+              id: 'notinterested', 
+              label: isRTL ? 'العملاء غير المهتمين' : 'Not Interested', 
+              count: leads.filter(l => l.status === 'Not Interested' || l.status === 'Lost' || l.interestLevel === 'Low').length,
+              color: 'var(--danger)',
+              glow: 'var(--danger-glow)',
+              activeBg: 'linear-gradient(135deg, var(--danger) 0%, #f87171 100%)'
             }
           ].map(tab => {
             const isActive = activeTab === tab.id;
@@ -481,26 +642,31 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                 }}
                 className="btn"
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.6rem 1.25rem',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s ease',
-                  background: isActive ? 'var(--primary)' : 'transparent',
-                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
-                  color: isActive ? '#fff' : 'var(--text-muted)'
+                  gap: '0.75rem',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: isActive ? tab.activeBg : 'rgba(255, 255, 255, 0.02)',
+                  border: isActive ? `1px solid ${tab.color}` : '1px solid var(--card-border)',
+                  color: isActive ? '#fff' : 'var(--text-muted)',
+                  boxShadow: isActive ? `0 4px 15px ${tab.glow}` : 'none',
                 }}
               >
                 <span>{tab.label}</span>
                 <span style={{
-                  fontSize: '0.75rem',
-                  padding: '0.1rem 0.4rem',
-                  borderRadius: '999px',
-                  background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  color: isActive ? '#fff' : 'var(--text-muted)'
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: '0.35rem',
+                  background: isActive ? 'rgba(255, 255, 255, 0.2)' : tab.glow,
+                  color: isActive ? '#fff' : tab.color,
+                  minWidth: '24px',
+                  display: 'inline-block',
+                  textAlign: 'center'
                 }}>
                   {tab.count}
                 </span>
@@ -713,7 +879,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'start' }}>
                 {isRTL ? 'طرق استيراد سريعة (اختياري)' : 'Quick Import Methods (Optional)'}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 <button 
                   type="button"
                   className="btn btn-secondary" 
@@ -722,15 +888,33 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.6rem',
-                    fontSize: '0.85rem',
+                    gap: '0.35rem',
+                    padding: '0.6rem 0.25rem',
+                    fontSize: '0.75rem',
                     borderColor: importMode === 'whatsapp' ? 'var(--primary)' : 'var(--card-border)',
                     background: importMode === 'whatsapp' ? 'var(--primary-glow)' : undefined
                   }}
                 >
-                  <MessageCircle size={16} style={{ color: '#25D366' }} />
-                  <span>{t('whatsappAnalyze')}</span>
+                  <MessageCircle size={14} style={{ color: '#25D366' }} />
+                  <span>{isRTL ? "لصق محادثة" : "Paste Chat"}</span>
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-secondary" 
+                  onClick={() => setImportMode(importMode === 'whatsappSync' ? null : 'whatsappSync')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    padding: '0.6rem 0.25rem',
+                    fontSize: '0.75rem',
+                    borderColor: importMode === 'whatsappSync' ? 'var(--primary)' : 'var(--card-border)',
+                    background: importMode === 'whatsappSync' ? 'var(--primary-glow)' : undefined
+                  }}
+                >
+                  <RefreshCw size={14} style={{ color: '#25D366' }} />
+                  <span>{isRTL ? "ربط واتساب مباشر" : "Sync WhatsApp"}</span>
                 </button>
                 <button 
                   type="button"
@@ -740,14 +924,14 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.6rem',
-                    fontSize: '0.85rem',
+                    gap: '0.35rem',
+                    padding: '0.6rem 0.25rem',
+                    fontSize: '0.75rem',
                     borderColor: showContactsModal ? 'var(--primary)' : 'var(--card-border)',
                     background: showContactsModal ? 'var(--primary-glow)' : undefined
                   }}
                 >
-                  <Smartphone size={16} style={{ color: 'var(--secondary)' }} />
+                  <Smartphone size={14} style={{ color: 'var(--secondary)' }} />
                   <span>{t('importContacts')}</span>
                 </button>
               </div>
@@ -987,6 +1171,290 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                       <Sparkles size={14} />
                       {t('analyzeBtn')}
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* WhatsApp Real-time Sync Simulation Area */}
+            {importMode === 'whatsappSync' && (
+              <div style={{
+                background: 'rgba(255,255,255,0.01)',
+                border: '1px solid var(--card-border)',
+                borderRadius: '0.75rem',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+                animation: 'fadeIn 0.3s ease',
+                textAlign: 'start'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <MessageCircle size={16} style={{ color: '#25D366' }} />
+                    {isRTL ? "مزامنة وربط واتساب ويب المباشر" : "Direct WhatsApp Web Sync"}
+                  </h4>
+                  <button 
+                    type="button" 
+                    onClick={() => setImportMode(null)} 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {!isWhatsappConnected ? (
+                  /* Connection Screen with QR Code */
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1.5rem', textAlign: 'center', gap: '1.25rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '420px', margin: 0 }}>
+                      {isRTL 
+                        ? "قم بمسح رمز الاستجابة السريعة (QR Code) لتوصيل حساب واتساب وسحب محادثات عملائك مباشرة داخل البرنامج."
+                        : "Scan the QR Code to securely authorize the system to read and import your latest customer chats directly."
+                      }
+                    </p>
+
+                    {/* QR Code Container */}
+                    <div style={{
+                      position: 'relative',
+                      background: '#fff',
+                      padding: '1rem',
+                      borderRadius: '0.75rem',
+                      width: '180px',
+                      height: '180px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                      overflow: 'hidden'
+                    }}>
+                      {/* Animated scanning line */}
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        height: '2px',
+                        background: '#25D366',
+                        boxShadow: '0 0 10px #25D366',
+                        animation: 'scan 2.5s linear infinite',
+                        zIndex: 2
+                      }} />
+                      {/* Simulated QR Code SVG */}
+                      <svg viewBox="0 0 24 24" width="160" height="160" style={{ opacity: isQrScanning ? 0.35 : 1, transition: 'opacity 0.3s' }}>
+                        <path d="M2 2h6v6H2zm2 2v2h2V4zm14-2h6v6h-6zm2 2v2h2V4zM2 16h6v6H2zm2 2v2h2v-2zm16-4h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zm-6-8h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm-2-4h2v2h-2zm0 4h2v2h-2zm4-8h2v2h-2zm-4 0h2v2h-2zm-2 4h2v2h-2zm2 2h2v2h-2z" fill="#0c111d" />
+                      </svg>
+
+                      {isQrScanning && (
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          background: 'rgba(255,255,255,0.9)',
+                          color: '#070a13',
+                          fontWeight: 'bold',
+                          fontSize: '0.8rem'
+                        }}>
+                          <div style={{
+                            width: '28px',
+                            height: '28px',
+                            border: '3px solid #ccc',
+                            borderTopColor: '#25D366',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite'
+                          }} />
+                          <span>{isRTL ? "جاري مسح الكود..." : "Scanning..."}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isQrScanning}
+                      onClick={handleSimulateQrScan}
+                      className="btn"
+                      style={{
+                        background: '#25D366',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '0.75rem 1.75rem',
+                        borderRadius: '2rem',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        boxShadow: '0 4px 15px rgba(37, 211, 102, 0.25)'
+                      }}
+                    >
+                      <RefreshCw size={16} className={isQrScanning ? 'spin-animation' : ''} />
+                      <span>{isRTL ? "محاكاة مسح الكود والربط" : "Simulate QR Scan & Connect"}</span>
+                    </button>
+                    
+                    <style>{`
+                      @keyframes scan {
+                        0% { top: 0%; }
+                        50% { top: 100%; }
+                        100% { top: 0%; }
+                      }
+                    `}</style>
+                  </div>
+                ) : (
+                  /* Connected Active Chats Interface */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
+                    {/* Header bar */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'rgba(255,255,255,0.03)',
+                      padding: '0.6rem 1rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid var(--card-border)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#25d366', display: 'inline-block' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
+                          {isRTL ? "حساب متصل: +966 50 123 4567" : "Connected account: +966 50 123 4567"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsWhatsappConnected(false)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 'bold' }}
+                      >
+                        {isRTL ? "قطع الاتصال" : "Disconnect"}
+                      </button>
+                    </div>
+
+                    {/* Chats Split Layout */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 2fr',
+                      gap: '1rem',
+                      height: '350px',
+                      background: '#070a13',
+                      border: '1px solid var(--card-border)',
+                      borderRadius: '0.75rem',
+                      overflow: 'hidden'
+                    }}>
+                      {/* Left Side: Chats list */}
+                      <div style={{ borderRight: isRTL ? 'none' : '1px solid var(--card-border)', borderLeft: isRTL ? '1px solid var(--card-border)' : 'none', overflowY: 'auto' }}>
+                        {MOCK_WHATSAPP_CHATS.map(chat => (
+                          <div
+                            key={chat.id}
+                            onClick={() => setSelectedWhatsappChatId(chat.id)}
+                            style={{
+                              padding: '0.75rem',
+                              borderBottom: '1px solid var(--card-border)',
+                              cursor: 'pointer',
+                              background: selectedWhatsappChatId === chat.id ? 'rgba(37, 211, 102, 0.08)' : 'transparent',
+                              transition: 'background 0.2s',
+                              textAlign: 'start'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: selectedWhatsappChatId === chat.id ? '#25d366' : 'var(--text-main)' }}>{chat.name}</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{chat.time}</span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {chat.lastMsg}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Right Side: Conversation thread */}
+                      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        {/* Selected Chat Messages */}
+                        <div style={{
+                          flex: 1,
+                          padding: '1rem',
+                          overflowY: 'auto',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                          background: 'rgba(255,255,255,0.01)'
+                        }}>
+                          {MOCK_WHATSAPP_CHATS.find(c => c.id === selectedWhatsappChatId)?.messages.map((m, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                alignSelf: m.sender === 'agent' ? 'flex-end' : 'flex-start',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: m.sender === 'agent' ? 'flex-end' : 'flex-start',
+                                width: '100%'
+                              }}
+                            >
+                              <div style={{
+                                maxWidth: '75%',
+                                padding: '0.55rem 0.85rem',
+                                borderRadius: '0.65rem',
+                                fontSize: '0.8rem',
+                                lineHeight: 1.4,
+                                background: m.sender === 'agent' ? '#075e54' : 'rgba(255,255,255,0.07)',
+                                color: '#fff',
+                                textAlign: 'start'
+                              }}>
+                                {m.text}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Analysis Action Footer */}
+                        <div style={{
+                          padding: '0.75rem 1rem',
+                          borderTop: '1px solid var(--card-border)',
+                          background: 'rgba(255,255,255,0.01)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {isRTL ? "مزامنة واتساب ويب تفاعلية" : "Live WhatsApp web mirror"}
+                          </div>
+                          
+                          <button
+                            type="button"
+                            disabled={isAnalyzing}
+                            onClick={() => {
+                              const activeChat = MOCK_WHATSAPP_CHATS.find(c => c.id === selectedWhatsappChatId);
+                              if (activeChat) {
+                                handleSyncChatAnalysis(activeChat.messages, activeChat.name, activeChat.phone);
+                              }
+                            }}
+                            className="btn btn-primary"
+                            style={{
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.8rem',
+                              background: '#25D366',
+                              borderColor: '#25D366',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <RefreshCw size={14} className="spin-animation" style={{ marginRight: '0.25rem' }} />
+                                <span>{isRTL ? "جاري سحب البيانات بالـ AI..." : "Extracting via AI..."}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={14} />
+                                <span>{isRTL ? "استخلاص العميل بالـ AI" : "AI Extract Lead"}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

@@ -8,7 +8,7 @@ import { Sparkles, X, Send, MessageSquare, AlertCircle, HelpCircle } from 'lucid
 export default function FloatingAIAssistant() {
   const { t, isRTL, lang } = useLanguage();
   const { leads, tasks } = useCRM();
-  const { checkAILimit, incrementAICount } = useApp();
+  const { checkAILimit, incrementAICount, theme } = useApp();
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(() => {
@@ -241,10 +241,10 @@ export default function FloatingAIAssistant() {
           width: '360px',
           height: '500px',
           borderRadius: '1rem',
-          background: 'rgba(11, 15, 25, 0.95)',
+          background: theme === 'light' ? '#ffffff' : 'rgba(11, 15, 25, 0.95)',
           backdropFilter: 'blur(16px)',
           border: '1px solid var(--card-border)',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -301,7 +301,7 @@ export default function FloatingAIAssistant() {
                 style={{
                   background: 'rgba(255,255,255,0.05)',
                   border: 'none',
-                  color: 'white',
+                  color: 'var(--text-main)',
                   borderRadius: '50%',
                   width: '24px',
                   height: '24px',
@@ -324,7 +324,7 @@ export default function FloatingAIAssistant() {
             display: 'flex',
             flexDirection: 'column',
             gap: '0.75rem',
-            background: 'rgba(0,0,0,0.1)'
+            background: theme === 'light' ? '#f8fafc' : 'rgba(0,0,0,0.1)'
           }}>
             {messages.map((msg, index) => {
               const isUser = msg.sender === 'user';
@@ -341,9 +341,9 @@ export default function FloatingAIAssistant() {
                       ? 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)' 
                       : msg.isWarning 
                         ? 'var(--danger-glow)' 
-                        : 'rgba(255,255,255,0.05)',
+                        : theme === 'light' ? '#ffffff' : 'rgba(255,255,255,0.05)',
                     border: msg.isWarning ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid var(--card-border)',
-                    color: msg.isWarning ? 'var(--danger)' : 'var(--text-main)',
+                    color: msg.isWarning ? 'var(--danger)' : isUser ? '#ffffff' : 'var(--text-main)',
                     fontSize: '0.85rem',
                     lineHeight: '1.5',
                     whiteSpace: 'pre-wrap',
@@ -446,8 +446,8 @@ export default function FloatingAIAssistant() {
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.5rem',
                 border: '1px solid var(--card-border)',
-                background: 'rgba(255, 255, 255, 0.03)',
-                color: 'white'
+                background: theme === 'light' ? '#ffffff' : 'rgba(255, 255, 255, 0.03)',
+                color: 'var(--text-main)'
               }}
             />
             <button

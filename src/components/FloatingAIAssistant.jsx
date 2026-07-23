@@ -8,11 +8,13 @@ import { Sparkles, X, Send, MessageSquare, AlertCircle, HelpCircle } from 'lucid
 export default function FloatingAIAssistant() {
   const { t, isRTL, lang } = useLanguage();
   const { leads, tasks } = useCRM();
-  const { checkAILimit, incrementAICount, theme } = useApp();
+  const { checkAILimit, incrementAICount, theme, user } = useApp();
+
+  const userEmail = user?.email || 'default';
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem('salesmate_floating_chat');
+    const saved = localStorage.getItem(`adtodeal_floating_chat_${user?.email || 'default'}`);
     if (saved) return JSON.parse(saved);
     
     // Initial welcome message
@@ -34,10 +36,32 @@ export default function FloatingAIAssistant() {
 
   const messagesEndRef = useRef(null);
 
-  // Persist messages in localStorage
+  // Sync chat messages state whenever active user changes
   useEffect(() => {
-    localStorage.setItem('salesmate_floating_chat', JSON.stringify(messages));
-  }, [messages]);
+    if (!userEmail) return;
+    const saved = localStorage.getItem(`adtodeal_floating_chat_${userEmail}`);
+    if (saved) {
+      setMessages(JSON.parse(saved));
+    } else {
+      setMessages([
+        {
+          id: 'welcome',
+          sender: 'ai',
+          text: lang === 'ar' 
+            ? "مرحباً! أنا مساعدك الشخصي الذكي. يمكنك أن تسألني عن أي شيء يخص مبيعاتك، عملائك، أو تنظيم مهامك اليومية."
+            : "Hello! I am your AI Sales Assistant. Ask me anything about your deals, customer info, or follow-up tasks.",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    }
+  }, [userEmail]);
+
+  // Persist messages in localStorage isolated per user
+  useEffect(() => {
+    if (userEmail) {
+      localStorage.setItem(`adtodeal_floating_chat_${userEmail}`, JSON.stringify(messages));
+    }
+  }, [messages, userEmail]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -188,6 +212,7 @@ export default function FloatingAIAssistant() {
       }
     ];
     setMessages(defaultMsg);
+    localStorage.setItem(`adtodeal_floating_chat_${userEmail}`, JSON.stringify(defaultMsg));
   };
 
   // Predefined prompt chips

@@ -24,11 +24,11 @@ import FloatingAIAssistant from './components/FloatingAIAssistant';
 // Import Icons
 import { 
   Sparkles, Users, Calendar, MessageSquare, Megaphone, 
-  BarChart3, Settings, ShieldCheck, LogOut, Menu, X, Globe, User, CreditCard
+  BarChart3, Settings, ShieldCheck, LogOut, Menu, X, Globe, User, CreditCard, Sun, Moon
 } from 'lucide-react';
 
 function AppContent() {
-  const { user, onboarded, logout } = useApp();
+  const { user, onboarded, logout, theme, toggleTheme } = useApp();
   const { t, lang, toggleLanguage, isRTL } = useLanguage();
   const [page, setPage] = useState(() => {
     const hash = window.location.hash;
@@ -223,14 +223,35 @@ function AppContent() {
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginInlineStart: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginInlineStart: 'auto' }}>
+            {/* Dark / Light Theme Switcher */}
+            <button 
+              onClick={toggleTheme}
+              title={theme === 'dark' ? (isRTL ? "تفعيل الوضع النهاري" : "Switch to Light Mode") : (isRTL ? "تفعيل الوضع الليلي" : "Switch to Dark Mode")}
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--card-border)',
+                color: 'var(--text-main)',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              {theme === 'dark' ? <Sun size={15} style={{ color: '#f59e0b' }} /> : <Moon size={15} style={{ color: '#4f46e5' }} />}
+              <span>{theme === 'dark' ? (isRTL ? 'نهاري' : 'Light') : (isRTL ? 'ليلي' : 'Dark')}</span>
+            </button>
+
             {/* Quick Lang Indicator */}
             <button 
               onClick={toggleLanguage}
               style={{
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid var(--card-border)',
-                color: 'white',
+                color: 'var(--text-main)',
                 padding: '0.4rem 0.8rem',
                 borderRadius: '0.5rem',
                 cursor: 'pointer',

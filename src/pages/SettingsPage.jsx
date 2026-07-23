@@ -3,11 +3,11 @@ import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
 import { getGeminiApiKey, setGeminiApiKey } from '../utils/gemini';
 import { getWhatsAppConfig, setWhatsAppConfig } from '../utils/whatsapp';
-import { Settings, Save, User, Globe, MessageSquare, Key, Sparkles, PhoneCall } from 'lucide-react';
+import { Settings, Save, User, Globe, MessageSquare, Key, Sparkles, PhoneCall, Sun, Moon } from 'lucide-react';
 
 export default function SettingsPage() {
   const { t, isRTL, lang, setLang } = useLanguage();
-  const { profile, setProfile } = useApp();
+  const { profile, setProfile, theme, setTheme } = useApp();
 
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
@@ -124,6 +124,31 @@ export default function SettingsPage() {
                 style={{ padding: '0.75rem 2rem', boxShadow: 'none' }}
               >
                 {l.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Theme Preference (Dark / Light) */}
+        <div className="card">
+          <h3 style={{ margin: '0 0 1.25rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Sun size={18} style={{ color: 'var(--accent)' }} />
+            {isRTL ? "مظهر النظام (الوضع الليلي والنهاري)" : "Appearance Theme (Dark / Light)"}
+          </h3>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            {[
+              { id: 'dark', label: isRTL ? 'الوضع الليلي (Dark Mode 🌙)' : 'Dark Mode 🌙', icon: <Moon size={16} /> },
+              { id: 'light', label: isRTL ? 'الوضع النهاري (Light Mode ☀️)' : 'Light Mode ☀️', icon: <Sun size={16} /> }
+            ].map((tItem) => (
+              <button
+                key={tItem.id}
+                type="button"
+                className={`btn ${theme === tItem.id ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setTheme(tItem.id)}
+                style={{ flex: 1, padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                {tItem.icon}
+                <span>{tItem.label}</span>
               </button>
             ))}
           </div>

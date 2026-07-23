@@ -25,6 +25,20 @@ export const AppProvider = ({ children }) => {
     };
   });
 
+  // Global Theme Mode State ('dark' | 'light')
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('salesmate_theme') || 'dark';
+  });
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  useEffect(() => {
+    localStorage.setItem('salesmate_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   // Global Currency State
   const [selectedCurrency, setSelectedCurrency] = useState('SAR');
   const [detectedCountry, setDetectedCountry] = useState('المملكة العربية السعودية 🇸🇦');
@@ -166,6 +180,9 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
+      theme,
+      setTheme,
+      toggleTheme,
       user,
       setUser,
       login,

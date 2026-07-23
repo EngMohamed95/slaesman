@@ -125,6 +125,11 @@ input, select, textarea {
   font-family: inherit;
   transition: all 0.2s ease;
 }
+select option {
+  background-color: #111827 !important;
+  color: #f3f4f6 !important;
+  padding: 0.5rem;
+}
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);

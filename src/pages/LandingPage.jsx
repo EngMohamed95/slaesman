@@ -48,31 +48,31 @@ export default function LandingPage({ setPage }) {
   // Playground presets
   const playgroundScenarios = {
     objection: {
-      titleAr: "الرد على اعتراض: العقار أعلى من ميزانيتي",
+      titleAr: "الرد على اعتراض: السعر أعلى من ميزانيتي",
       titleEn: "Objection Response: Over Budget",
-      promptAr: "كيف أرد على عميل مهتم بفيلا في الرياض لكنه متردد ويقول السعر مرتفع مقارنة بميزانيته؟",
-      outputAr: `أهلاً بك يا أبا فهد، أقدر حرصك على الميزانية. 
-الميزة في هذا العقار أنه يقع في حي واعد يشهد رخص بناء تجارية جديدة ومخطط مترو قريب، مما يعني أن قيمته الاستثمارية ترتفع سنوياً بنسبة لا تقل عن 12-15%.
-كذلك، المالك مستعد لتقديم تيسيرات في دفعة المقدم وتقسيط باقي المبلغ على دفعتين. هل نحدد موعد غداً لمراجعة خيارات التمويل المتاحة وتثبيت السعر الحالي قبل التحديث؟`
+      promptAr: "كيف أرد على عميل مهتم بخدمتنا/منتجنا لكنه متردد ويقول السعر مرتفع مقارنة بميزانيته؟",
+      outputAr: `أهلاً بك يا أبا فهد، أقدر حرصك على الميزانية والاستثمار الصائب. 
+الميزة في هذا العرض أن الخدمة تضمن لك توفير ما لا يقل عن 25% من تكاليف التشغيل السنوية وتضمن لك عائد سريع على الاستثمار في أول 3 أشهر.
+كذلك، نوفر خيارات دفع مرنة على 3 دفعات ميسرة. هل نحدد موعداً غداً لمراجعة الترتيبات المناسبة وتأكيد حجز العرض الحالي قبل انتهائه؟`
     },
     whatsapp: {
       titleAr: "رسالة واتساب: إعادة تنشيط عميل غير متجاوب",
       titleEn: "WhatsApp: Reactivate Cold Lead",
-      promptAr: "صياغة رسالة واتساب قصيرة جداً لعميل انقطع عن الرد منذ 5 أيام بخصوص شقة فندقية",
+      promptAr: "صياغة رسالة واتساب قصيرة جداً لعميل انقطع عن الرد منذ 5 أيام بخصوص طلب عرض سعر",
       outputAr: `مرحباً أستاذ خالد 👋
-أحببت تذكيرك بالفرصة الاستثمارية لشقة المارينا الفندقية. 
-تلقينا اليوم إشعاراً بتحديث خطة السداد إلى 5 سنوات بدون فوائد.
-هل ينسبك مراجعة التفاصيل المحدثة اليوم؟ 📲`
+أحببت تذكيرك بالعرض الخاص المقدم لك. 
+تلقينا اليوم إشعاراً بإتاحة خيار سداد ميسر وتسهيلات إضافية لطلبك.
+هل يناسبك مراجعة التفاصيل المحدثة اليوم؟ 📲`
     },
     reels: {
-      titleAr: "سكربت ريلز 15 ثانية: تسويق بنتهاوس فاخر",
-      titleEn: "15s Reels Script: Luxury Penthouse",
-      promptAr: "كتابة سيناريو ريلز سريع وجذاب لعرض بنتهاوس مع مسبح خاص",
-      outputAr: `🎬 [مشهد 1 - 0-3 ثواني]: فتح باب الأسانسير البانورامي وموسيقى هادئة.
-🗣️ هوك الصوت: "تخيل أن هذا هو المنظر الذي تستيقظ عليه كل صباح في قلب العاصمة!"
-🎬 [مشهد 2 - 3-10 ثواني]: لقطات سريعة للمسبح الخاص والإضاءة الخافتة بالمساء.
-🗣️ الصوت: "بنتهاوس 400م بمسبح خاص، وتشطيب فندقي بالكامل بدون عمولة."
-🎬 [مشهد 3 - 10-15 ثواني]: نص على الشاشة 📲 "اضغط على الرابط بالبايو لمعاينة الموقع فوراً".`
+      titleAr: "سكربت ريلز 15 ثانية: تسويق عرض خاص أو منتج",
+      titleEn: "15s Reels Script: Special Offer Pitch",
+      promptAr: "كتابة سيناريو ريلز سريع وجذاب لعرض خدمة أو منتج جديد",
+      outputAr: `🎬 [مشهد 1 - 0-3 ثواني]: لقطة سريعة ومثيرة مع موسيقى حماسية.
+🗣️ هوك الصوت: "تخيل أن تضاعف مبيعاتك وأرباحك الشهرية في أقل من 30 يوماً!"
+🎬 [مشهد 2 - 3-10 ثواني]: عرض ميزات المنتج والنتائج السريعة للعملاء.
+🗣️ الصوت: "حل ذكي متكامل يوفر وقتك ويرفع نسبة إغلاق صفقاتك بضمان النتائج."
+🎬 [مشهد 3 - 10-15 ثواني]: نص على الشاشة 📲 "اضغط على الرابط بالبايو للحصول على العرض الفوري".`
     }
   };
 
@@ -152,7 +152,7 @@ export default function LandingPage({ setPage }) {
                 AdToDeal AI
               </span>
               <div style={{ fontSize: '0.65rem', color: 'var(--secondary)', fontWeight: 600, marginTop: '-3px' }}>
-                {isRTL ? "نظام مبيعات العقارات الذكي" : "AI Real Estate Sales Ecosystem"}
+                {isRTL ? "نظام إدارة المبيعات والتسويق الذكي" : "AI Sales & CRM Growth Ecosystem"}
               </div>
             </div>
           </div>
@@ -254,7 +254,7 @@ export default function LandingPage({ setPage }) {
           boxShadow: '0 4px 20px rgba(79, 70, 229, 0.15)'
         }}>
           <Sparkles size={16} style={{ color: 'var(--secondary)' }} />
-          <span>{isRTL ? "المنصة رقم #1 لإدارة ومبيعات العقارات بالذكاء الاصطناعي" : "The #1 AI Real Estate Sales & CRM Platform"}</span>
+          <span>{isRTL ? "المنصة رقم #1 لإدارة المبيعات وإغلاق العملاء بالذكاء الاصطناعي" : "The #1 AI Sales & CRM Platform"}</span>
           <span style={{ background: 'var(--primary)', color: 'white', fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>v2.4</span>
         </div>
 
@@ -270,8 +270,8 @@ export default function LandingPage({ setPage }) {
           WebkitTextFillColor: 'transparent'
         }}>
           {isRTL 
-            ? "ضاعف صفقاتك العقارية وأغلق العملاء بسرعة 3X باستخدام الذكاء الاصطناعي"
-            : "Triple Your Real Estate Deals & Close Clients Faster with AI"}
+            ? "ضاعف مبيعاتك وصفقاتك وأغلق العملاء بسرعة 3X باستخدام الذكاء الاصطناعي"
+            : "Triple Your Sales Deals & Close Clients Faster with AI"}
         </h1>
 
         {/* Subtitle */}
@@ -284,8 +284,8 @@ export default function LandingPage({ setPage }) {
           lineHeight: 1.7
         }}>
           {isRTL 
-            ? "نظام متكامل يجمع بين إدارة العملاء (CRM)، توليد رسائل الواتساب الفورية، صانع محتوى السوشيال ميديا والريلز، ومساعد المبيعات الذكي 24/7 للرد على جميع الاعتراضات."
-            : "An all-in-one ecosystem combining Lead Pipeline Management, Instant Prefilled WhatsApp Generator, Viral Social Media Creator, and 24/7 AI Sales Copilot."}
+            ? "نظام متكامل يجمع بين إدارة العملاء (CRM)، توليد رسائل الواتساب الفورية، صانع محتوى السوشيال ميديا والريلز، ومساعد المبيعات الذكي 24/7 للرد على جميع الاعتراضات لأي مجال تجاري."
+            : "An all-in-one ecosystem combining Lead Pipeline Management, Instant Prefilled WhatsApp Generator, Viral Social Media Creator, and 24/7 AI Sales Copilot for any business."}
         </p>
 
         {/* Action Buttons */}
@@ -340,7 +340,7 @@ export default function LandingPage({ setPage }) {
             <Clock size={24} style={{ color: 'var(--accent)' }} />
             <div style={{ textAlign: 'start' }}>
               <div className="trust-ribbon-num" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>15+ {isRTL ? "ساعة" : "hrs"}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "توفير أسبوعي في العمل المكتبي" : "Weekly Hours Saved"}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "توفير أسبوعي في المتابعات" : "Weekly Hours Saved"}</div>
             </div>
           </div>
 
@@ -348,7 +348,7 @@ export default function LandingPage({ setPage }) {
             <Star size={24} style={{ color: '#f59e0b' }} />
             <div style={{ textAlign: 'start' }}>
               <div className="trust-ribbon-num" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>4.9 / 5.0</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "تقييم الشركات العقارية" : "Brokers Satisfaction"}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "تقييم مسؤولي المبيعات والشركات" : "Sales Teams Satisfaction"}</div>
             </div>
           </div>
         </div>
@@ -360,7 +360,7 @@ export default function LandingPage({ setPage }) {
           <div className="badge badge-new" style={{ marginBottom: '1rem', padding: '0.4rem 1rem' }}>
             {isRTL ? "تجربة واجهة النظام المباشرة" : "Interactive System Preview"}
           </div>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-main)' }}>
             {isRTL ? "استكشف قوة AdToDeal AI في مكان واحد" : "Experience the Power of AdToDeal AI"}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
@@ -399,7 +399,7 @@ export default function LandingPage({ setPage }) {
             onClick={() => setActiveDemoTab('social')}
           >
             <Video size={18} />
-            <span>{isRTL ? "4. صانع محتوى الريلز" : "4. Social Content Creator"}</span>
+            <span>{isRTL ? "4. صانع محتوى التسويق" : "4. Social Content Creator"}</span>
           </button>
 
           <button 
@@ -419,12 +419,12 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-main)' }}>{isRTL ? "لوحة تتبع العملاء العقارية (Pipeline Kanban)" : "Real Estate Deals Pipeline"}</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-main)' }}>{isRTL ? "لوحة تتبع العملاء والصفقات (Pipeline Kanban)" : "Deals & Sales Pipeline"}</h3>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{isRTL ? "تتبع حالة كل عميل وميزانيته ومستويات اهتمامه بسهولة" : "Track lead stages, budgets, and priority scores"}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <span className="badge badge-new">+12 {isRTL ? "عملاء هذا اليوم" : "Leads Today"}</span>
-                  <span className="badge badge-won">{isRTL ? "إجمالي القيمة: 1.2M ريال" : "Pipeline: 1.2M SAR"}</span>
+                  <span className="badge badge-won">{isRTL ? "إجمالي الصفقة: 450,000 ريال" : "Pipeline: 450k SAR"}</span>
                 </div>
               </div>
 
@@ -438,7 +438,7 @@ export default function LandingPage({ setPage }) {
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>
                     <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>أحمد الدوسري</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>ميزانية: 2.5M ريال • فيلا بالرياض</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>ميزانية: 85k ريال • نظام سحابي للشركات</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-new" style={{ fontSize: '0.65rem' }}>Meta Ads</span>
                       <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>⭐ 92%</span>
@@ -454,7 +454,7 @@ export default function LandingPage({ setPage }) {
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem', borderInlineStart: '3px solid #818cf8' }}>
                     <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>سارة العتيبي</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>ميزانية: 1.8M ريال • شقة تمليك</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>ميزانية: 120k ريال • حزمة تسويق واستشارات</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-contacted" style={{ fontSize: '0.65rem' }}>WhatsApp</span>
                       <span style={{ color: '#10b981', fontSize: '0.7rem' }}>تم التجاوب</span>
@@ -469,10 +469,10 @@ export default function LandingPage({ setPage }) {
                     <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>📑</span>
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem', borderInlineStart: '3px solid var(--accent)' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>شركة الأمل العقارية</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>عرض شراء أرض تجارية</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>شركة الأمل للمعدات</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>عرض توريد معدات وحلول</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
-                      <span className="badge badge-followup" style={{ fontSize: '0.65rem' }}>موعد معاينة</span>
+                      <span className="badge badge-followup" style={{ fontSize: '0.65rem' }}>موعد اجتماع</span>
                       <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>هام جداً</span>
                     </div>
                   </div>
@@ -486,7 +486,7 @@ export default function LandingPage({ setPage }) {
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem', borderInlineStart: '3px solid var(--success)', background: 'rgba(16,185,129,0.05)' }}>
                     <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>م. فهد الخالدي</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>بيع شاليه جدة • عمولة 45k</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>عقد توريد سنوي • قيمة 180k</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-won" style={{ fontSize: '0.65rem' }}>تم التوقيع</span>
                       <span style={{ color: 'var(--success)', fontSize: '0.7rem' }}>ناجحة</span>
@@ -509,13 +509,13 @@ export default function LandingPage({ setPage }) {
 
                   <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--card-border)' }}>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRTL ? "العميل المستهدف:" : "Target Lead:"}</div>
-                    <div style={{ fontWeight: 700, marginBottom: '1rem', color: 'var(--secondary)' }}>عبدالله الشهري (فيلا النرجس - 2.8M)</div>
+                    <div style={{ fontWeight: 700, marginBottom: '1rem', color: 'var(--secondary)' }}>عبدالله الشهري (عرض الخدمة السحابية)</div>
 
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRTL ? "قالب الرسالة المناسب:" : "Selected Template:"}</div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ background: 'var(--primary)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600 }}>متابعة بعد المعاينة الاولى</span>
-                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>عرض التخفيض الحصري</span>
-                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>تحديد موعد التوقيع</span>
+                      <span style={{ background: 'var(--primary)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600 }}>متابعة بعد العرض الأولي</span>
+                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>عرض الخصم الحصري</span>
+                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>تحديد موعد توقيع العقد</span>
                     </div>
                   </div>
                 </div>
@@ -533,7 +533,7 @@ export default function LandingPage({ setPage }) {
                   </div>
 
                   <div style={{ background: '#005c4b', color: 'white', padding: '1rem', borderRadius: '0.75rem 0.75rem 0 0.75rem', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-                    {isRTL ? "مرحباً أستاذ عبدالله 👋، بناءً على معاينتك لـ فيلا النرجس اليوم، أود إفادتك بأن المالك وافق على إمكانية تقسيط الدفعة الثانية بعد 6 أشهر. هل تود أن نجهز عقد رغبة الشراء اليوم؟" : "Hello Mr. Abdullah 👋, following up on your viewing of the Al-Narjis villa today..."}
+                    {isRTL ? "مرحباً أستاذ عبدالله 👋، بناءً على مناقشة العرض الخاص بـ النظام السحابي اليوم، أود إفادتك بأن الإدارة وافقت على إمكانية تقسيط الدفعة الثانية بعد 60 يوماً. هل تود أن نجهز العقد النهائي اليوم؟" : "Hello Mr. Abdullah 👋, following up on our proposal discussion today..."}
                   </div>
 
                   <button className="btn" style={{ width: '100%', background: '#25d366', color: 'black', fontWeight: 800, padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
@@ -550,20 +550,20 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="grid-2">
                 <div>
-                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مساعد الذكاء الاصطناعي المتخصص في العقارات" : "24/7 AI Real Estate Sales Copilot"}</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مساعد الذكاء الاصطناعي للمبيعات 24/7" : "24/7 AI Sales Copilot"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    {isRTL ? "لا تحتار مجدداً في التعامل مع ردود العملاء الصعبة. اسأل المساعد عن أي سيناريو وسيقوم فوراً بتحليل الاعتراض وكتابة الرد المقنع." : "Ask the AI copilot how to handle objections, analyze deal terms, or write property pitches."}
+                    {isRTL ? "لا تحتار مجدداً في التعامل مع ردود العملاء الصعبة. اسأل المساعد عن أي سيناريو وسيقوم فوراً بتحليل الاعتراض وكتابة الرد المقنع." : "Ask the AI copilot how to handle objections, analyze deal terms, or write product pitches."}
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ background: 'rgba(79,70,229,0.1)', border: '1px solid var(--primary-glow)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-main)' }}>
-                      💡 {isRTL ? "العميل يرى أن العمولة 2.5% مرتفعة، كيف أقنعه؟" : "Client says commission is too high, how to convince them?"}
+                      💡 {isRTL ? "العميل يرى أن السعر مرتفع مقارنة بالمنافسين، كيف أقنعه؟" : "Client says price is too high vs competitors, how to convince them?"}
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-main)' }}>
-                      💡 {isRTL ? "اقترح علي أفكار لعرض شقة فندقية على مستثمر خليجي" : "Pitch ideas for hotel apartment to GCC investor"}
+                      💡 {isRTL ? "اقترح علي أفكار لعرض الخدمة على شركة كبرى" : "Pitch ideas for B2B enterprise client"}
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-main)' }}>
-                      💡 {isRTL ? "كيف أتصفح العقارات الأنسب لميزانية 1.5M؟" : "Match properties for 1.5M budget"}
+                      💡 {isRTL ? "كيف أصيغ إشعار متابعة لعميل متردد؟" : "Draft soft follow-up for hesitating client"}
                     </div>
                   </div>
                 </div>
@@ -574,8 +574,8 @@ export default function LandingPage({ setPage }) {
                     <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{isRTL ? "استجابة الذكاء الاصطناعي الذكية" : "AI Sales Copilot Output"}</strong>
                   </div>
                   <div style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'var(--text-main)' }}>
-                    {isRTL ? `للرد على اعتراض نسبة العمولة:
-"أفهمك أستاذي الكريم، العمولة ليست مجرد رسوم، بل هي ضمان لاتمام الفحص القانوني للعقار، وتفاوضنا لك لخصم 50 ألف ريال من السعر الأصلي، بالإضافة إلى إنهاء إجراءات الإفراغ العقاري عبر منصة إحكام بدون عناء."` : "Handling commission objection effectively..."}
+                    {isRTL ? `للرد على اعتراض السعر مقارنة بالمنافسين:
+"أفهم حرصك أستاذي الكريم على اختيار الخيار الأفضل. الفارق في السعر يغطي الدعم الفني المباشر على مدار الساعة، الضمان الشامل لنتائج الخدمة، وتطبيقات مجانية مرافقة تضمن لك توفير 30% من جهد فريقك."` : "Handling price objection effectively..."}
                   </div>
                 </div>
               </div>
@@ -587,9 +587,9 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="grid-2">
                 <div>
-                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مولد محتوى الريلز والفيديوهات العقارية" : "Viral Reels & Social Post Generator"}</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مولد محتوى التسويق والريلز" : "Viral Reels & Social Post Generator"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    {isRTL ? "قم بصناعة منشورات انستغرام، تيك توك، وسكربتات ريلز قصيرة تحقق انتشاراً واسعاً وادمج الهاشتاجات الأكثر بحثاً بلمح البصر." : "Generate high-converting video scripts, captions, and hashtag bundles tailored to your property."}
+                    {isRTL ? "قم بصناعة منشورات انستغرام، تيك توك، وسكربتات ريلز قصيرة تحقق انتشاراً واسعاً وادمج الهاشتاجات الأكثر بحثاً بلمح البصر." : "Generate high-converting video scripts, captions, and hashtag bundles tailored to your offers."}
                   </p>
 
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -602,10 +602,10 @@ export default function LandingPage({ setPage }) {
                 <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', fontSize: '0.875rem' }}>
                   <div style={{ color: 'var(--secondary)', fontWeight: 800, marginBottom: '0.5rem' }}>🎬 {isRTL ? "سكربت ريلز جاهز للتصوير (15 ثانية):" : "Generated 15s Script:"}</div>
                   <p style={{ fontStyle: 'italic', color: 'var(--text-main)', marginBottom: '1rem' }}>
-                    "{isRTL ? "قبل لا تشتري أرض بالرياض.. 3 أخطاء شائعة تكلفك آلاف الريالات! شاهد الفيديو للنهاية" : "3 real estate mistakes to avoid when buying a villa!"}"
+                    "{isRTL ? "قبل لا تشتري أي نظام مبيعات لشركتك.. 3 أخطاء شائعة تكلفك آلاف الريالات! شاهد الفيديو للنهاية" : "3 common mistakes to avoid in sales operations!"}"
                   </p>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    #عقارات_الرياض #فلل_للبيع #استثمار_عقاري #ريلز
+                    #مبيعات #تسويق #رياده_أعمال #نجاح_الشركات
                   </div>
                 </div>
               </div>
@@ -619,19 +619,19 @@ export default function LandingPage({ setPage }) {
                 <div>
                   <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "طلب حملة إعلانية ممولة مباشرة" : "Direct Sponsored Ad Campaigns"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    {isRTL ? "أرسل تفاصيل مشروعك العقاري وميزانيتك الإعلانية، وسيتولى فريقنا الخبير إطلاق إعلانات مستهدفة لك على سناب شات، ميت، وتيك توك واستلام العملاء مباشرة داخل الـ CRM." : "Submit ad brief and budget; our marketing team executes high-performing targeted ad campaigns."}
+                    {isRTL ? "أرسل تفاصيل منتجك أو خدمتك وميزانيتك الإعلانية، وسيتولى فريقنا الخبير إطلاق إعلانات موجهة لك على سناب شات، ميت، وتيك توك واستلام العملاء مباشرة داخل الـ CRM." : "Submit ad brief and budget; our marketing team executes high-performing targeted ad campaigns."}
                   </p>
 
                   <ul style={{ paddingInlineStart: '1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <li>{isRTL ? "ربط تلقائي بالعملاء الجدد المستهدفين" : "Automatic lead routing to your CRM"}</li>
-                    <li>{isRTL ? "استهداف جغرافي دقيق للمشترين والمستثمرين" : "Precise hyper-local buyer targeting"}</li>
+                    <li>{isRTL ? "استهداف موجه للمشترين والمهتمين بالخدمة" : "Precise target audience buyer matching"}</li>
                     <li>{isRTL ? "تقارير أداء ومعدل تكلفة العميل (CPL)" : "Transparent CPL performance tracking"}</li>
                   </ul>
                 </div>
 
                 <div className="card" style={{ background: 'rgba(6,182,212,0.05)', borderColor: 'rgba(6,182,212,0.3)', padding: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--secondary)' }}>{isRTL ? "حملة إعلانات فلل حطين" : "Hittin Villas Campaign"}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--secondary)' }}>{isRTL ? "حملة إعلانات العرض الصيفي" : "Summer Growth Campaign"}</span>
                     <span className="badge badge-won">{isRTL ? "نشطة الآن" : "Active"}</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -651,7 +651,7 @@ export default function LandingPage({ setPage }) {
       <section style={{ padding: '5rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
           <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-main)' }}>
-            {isRTL ? "لماذا يحتاج كل وسيط عقاري إلى AdToDeal AI؟" : "Why Modern Real Estate Brokers Need AdToDeal AI"}
+            {isRTL ? "لماذا يحتاج كل رجل مبيعات وشركة إلى AdToDeal AI؟" : "Why Modern Sales Professionals & Companies Need AdToDeal AI"}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
             {isRTL ? "فرق شاسع بين طريقة العمل التقليدية الضائعة، وبين النظام الذكي المؤتمت بالكامل." : "Compare traditional manual chaos with an organized AI automated engine."}
@@ -723,10 +723,10 @@ export default function LandingPage({ setPage }) {
               {isRTL ? "منظومة متكاملة 8 في 1" : "8-in-1 Complete Solution"}
             </div>
             <h2 style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-main)' }}>
-              {isRTL ? "كافة الأدوات التي تحتاجه لتصدر سوق العقارات" : "Everything You Need to Master Real Estate Sales"}
+              {isRTL ? "كافة الأدوات التي تحتاجه لتتصدر مبيعاتك" : "Everything You Need to Master Sales & Revenue"}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', maxWidth: '700px', margin: '0 auto' }}>
-              {isRTL ? "تم تصميم كل ممتازة بعناية تامة لتلبية احتياجات المسوقين والشركات العقارية في السعودية والخليج ومصر." : "Built specifically for modern real estate professionals in Middle East markets."}
+              {isRTL ? "تم تصميم كل ممتازة بعناية تامة لتلبية احتياجات رجال المبيعات والشركات والأنشطة التجارية المختلفة." : "Built specifically for modern sales teams and growing businesses."}
             </p>
           </div>
 
@@ -737,7 +737,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(79,70,229,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8' }}>
                 <Users size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "1. نظام إدارة العملاء CRM" : "1. Smart Real Estate CRM"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "1. نظام إدارة العملاء CRM" : "1. Smart Sales CRM"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "إضافة العملاء، متابعة الميزانيات، تسجيل الموافقة والتواصل، وتصنيف الصفقات حسب مراحل البيع بسهولة وسرعة فائقة." : "Track client status, budget ranges, consent logs, and lead scores across Kanban pipelines."}
               </p>
@@ -772,7 +772,7 @@ export default function LandingPage({ setPage }) {
               </div>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "4. صانع محتوى الريلز والسوشيال" : "4. Reels & Social Post Creator"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
-                {isRTL ? "توليد سكربتات فيديوهات تيك توك وانستغرام قصيرة، بوستات تسويقية، والهاشتاجات الأكثر انتشاراً بلمح البصر." : "Generate viral video scripts, Instagram captions, and hashtag bundles for properties."}
+                {isRTL ? "توليد سكربتات فيديوهات تيك توك وانستغرام قصيرة، بوستات تسويقية، والهاشتاجات الأكثر انتشاراً بلمح البصر." : "Generate viral video scripts, Instagram captions, and hashtag bundles for your products."}
               </p>
             </div>
 
@@ -794,7 +794,7 @@ export default function LandingPage({ setPage }) {
               </div>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "6. جدولة المهام والمتابعة الذكية" : "6. Smart Tasks & Follow-up"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
-                {isRTL ? "تذكيرات يومية آليّة بمواعيد الاتصال والمعاينات العقارية تضمن عدم إغفال أي عميل مهتم." : "Never miss a deal with automated daily call schedules, viewing reminders, and status tags."}
+                {isRTL ? "تذكيرات يومية آليّة بمواعيد الاتصال والاجتماعات تضمن عدم إغفال أي عميل مهتم." : "Never miss a deal with automated daily call schedules, meeting reminders, and status tags."}
               </p>
             </div>
 
@@ -835,7 +835,7 @@ export default function LandingPage({ setPage }) {
               {isRTL ? "كم ستوفر وتكسب باستخدام AdToDeal AI؟" : "How Much Will You Save & Earn?"}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
-              {isRTL ? "حرك المؤشرات أدناه لتري النتيجة الحية المتوقعة لنشاطك العقاري" : "Adjust sliders to estimate your weekly saved hours and potential extra income."}
+              {isRTL ? "حرك المؤشرات أدناه لتري النتيجة الحية المتوقعة لنشاطك التجاري والبيعي" : "Adjust sliders to estimate your weekly saved hours and potential extra income."}
             </p>
           </div>
 
@@ -860,7 +860,7 @@ export default function LandingPage({ setPage }) {
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  <span>{isRTL ? "متوسط قيمة عمولتك في الصفقة:" : "Avg Commission / Deal:"}</span>
+                  <span>{isRTL ? "متوسط قيمة عمولتك/ربحك في الصفقة:" : "Avg Profit / Deal:"}</span>
                   <span style={{ color: 'var(--success)', fontSize: '1.2rem' }}>{avgCommission.toLocaleString()} {symbol}</span>
                 </div>
                 <input 
@@ -1025,7 +1025,7 @@ export default function LandingPage({ setPage }) {
               boxShadow: '0 4px 15px rgba(79,70,229,0.4)',
               whiteSpace: 'nowrap'
             }}>
-              ⭐ {isRTL ? "الباقة الأكثر اختياراً للوسطاء" : "Most Popular Choice"}
+              ⭐ {isRTL ? "الباقة الأكثر اختياراً للمبيعات" : "Most Popular Choice"}
             </div>
 
             <div>
@@ -1038,7 +1038,7 @@ export default function LandingPage({ setPage }) {
               <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start', color: 'var(--text-main)' }}>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {t('featuresCRM')}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {t('featuresReminders')}</li>
-                <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "مساعد شخصي ذكي غير محدود 24/7" : "Unlimited personal 24/7 AI Sales Copilot"}</li>
+                <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "مساعد مبيعات ذكي غير محدود 24/7" : "Unlimited personal 24/7 AI Sales Copilot"}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "صانع محتوى السوشيال ميديا وريلز الفيديو" : "Social media & Reels video content creator"}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "تخزين كامل للعملاء وتحليلات الأداء" : "Full client storage & analytics reports"}</li>
               </ul>
@@ -1087,10 +1087,10 @@ export default function LandingPage({ setPage }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {[
             {
-              qAr: "هل أحتاج إلى أي خبرة تقنية لاستخدام النظام؟",
-              qEn: "Do I need technical skills to use the platform?",
-              aAr: "لا على الإطلاق! تم تصميم AdToDeal AI ليكون أسهل من استخدام تطبيق الواتساب، ويمكنك البدء في إضافة العملاء وإرسال الرسائل خلال أقل من دقيقتين.",
-              aEn: "Not at all! Designed to be simpler than WhatsApp. Get started in under 2 minutes."
+              qAr: "هل يناسب هذا النظام كل رجل مبيعات أو نشاط تجاري؟",
+              qEn: "Does this platform suit any salesperson or business?",
+              aAr: "نعم تماماً! تم تصميم AdToDeal AI لخدمة كافة القطاعات والمجالات (الخدمات، المنتجات، الشركات، الاستشارات، المبيعات المباشرة، التجارة الإلكترونية، والعقارات).",
+              aEn: "Yes! Designed for any sales domain, including B2B services, retail products, software, consulting, and commerce."
             },
             {
               qAr: "كيف يعمل مولد رسائل الواتساب الذكي؟",
@@ -1113,7 +1113,7 @@ export default function LandingPage({ setPage }) {
             {
               qAr: "ما هو دور خدمة طلب الإعلانات الممولة؟",
               qEn: "What is the Sponsored Campaigns feature?",
-              aAr: "تتيح لك باقة النمو إرسال تفاصيل عروضك العقارية وميزانيتك الإعلانية، ليقوم خبراء التسويق لدينا بتشغيل إعلانات موجهة لك وجلب العملاء مباشرة لـ CRM الخاص بك.",
+              aAr: "تتيح لك باقة النمو إرسال تفاصيل عروضك وميزانيتك الإعلانية، ليقوم خبراء التسويق لدينا بتشغيل إعلانات موجهة لك وجلب العملاء مباشرة لـ CRM الخاص بك.",
               aEn: "Growth plan users can submit campaign briefs; our specialists run targeted ads delivering leads into your CRM."
             }
           ].map((faq, idx) => (
@@ -1162,10 +1162,10 @@ export default function LandingPage({ setPage }) {
         }}>
           <Sparkles size={40} style={{ color: 'var(--secondary)', marginBottom: '1rem' }} className="float-item" />
           <h2 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--text-main)' }}>
-            {isRTL ? "جاهز لمضاعفة مبيعاتك العقارية من اليوم؟" : "Ready to Supercharge Your Sales Today?"}
+            {isRTL ? "جاهز لمضاعفة مبيعاتك اليوم؟" : "Ready to Supercharge Your Sales Today?"}
           </h2>
           <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '2.5rem', maxWidth: '650px', marginInline: 'auto' }}>
-            {isRTL ? "انضم إلى مئات الوسطاء العقاريين الذين يعتمدون على AdToDeal AI يومياً لإدارة العملاء وإغلاق الصفقات بسرعة." : "Join hundreds of top real estate agents closing deals 3X faster with AI."}
+            {isRTL ? "انضم إلى مئات رجال المبيعات والشركات الذين يعتمدون على AdToDeal AI يومياً لإدارة العملاء وإغلاق الصفقات بسرعة." : "Join hundreds of top sales professionals closing deals 3X faster with AI."}
           </p>
 
           <button 
@@ -1190,7 +1190,7 @@ export default function LandingPage({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Sparkles style={{ color: 'var(--secondary)' }} size={20} />
             <strong style={{ color: 'var(--text-main)', fontSize: '1.1rem' }}>AdToDeal AI</strong>
-            <span>— {isRTL ? "نظام إدارة المبيعات والعقارات بالذكاء الاصطناعي" : "AI Sales Platform"}</span>
+            <span>— {isRTL ? "نظام إدارة المبيعات والتسويق الذكي" : "AI Sales Platform"}</span>
           </div>
 
           <div style={{ display: 'flex', gap: '1.5rem' }}>

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
-import { Sparkles, Building, Target, HeartHandshake, Check } from 'lucide-react';
+import { Sparkles, Building2, Target, HeartHandshake, Check, Briefcase } from 'lucide-react';
 
 export default function OnboardingPage({ setPage }) {
   const { t, isRTL } = useLanguage();
   const { setOnboarded } = useApp();
   const [step, setStep] = useState(1);
-  const [domain, setDomain] = useState('residential'); // residential, commercial, investment
-  const [audience, setAudience] = useState('first-time'); // first-time, luxury, investors
+  const [domain, setDomain] = useState('b2b'); // b2b, retail, services, general
+  const [audience, setAudience] = useState('business'); // business, consumers, high-net-worth
   const [tone, setTone] = useState('professional'); // professional, friendly, persuasive
 
   const handleFinish = () => {
@@ -82,17 +82,18 @@ export default function OnboardingPage({ setPage }) {
         {step === 1 && (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <h3 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Building size={20} style={{ color: 'var(--secondary)' }} />
+              <Briefcase size={20} style={{ color: 'var(--secondary)' }} />
               {t('step1')}
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-              {isRTL ? "اختر القطاع العقاري الرئيسي الذي تركز عليه حالياً:" : "Select your primary focus domain in real estate:"}
+              {isRTL ? "اختر المجال التجاري والمبيعات الرئيسي لعملك:" : "Select your primary sales domain & industry:"}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {[
-                { id: 'residential', title: isRTL ? 'عقارات سكنية' : 'Residential Properties', desc: isRTL ? 'شقق، فلل، تاون هاوس للعائلات' : 'Apartments, villas, and townhouses for individuals and families.' },
-                { id: 'commercial', title: isRTL ? 'عقارات تجارية' : 'Commercial Properties', desc: isRTL ? 'مكاتب، محلات تجارية، مستودعات' : 'Offices, showrooms, warehouses, and corporate spaces.' },
-                { id: 'investment', title: isRTL ? 'مشاريع استثمارية' : 'Investment Properties', desc: isRTL ? 'عقارات قيد الإنشاء، عوائد إيجار مرتفعة' : 'Off-plan developments, high-yield opportunities, and lands.' }
+                { id: 'b2b', title: isRTL ? 'خدمات واستشارات الشركات (B2B)' : 'Corporate Services & SaaS (B2B)', desc: isRTL ? 'أنظمة، استشارات قانونية ومالية، تسويق، وتوريدات' : 'Enterprise software, consulting, legal, and corporate deals.' },
+                { id: 'retail', title: isRTL ? 'منتجات وتجارة إلكترونية' : 'Products & E-Commerce', desc: isRTL ? 'بيع المنتجات، البضائع بالجملة والتجزئة' : 'Physical products, wholesale goods, and online retail.' },
+                { id: 'services', title: isRTL ? 'خدمات مباشرة وعقارات' : 'Direct Sales & Real Estate', desc: isRTL ? 'عقارات، سيارات، استشارات مباشرة، وتدريب' : 'High-ticket deals, automotive, real estate, and direct sales.' },
+                { id: 'general', title: isRTL ? 'المبيعات العامة والشاملة' : 'General Sales & Growth', desc: isRTL ? 'أي نشاط تجاري يهدف لمتابعة العملاء وزيادة المبيعات' : 'Any sales activity focused on client follow-up and deal closing.' }
               ].map((opt) => (
                 <div 
                   key={opt.id}
@@ -121,13 +122,13 @@ export default function OnboardingPage({ setPage }) {
               {t('step2')}
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-              {isRTL ? "من هو جمهورك الإعلاني والبيعي المستهدف؟" : "Who is your primary target buyer or lead profile?"}
+              {isRTL ? "من هو جمهورك المستهدف في المبيعات؟" : "Who is your primary target buyer or client profile?"}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {[
-                { id: 'first-time', title: isRTL ? 'مشتري المسكن الأول' : 'First-time Home Buyers', desc: isRTL ? 'يبحثون عن تسهيلات سكنية وحلول تمويلية' : 'Looking for affordable entry-level homes and long term payment plans.' },
-                { id: 'luxury', title: isRTL ? 'مشتري العقارات الفاخرة' : 'Luxury Seekers', desc: isRTL ? 'يبحثون عن الجودة العالية، الخصوصية والمواقع المميزة' : 'High-income individuals looking for premium locations, design and privacy.' },
-                { id: 'investors', title: isRTL ? 'المستثمرون العقاريون' : 'Real Estate Investors', desc: isRTL ? 'يركزون على العائد الاستثماري ونسب زيادة رأس المال' : 'Focused strictly on rental yields, ROI, and capital appreciation rates.' }
+                { id: 'business', title: isRTL ? 'أصحاب الشركات والمؤسسات' : 'Business Owners & Executives', desc: isRTL ? 'يبحثون عن زيادة الكفاءة، تقليل التكاليف وتطوير العمل' : 'Looking for operational ROI, efficiency, and revenue growth.' },
+                { id: 'consumers', title: isRTL ? 'المستهلكون والأفراد' : 'Direct End Consumers', desc: isRTL ? 'يبحثون عن عروض ممتازة وسهولة في التواصل والشراء' : 'Looking for great deals, quick response, and clear pricing.' },
+                { id: 'high-net-worth', title: isRTL ? 'المستثمرون وكبار العملاء' : 'Investors & High Net-Worth Clients', desc: isRTL ? 'يركزون على جودة الخدمة والعوائد العالية والأمان' : 'Focused on high returns, top-tier service, and strategic value.' }
               ].map((opt) => (
                 <div 
                   key={opt.id}
@@ -156,13 +157,13 @@ export default function OnboardingPage({ setPage }) {
               {t('step3')}
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-              {isRTL ? "اختر نبرة الصوت وشخصية مساعد المبيعات الذكي الخاص بك:" : "Choose the tone and voice style for your AI assistant:"}
+              {isRTL ? "اختر نبرة الصوت وشخصية مساعد المبيعات الذكي الخاص بك:" : "Choose the personality & tone for your AI sales assistant:"}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {[
-                { id: 'professional', title: isRTL ? 'رسمي واحترافي' : 'Professional & Advisory', desc: isRTL ? 'نبرة مبنية على الأرقام، البيانات، والتحليل العقاري الموثوق' : 'Data-backed, facts, and advisory approach to build trust.' },
-                { id: 'friendly', title: isRTL ? 'ودي ومرحب' : 'Friendly & Supportive', desc: isRTL ? 'نبرة ودية سهلة الفهم تبني علاقة سريعة وقوية مع العميل' : 'Approachable, warm, and highly focused on solving client struggles.' },
-                { id: 'persuasive', title: isRTL ? 'مقنع ومحفز للصفقات' : 'Persuasive & Sales-driven', desc: isRTL ? 'يركز على ندرة العروض، الفرص الاستثمارية الحالية وخلق الحماس' : 'Urgency-focused, highlighting best deals, and driving action.' }
+                { id: 'professional', title: isRTL ? 'احترافي ومباشر' : 'Professional & Direct', desc: isRTL ? 'يعتمد على الأرقام، الميزات، والحجج القوية' : 'Focuses on facts, numbers, structured arguments, and clarity.' },
+                { id: 'friendly', title: isRTL ? 'ودود وقريب للعميل' : 'Friendly & Consultative', desc: isRTL ? 'يبني الألفة ويسأل أسئلة ذكية لفهم احتياجات العميل' : 'Builds rapport, asks engaging questions, and listens to client needs.' },
+                { id: 'persuasive', title: isRTL ? 'مُقنع وحماسي للإغلاق' : 'High-Energy & Persuasive', desc: isRTL ? 'يركز على خلق الاستعجال، العروض الحصرية وإغلاق الصفقات' : 'Creates urgency, highlights limited offers, and drives deal closing.' }
               ].map((opt) => (
                 <div 
                   key={opt.id}
@@ -184,20 +185,23 @@ export default function OnboardingPage({ setPage }) {
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem' }}>
+        {/* Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', borderTop: '1px solid var(--card-border)', paddingTop: '1.5rem' }}>
           {step > 1 ? (
             <button className="btn btn-secondary" onClick={() => setStep(step - 1)}>
               {t('prevStep')}
             </button>
-          ) : <div />}
+          ) : (
+            <div />
+          )}
 
           {step < 3 ? (
             <button className="btn btn-primary" onClick={() => setStep(step + 1)}>
               {t('nextStep')}
             </button>
           ) : (
-            <button className="btn btn-primary" style={{ background: 'linear-gradient(135deg, var(--success) 0%, #059669 100%)', boxShadow: 'none' }} onClick={handleFinish}>
+            <button className="btn btn-primary glow-box" onClick={handleFinish}>
+              <Sparkles size={16} />
               {t('finishSetup')}
             </button>
           )}

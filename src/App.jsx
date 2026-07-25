@@ -150,6 +150,12 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      {/* Mobile Backdrop Overlay */}
+      <div 
+        className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`} 
+        onClick={() => setMobileMenuOpen(false)} 
+      />
+
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${mobileMenuOpen ? 'active' : ''}`} style={{
         transform: mobileMenuOpen ? 'translateX(0)' : undefined
@@ -280,18 +286,64 @@ function AppContent() {
         <FloatingAIAssistant />
       </div>
 
+      {/* Mobile Bottom Navigation Bar (Screens <= 768px) */}
+      <nav className="mobile-bottom-bar">
+        <button 
+          className={`mobile-bar-item ${page === 'dashboard' ? 'active' : ''}`} 
+          onClick={() => handleNav('dashboard')}
+        >
+          <BarChart3 size={20} />
+          <span>{isRTL ? 'الرئيسية' : 'Dashboard'}</span>
+        </button>
+        
+        <button 
+          className={`mobile-bar-item ${page === 'crm' || page === 'leadDetails' ? 'active' : ''}`} 
+          onClick={() => handleNav('crm')}
+        >
+          <Users size={20} />
+          <span>{isRTL ? 'العملاء' : 'CRM'}</span>
+        </button>
+
+        <button 
+          className={`mobile-bar-item ${page === 'whatsapp' ? 'active' : ''}`} 
+          onClick={() => handleNav('whatsapp')}
+        >
+          <MessageSquare size={20} />
+          <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
+        </button>
+
+        <button 
+          className={`mobile-bar-item ${page === 'aiAssistant' ? 'active' : ''}`} 
+          onClick={() => handleNav('aiAssistant')}
+        >
+          <Sparkles size={20} />
+          <span>{isRTL ? 'المساعد' : 'AI Assistant'}</span>
+        </button>
+
+        <button 
+          className={`mobile-bar-item ${page === 'tasks' ? 'active' : ''}`} 
+          onClick={() => handleNav('tasks')}
+        >
+          <Calendar size={20} />
+          <span>{isRTL ? 'المهام' : 'Tasks'}</span>
+        </button>
+      </nav>
+
       {/* CSS adjustments for sidebar mobile drawer */}
       <style>{`
         @media (max-width: 1024px) {
           .sidebar {
-            transform: translateX(\${isRTL ? '100%' : '-100%'});
+            transform: translateX(${isRTL ? '100%' : '-100%'});
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
           }
           .sidebar.active {
             transform: translateX(0);
           }
           .mobile-toggle {
-            display: block !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
           }
         }
       `}</style>

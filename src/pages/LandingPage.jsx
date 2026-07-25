@@ -101,7 +101,7 @@ export default function LandingPage({ setPage }) {
         right: '-5%',
         width: '500px',
         height: '500px',
-        background: 'radial-gradient(circle, rgba(79,70,229,0.15) 0%, rgba(0,0,0,0) 70%)',
+        background: 'radial-gradient(circle, rgba(79,70,229,0.12) 0%, rgba(0,0,0,0) 70%)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
@@ -111,13 +111,13 @@ export default function LandingPage({ setPage }) {
         left: '-5%',
         width: '600px',
         height: '600px',
-        background: 'radial-gradient(circle, rgba(6,182,212,0.12) 0%, rgba(0,0,0,0) 70%)',
+        background: 'radial-gradient(circle, rgba(6,182,212,0.1) 0%, rgba(0,0,0,0) 70%)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
 
       {/* 1. Header Navigation */}
-      <header style={{
+      <header className="landing-header" style={{
         position: 'sticky',
         top: 0,
         zIndex: 99,
@@ -148,7 +148,7 @@ export default function LandingPage({ setPage }) {
               <Sparkles style={{ color: 'white' }} size={22} />
             </div>
             <div>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #fff 30%, #c7d2fe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <span className="landing-logo-text" style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #fff 30%, #c7d2fe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 AdToDeal AI
               </span>
               <div style={{ fontSize: '0.65rem', color: 'var(--secondary)', fontWeight: 600, marginTop: '-3px' }}>
@@ -162,7 +162,7 @@ export default function LandingPage({ setPage }) {
             <button onClick={() => scrollToSection('features')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' }}>
               {isRTL ? "المميزات" : "Features"}
             </button>
-            <button onClick={() => scrollToSection('demo')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem' }}>
+            <button onClick={() => scrollToSection('demo')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' }}>
               {isRTL ? "المعاينة الحية" : "Live Demo"}
             </button>
             <button onClick={() => scrollToSection('calculator')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' }}>
@@ -259,7 +259,7 @@ export default function LandingPage({ setPage }) {
         </div>
 
         {/* Main Headline */}
-        <h1 style={{
+        <h1 className="hero-headline" style={{
           fontSize: '3.6rem',
           fontWeight: 900,
           lineHeight: 1.2,
@@ -301,7 +301,7 @@ export default function LandingPage({ setPage }) {
           
           <button 
             className="btn btn-secondary" 
-            style={{ padding: '1rem 2rem', fontSize: '1.1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)' }} 
+            style={{ padding: '1rem 2rem', fontSize: '1.1rem', borderRadius: '0.75rem' }} 
             onClick={() => scrollToSection('demo')}
           >
             <Play size={18} style={{ color: 'var(--secondary)' }} />
@@ -310,7 +310,7 @@ export default function LandingPage({ setPage }) {
         </div>
 
         {/* Trust Badges Ribbon */}
-        <div style={{
+        <div className="trust-ribbon" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '1.25rem',
@@ -323,7 +323,7 @@ export default function LandingPage({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
             <TrendingUp size={24} style={{ color: 'var(--success)' }} />
             <div style={{ textAlign: 'start' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>+350%</div>
+              <div className="trust-ribbon-num" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>+350%</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "سرعة الاستجابة للعملاء" : "Faster Lead Response"}</div>
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function LandingPage({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
             <Users size={24} style={{ color: 'var(--secondary)' }} />
             <div style={{ textAlign: 'start' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>+25,000</div>
+              <div className="trust-ribbon-num" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>+25,000</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "عميل مُدار بنجاح" : "Leads Managed Daily"}</div>
             </div>
           </div>
@@ -339,7 +339,7 @@ export default function LandingPage({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
             <Clock size={24} style={{ color: 'var(--accent)' }} />
             <div style={{ textAlign: 'start' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>15+ {isRTL ? "ساعة" : "hrs"}</div>
+              <div className="trust-ribbon-num" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>15+ {isRTL ? "ساعة" : "hrs"}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "توفير أسبوعي في العمل المكتبي" : "Weekly Hours Saved"}</div>
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function LandingPage({ setPage }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
             <Star size={24} style={{ color: '#f59e0b' }} />
             <div style={{ textAlign: 'start' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>4.9 / 5.0</div>
+              <div className="trust-ribbon-num" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>4.9 / 5.0</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "تقييم الشركات العقارية" : "Brokers Satisfaction"}</div>
             </div>
           </div>
@@ -412,14 +412,14 @@ export default function LandingPage({ setPage }) {
         </div>
 
         {/* Demo Display Screen Container */}
-        <div className="glass-panel" style={{ padding: '2rem', borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+        <div className="glass-panel demo-screen-container" style={{ padding: '2rem', borderRadius: '1.25rem', border: '1px solid var(--card-border)' }}>
           
           {/* TAB 1: CRM Preview */}
           {activeDemoTab === 'crm' && (
             <div className="fade-in">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.3rem' }}>{isRTL ? "لوحة تتبع العملاء العقارية (Pipeline Kanban)" : "Real Estate Deals Pipeline"}</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-main)' }}>{isRTL ? "لوحة تتبع العملاء العقارية (Pipeline Kanban)" : "Real Estate Deals Pipeline"}</h3>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{isRTL ? "تتبع حالة كل عميل وميزانيته ومستويات اهتمامه بسهولة" : "Track lead stages, budgets, and priority scores"}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -437,7 +437,7 @@ export default function LandingPage({ setPage }) {
                     <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>🆕</span>
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>
-                    <div style={{ fontWeight: 700 }}>أحمد الدوسري</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>أحمد الدوسري</div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>ميزانية: 2.5M ريال • فيلا بالرياض</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-new" style={{ fontSize: '0.65rem' }}>Meta Ads</span>
@@ -453,7 +453,7 @@ export default function LandingPage({ setPage }) {
                     <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>📞</span>
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem', borderInlineStart: '3px solid #818cf8' }}>
-                    <div style={{ fontWeight: 700 }}>سارة العتيبي</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>سارة العتيبي</div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>ميزانية: 1.8M ريال • شقة تمليك</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-contacted" style={{ fontSize: '0.65rem' }}>WhatsApp</span>
@@ -469,7 +469,7 @@ export default function LandingPage({ setPage }) {
                     <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>📑</span>
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem', borderInlineStart: '3px solid var(--accent)' }}>
-                    <div style={{ fontWeight: 700 }}>شركة الأمل العقارية</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>شركة الأمل العقارية</div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>عرض شراء أرض تجارية</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-followup" style={{ fontSize: '0.65rem' }}>موعد معاينة</span>
@@ -485,7 +485,7 @@ export default function LandingPage({ setPage }) {
                     <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>✅</span>
                   </div>
                   <div className="card" style={{ padding: '0.85rem', marginBottom: '0.75rem', fontSize: '0.85rem', borderInlineStart: '3px solid var(--success)', background: 'rgba(16,185,129,0.05)' }}>
-                    <div style={{ fontWeight: 700 }}>م. فهد الخالدي</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>م. فهد الخالدي</div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>بيع شاليه جدة • عمولة 45k</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
                       <span className="badge badge-won" style={{ fontSize: '0.65rem' }}>تم التوقيع</span>
@@ -502,7 +502,7 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="grid-2">
                 <div>
-                  <h3 style={{ marginTop: 0 }}>{isRTL ? "مولد الرسائل ورابط الواتساب الفوري" : "Prefilled WhatsApp Message Builder"}</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مولد الرسائل ورابط الواتساب الفوري" : "Prefilled WhatsApp Message Builder"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                     {isRTL ? "اختر اسم العميل ونوع العرض، وسيقوم الذكاء الاصطناعي بدمج التفاصيل وصياغة الرسالة المناسبة وفتح تطبيق الواتساب مباشرة بلمسة واحدة بدون الحاجة لكتابة حرف واحد!" : "Select lead and template, the system formats custom ready-to-send messages with lead parameters."}
                   </p>
@@ -514,8 +514,8 @@ export default function LandingPage({ setPage }) {
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{isRTL ? "قالب الرسالة المناسب:" : "Selected Template:"}</div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <span style={{ background: 'var(--primary)', color: 'white', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600 }}>متابعة بعد المعاينة الاولى</span>
-                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem' }}>عرض التخفيض الحصري</span>
-                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem' }}>تحديد موعد التوقيع</span>
+                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>عرض التخفيض الحصري</span>
+                      <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>تحديد موعد التوقيع</span>
                     </div>
                   </div>
                 </div>
@@ -550,30 +550,30 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="grid-2">
                 <div>
-                  <h3 style={{ marginTop: 0 }}>{isRTL ? "مساعد الذكاء الاصطناعي المتخصص في العقارات" : "24/7 AI Real Estate Sales Copilot"}</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مساعد الذكاء الاصطناعي المتخصص في العقارات" : "24/7 AI Real Estate Sales Copilot"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                     {isRTL ? "لا تحتار مجدداً في التعامل مع ردود العملاء الصعبة. اسأل المساعد عن أي سيناريو وسيقوم فوراً بتحليل الاعتراض وكتابة الرد المقنع." : "Ask the AI copilot how to handle objections, analyze deal terms, or write property pitches."}
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ background: 'rgba(79,70,229,0.1)', border: '1px solid var(--primary-glow)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                    <div style={{ background: 'rgba(79,70,229,0.1)', border: '1px solid var(--primary-glow)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-main)' }}>
                       💡 {isRTL ? "العميل يرى أن العمولة 2.5% مرتفعة، كيف أقنعه؟" : "Client says commission is too high, how to convince them?"}
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-main)' }}>
                       💡 {isRTL ? "اقترح علي أفكار لعرض شقة فندقية على مستثمر خليجي" : "Pitch ideas for hotel apartment to GCC investor"}
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', padding: '0.75rem 1rem', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-main)' }}>
                       💡 {isRTL ? "كيف أتصفح العقارات الأنسب لميزانية 1.5M؟" : "Match properties for 1.5M budget"}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '0.75rem', padding: '1.25rem', border: '1px solid var(--card-border)' }}>
+                <div style={{ background: 'var(--card-bg)', borderRadius: '0.75rem', padding: '1.25rem', border: '1px solid var(--card-border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.5rem' }}>
                     <Sparkles style={{ color: 'var(--secondary)' }} size={20} />
-                    <strong style={{ fontSize: '0.9rem' }}>{isRTL ? "استجابة الذكاء الاصطناعي الذكية" : "AI Sales Copilot Output"}</strong>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{isRTL ? "استجابة الذكاء الاصطناعي الذكية" : "AI Sales Copilot Output"}</strong>
                   </div>
-                  <div style={{ fontSize: '0.875rem', lineHeight: 1.7, color: '#d1d5db' }}>
+                  <div style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'var(--text-main)' }}>
                     {isRTL ? `للرد على اعتراض نسبة العمولة:
 "أفهمك أستاذي الكريم، العمولة ليست مجرد رسوم، بل هي ضمان لاتمام الفحص القانوني للعقار، وتفاوضنا لك لخصم 50 ألف ريال من السعر الأصلي، بالإضافة إلى إنهاء إجراءات الإفراغ العقاري عبر منصة إحكام بدون عناء."` : "Handling commission objection effectively..."}
                   </div>
@@ -587,7 +587,7 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="grid-2">
                 <div>
-                  <h3 style={{ marginTop: 0 }}>{isRTL ? "مولد محتوى الريلز والفيديوهات العقارية" : "Viral Reels & Social Post Generator"}</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "مولد محتوى الريلز والفيديوهات العقارية" : "Viral Reels & Social Post Generator"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                     {isRTL ? "قم بصناعة منشورات انستغرام، تيك توك، وسكربتات ريلز قصيرة تحقق انتشاراً واسعاً وادمج الهاشتاجات الأكثر بحثاً بلمح البصر." : "Generate high-converting video scripts, captions, and hashtag bundles tailored to your property."}
                   </p>
@@ -601,7 +601,7 @@ export default function LandingPage({ setPage }) {
 
                 <div className="card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', fontSize: '0.875rem' }}>
                   <div style={{ color: 'var(--secondary)', fontWeight: 800, marginBottom: '0.5rem' }}>🎬 {isRTL ? "سكربت ريلز جاهز للتصوير (15 ثانية):" : "Generated 15s Script:"}</div>
-                  <p style={{ fontStyle: 'italic', color: '#e5e7eb', marginBottom: '1rem' }}>
+                  <p style={{ fontStyle: 'italic', color: 'var(--text-main)', marginBottom: '1rem' }}>
                     "{isRTL ? "قبل لا تشتري أرض بالرياض.. 3 أخطاء شائعة تكلفك آلاف الريالات! شاهد الفيديو للنهاية" : "3 real estate mistakes to avoid when buying a villa!"}"
                   </p>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -617,9 +617,9 @@ export default function LandingPage({ setPage }) {
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="grid-2">
                 <div>
-                  <h3 style={{ marginTop: 0 }}>{isRTL ? "طلب حملة إعلانية ممولة مباشرة" : "Direct Sponsored Ad Campaigns"}</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{isRTL ? "طلب حملة إعلانية ممولة مباشرة" : "Direct Sponsored Ad Campaigns"}</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    {isRTL ? "أرسل تفاصيل مشروعك العقاري وميزانيتك، وسيتولى فريقنا الخبير إطلاق إعلانات مستهدفة لك على سناب شات، ميت، وتيك توك واستلام العملاء مباشرة داخل الـ CRM." : "Submit ad brief and budget; our marketing team executes high-performing targeted ad campaigns."}
+                    {isRTL ? "أرسل تفاصيل مشروعك العقاري وميزانيتك الإعلانية، وسيتولى فريقنا الخبير إطلاق إعلانات مستهدفة لك على سناب شات، ميت، وتيك توك واستلام العملاء مباشرة داخل الـ CRM." : "Submit ad brief and budget; our marketing team executes high-performing targeted ad campaigns."}
                   </p>
 
                   <ul style={{ paddingInlineStart: '1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -650,7 +650,7 @@ export default function LandingPage({ setPage }) {
       {/* 4. Problem & Solution Comparison Section */}
       <section style={{ padding: '5rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-main)' }}>
             {isRTL ? "لماذا يحتاج كل وسيط عقاري إلى AdToDeal AI؟" : "Why Modern Real Estate Brokers Need AdToDeal AI"}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
@@ -669,19 +669,19 @@ export default function LandingPage({ setPage }) {
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', padding: 0, listStyle: 'none' }}>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '1.1rem' }}>✕</span>
-                <span>{isRTL ? "نسيان متابعة 60% من العملاء الجدد بسبب التشتت بين نوتات الجوال والورق" : "Forgetting 60% of new lead follow-ups due to notes chaos"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "نسيان متابعة 60% من العملاء الجدد بسبب التشتت بين نوتات الجوال والورق" : "Forgetting 60% of new lead follow-ups due to notes chaos"}</span>
               </li>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '1.1rem' }}>✕</span>
-                <span>{isRTL ? "إضاعة ساعات يومياً في كتابة وتنسيق كل رسالة واتساب يدوياً" : "Wasting hours typing every single WhatsApp message from scratch"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "إضاعة ساعات يومياً في كتابة وتنسيق كل رسالة واتساب يدوياً" : "Wasting hours typing every single WhatsApp message from scratch"}</span>
               </li>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '1.1rem' }}>✕</span>
-                <span>{isRTL ? "الارتباك وعدم معرفة الرد المناسب عند اعتراض العميل على السعر" : "Struggling to answer tough price objections effectively"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "الارتباك وعدم معرفة الرد المناسب عند اعتراض العميل على السعر" : "Struggling to answer tough price objections effectively"}</span>
               </li>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '1.1rem' }}>✕</span>
-                <span>{isRTL ? "صعوبة إيجاد أفكار منشورات وفيديوهات ريلز متجددة بانتظام" : "Lack of consistent content & viral Reels video scripts"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "صعوبة إيجاد أفكار منشورات وفيديوهات ريلز متجددة بانتظام" : "Lack of consistent content & viral Reels video scripts"}</span>
               </li>
             </ul>
           </div>
@@ -696,19 +696,19 @@ export default function LandingPage({ setPage }) {
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', padding: 0, listStyle: 'none' }}>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1.1rem' }}>✓</span>
-                <span>{isRTL ? "تنبيهات وتذكيرات ذكية تلقائية تمنع ضياع أي صفقة محتملة" : "Automated smart reminders that ensure 100% follow-up rate"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "تنبيهات وتذكيرات ذكية تلقائية تمنع ضياع أي صفقة محتملة" : "Automated smart reminders that ensure 100% follow-up rate"}</span>
               </li>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1.1rem' }}>✓</span>
-                <span>{isRTL ? "توليد روابط رسائل الواتساب مجهزة مسبقاً باسم العميل بلمحة عين" : "Instant prefilled WhatsApp templates with customized metadata"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "توليد روابط رسائل الواتساب مجهزة مسبقاً باسم العميل بلمحة عين" : "Instant prefilled WhatsApp templates with customized metadata"}</span>
               </li>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1.1rem' }}>✓</span>
-                <span>{isRTL ? "مساعد الذكاء الاصطناعي يجهز لك أفضل الحجج والردود الفورية 24/7" : "24/7 AI copilot generating instant bulletproof objection scripts"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "مساعد الذكاء الاصطناعي يجهز لك أفضل الحجج والردود الفورية 24/7" : "24/7 AI copilot generating instant bulletproof objection scripts"}</span>
               </li>
               <li style={{ display: 'flex', gap: '0.75rem', fontSize: '0.95rem' }}>
                 <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1.1rem' }}>✓</span>
-                <span>{isRTL ? "مولد محتوى ريلز وسوشيال ميديا متكامل يجذب آلاف المشترين المستهدفين" : "Automated social content generator creating viral scripts daily"}</span>
+                <span style={{ color: 'var(--text-main)' }}>{isRTL ? "مولد محتوى ريلز وسوشيال ميديا متكامل يجذب آلاف المشترين المستهدفين" : "Automated social content generator creating viral scripts daily"}</span>
               </li>
             </ul>
           </div>
@@ -722,7 +722,7 @@ export default function LandingPage({ setPage }) {
             <div className="badge badge-contacted" style={{ marginBottom: '1rem', padding: '0.4rem 1rem' }}>
               {isRTL ? "منظومة متكاملة 8 في 1" : "8-in-1 Complete Solution"}
             </div>
-            <h2 style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-main)' }}>
               {isRTL ? "كافة الأدوات التي تحتاجه لتصدر سوق العقارات" : "Everything You Need to Master Real Estate Sales"}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', maxWidth: '700px', margin: '0 auto' }}>
@@ -737,7 +737,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(79,70,229,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8' }}>
                 <Users size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "1. نظام إدارة العملاء CRM" : "1. Smart Real Estate CRM"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "1. نظام إدارة العملاء CRM" : "1. Smart Real Estate CRM"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "إضافة العملاء، متابعة الميزانيات، تسجيل الموافقة والتواصل، وتصنيف الصفقات حسب مراحل البيع بسهولة وسرعة فائقة." : "Track client status, budget ranges, consent logs, and lead scores across Kanban pipelines."}
               </p>
@@ -748,7 +748,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(37,211,102,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#25d366' }}>
                 <MessageSquare size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "2. مولد الواتساب الفوري" : "2. Instant WhatsApp Link Builder"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "2. مولد الواتساب الفوري" : "2. Instant WhatsApp Link Builder"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "روابط واتساب مجهزة مسبقاً باسم العميل والعرض، تفتح في تطبيق الواتساب مباشرة بلمسة واحدة بدون كتابة." : "One-click pre-filled WhatsApp links embedding lead metadata into customizable templates."}
               </p>
@@ -759,7 +759,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(6,182,212,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}>
                 <Bot size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "3. مساعد المبيعات الذكي 24/7" : "3. 24/7 AI Sales Copilot"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "3. مساعد المبيعات الذكي 24/7" : "3. 24/7 AI Sales Copilot"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "حل اعتراضات العملاء الصعبة، صياغة عروض الأسعار المقنعة، ومطابقة متطلبات المشترين في ثوانٍ معدودة." : "Instant AI consultation for price objections, pitch drafting, and closing strategies."}
               </p>
@@ -770,7 +770,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
                 <Video size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "4. صانع محتوى الريلز والسوشيال" : "4. Reels & Social Post Creator"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "4. صانع محتوى الريلز والسوشيال" : "4. Reels & Social Post Creator"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "توليد سكربتات فيديوهات تيك توك وانستغرام قصيرة، بوستات تسويقية، والهاشتاجات الأكثر انتشاراً بلمح البصر." : "Generate viral video scripts, Instagram captions, and hashtag bundles for properties."}
               </p>
@@ -781,7 +781,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(236,72,153,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ec4899' }}>
                 <Megaphone size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "5. طلب إعلانات ممولة مباشرة" : "5. Direct Sponsored Ad Briefs"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "5. طلب إعلانات ممولة مباشرة" : "5. Direct Sponsored Ad Briefs"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "أرسل تفاصيل مشروعك وميزانيتك الإعلانية، وسيتولى فريقنا الاحترافي تشغيل إعلانات موجهة على مبيتا وسناب وشات." : "Submit advertising briefs; expert performance marketers launch targeted lead ads for you."}
               </p>
@@ -792,7 +792,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--success)' }}>
                 <Calendar size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "6. جدولة المهام والمتابعة الذكية" : "6. Smart Tasks & Follow-up"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "6. جدولة المهام والمتابعة الذكية" : "6. Smart Tasks & Follow-up"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "تذكيرات يومية آليّة بمواعيد الاتصال والمعاينات العقارية تضمن عدم إغفال أي عميل مهتم." : "Never miss a deal with automated daily call schedules, viewing reminders, and status tags."}
               </p>
@@ -803,7 +803,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a78bfa' }}>
                 <BarChart3 size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "7. تقارير وأداء المبيعات" : "7. Analytics & Revenue Forecast"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "7. تقارير وأداء المبيعات" : "7. Analytics & Revenue Forecast"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "رسومات بيانية تفاعلية لقياس مصادر العملاء الأكثر ربحية، معدلات الإغلاق، وتصدير التقارير بضغطة زر." : "Real-time revenue metrics, lead conversion distribution, and downloadable PDF/CSV reports."}
               </p>
@@ -814,7 +814,7 @@ export default function LandingPage({ setPage }) {
               <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa' }}>
                 <Globe size={26} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{isRTL ? "8. تسعير متعدد العملات تلقائياً" : "8. Auto Geolocation Pricing"}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{isRTL ? "8. تسعير متعدد العملات تلقائياً" : "8. Auto Geolocation Pricing"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
                 {isRTL ? "تحديد بلد الزائر تلقائياً وعرض الباقات بالريال السعودي، الدرهم، الجنيه المصري، الدينار، أو الدولار." : "Automatic IP-based location detector adjusting subscription plans to local currencies seamlessly."}
               </p>
@@ -831,7 +831,7 @@ export default function LandingPage({ setPage }) {
             <div className="badge badge-won" style={{ marginBottom: '1rem', padding: '0.4rem 1rem' }}>
               {isRTL ? "حاسبة العائد الاستثماري التفاعلية" : "Interactive ROI Calculator"}
             </div>
-            <h2 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+            <h2 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
               {isRTL ? "كم ستوفر وتكسب باستخدام AdToDeal AI؟" : "How Much Will You Save & Earn?"}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
@@ -843,7 +843,7 @@ export default function LandingPage({ setPage }) {
             {/* Sliders */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 700 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   <span>{isRTL ? "عدد العملاء المحتملين شهرياً:" : "Monthly New Leads:"}</span>
                   <span style={{ color: 'var(--secondary)', fontSize: '1.2rem' }}>{monthlyLeads} {isRTL ? "عميل" : "leads"}</span>
                 </div>
@@ -859,7 +859,7 @@ export default function LandingPage({ setPage }) {
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 700 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   <span>{isRTL ? "متوسط قيمة عمولتك في الصفقة:" : "Avg Commission / Deal:"}</span>
                   <span style={{ color: 'var(--success)', fontSize: '1.2rem' }}>{avgCommission.toLocaleString()} {symbol}</span>
                 </div>
@@ -877,11 +877,11 @@ export default function LandingPage({ setPage }) {
 
             {/* Dynamic Results Card */}
             <div className="card" style={{ background: 'linear-gradient(135deg, rgba(79,70,229,0.2), rgba(6,182,212,0.15))', borderColor: 'var(--primary)', padding: '2rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.9rem', color: '#c7d2fe', marginBottom: '0.5rem', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '0.5rem', fontWeight: 600 }}>
                 {isRTL ? "التوفير والنمو المتوقع سنوياً" : "Estimated Annual Growth"}
               </div>
 
-              <div style={{ fontSize: '2.8rem', fontWeight: 900, color: 'white', margin: '0.5rem 0' }}>
+              <div style={{ fontSize: '2.8rem', fontWeight: 900, color: 'var(--text-main)', margin: '0.5rem 0' }}>
                 +{estimatedExtraRevenue.toLocaleString()} <span style={{ fontSize: '1.2rem', color: 'var(--secondary)' }}>{symbol}</span>
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
@@ -907,7 +907,7 @@ export default function LandingPage({ setPage }) {
       {/* 7. Live Playground / Interactive AI Test */}
       <section style={{ padding: '5rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+          <h2 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
             {isRTL ? "جرب الذكاء الاصطناعي الآن بنفسك ⚡" : "Try the Live AI Playground Now"}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem' }}>
@@ -915,7 +915,7 @@ export default function LandingPage({ setPage }) {
           </p>
         </div>
 
-        <div className="card" style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto', background: 'rgba(17,24,39,0.8)' }}>
+        <div className="card" style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
           {/* Preset buttons */}
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
             {Object.keys(playgroundScenarios).map((key) => (
@@ -935,9 +935,9 @@ export default function LandingPage({ setPage }) {
           </div>
 
           {/* Playground Box */}
-          <div style={{ background: '#090d16', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '1.5rem' }}>
+          <div className="playground-box" style={{ background: 'var(--bg-darker)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '1.5rem' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              <strong>{isRTL ? "السؤال / التوجيه:" : "Prompt:"}</strong> {playgroundScenarios[selectedPlaygroundPrompt].promptAr}
+              <strong style={{ color: 'var(--text-main)' }}>{isRTL ? "السؤال / التوجيه:" : "Prompt:"}</strong> {playgroundScenarios[selectedPlaygroundPrompt].promptAr}
             </div>
 
             <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem', minHeight: '120px' }}>
@@ -947,7 +947,7 @@ export default function LandingPage({ setPage }) {
                   <span>{isRTL ? "جاري التوليد بواسطة مساعد AdToDeal AI..." : "Generating intelligent response..."}</span>
                 </div>
               ) : (
-                <div style={{ whiteSpace: 'pre-line', fontSize: '0.925rem', lineHeight: 1.7, color: 'white' }}>
+                <div className="playground-output" style={{ whiteSpace: 'pre-line', fontSize: '0.925rem', lineHeight: 1.7, color: 'var(--text-main)' }}>
                   {playgroundOutput || playgroundScenarios[selectedPlaygroundPrompt].outputAr}
                 </div>
               )}
@@ -959,7 +959,7 @@ export default function LandingPage({ setPage }) {
       {/* 8. Pricing Section with Dynamic Country Geolocation Badge */}
       <section id="pricing" style={{ padding: '6rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: '0.5rem' }}>{t('billingTitle')}</h2>
+          <h2 style={{ fontSize: '2.6rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-main)' }}>{t('billingTitle')}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>{t('billingSubtitle')}</p>
         </div>
 
@@ -992,12 +992,12 @@ export default function LandingPage({ setPage }) {
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2rem' }}>
             <div>
               <h3 style={{ color: 'var(--text-muted)', textAlign: 'start', marginTop: 0 }}>{t('planBasic')}</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1.25rem 0', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1.25rem 0', display: 'flex', alignItems: 'baseline', gap: '0.35rem', color: 'var(--text-main)' }}>
                 <span>{currencyInfo.prices.Basic}</span>
                 <span style={{ fontSize: '1rem', color: 'var(--text-main)' }}>{symbol}</span>
                 <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t('priceMonth')}</span>
               </div>
-              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start' }}>
+              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start', color: 'var(--text-main)' }}>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {t('featuresCRM')}</li>
                 <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {t('featuresReminders')}</li>
                 <li style={{ display: 'flex', gap: '0.5rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "توليد بالذكاء الاصطناعي محدود (20 شهرياً)" : "Limited AI generation (20/mo)"}</li>
@@ -1010,7 +1010,7 @@ export default function LandingPage({ setPage }) {
           </div>
 
           {/* Pro (Highlighted) */}
-          <div className="card glow-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2rem', borderColor: 'var(--primary)', background: 'linear-gradient(180deg, rgba(79,70,229,0.12), rgba(17,24,39,0.9))', position: 'relative' }}>
+          <div className="card glow-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2rem', borderColor: 'var(--primary)', background: 'linear-gradient(180deg, rgba(79,70,229,0.12), var(--card-bg))', position: 'relative' }}>
             <div style={{
               position: 'absolute',
               top: '-14px',
@@ -1029,13 +1029,13 @@ export default function LandingPage({ setPage }) {
             </div>
 
             <div>
-              <h3 style={{ textAlign: 'start', marginTop: '0.5rem', fontSize: '1.4rem' }}>{t('planPro')}</h3>
-              <div style={{ fontSize: '2.8rem', fontWeight: 900, margin: '1.25rem 0', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+              <h3 style={{ textAlign: 'start', marginTop: '0.5rem', fontSize: '1.4rem', color: 'var(--text-main)' }}>{t('planPro')}</h3>
+              <div style={{ fontSize: '2.8rem', fontWeight: 900, margin: '1.25rem 0', display: 'flex', alignItems: 'baseline', gap: '0.35rem', color: 'var(--text-main)' }}>
                 <span>{currencyInfo.prices.Pro}</span>
                 <span style={{ fontSize: '1.1rem', color: 'var(--text-main)' }}>{symbol}</span>
                 <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t('priceMonth')}</span>
               </div>
-              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start' }}>
+              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start', color: 'var(--text-main)' }}>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {t('featuresCRM')}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {t('featuresReminders')}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "مساعد شخصي ذكي غير محدود 24/7" : "Unlimited personal 24/7 AI Sales Copilot"}</li>
@@ -1053,12 +1053,12 @@ export default function LandingPage({ setPage }) {
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2rem' }}>
             <div>
               <h3 style={{ color: 'var(--secondary)', textAlign: 'start', marginTop: 0 }}>{t('planGrowth')}</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1.25rem 0', display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1.25rem 0', display: 'flex', alignItems: 'baseline', gap: '0.35rem', color: 'var(--text-main)' }}>
                 <span>{currencyInfo.prices.Growth}</span>
                 <span style={{ fontSize: '1rem', color: 'var(--text-main)' }}>{symbol}</span>
                 <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t('priceMonth')}</span>
               </div>
-              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start' }}>
+              <ul style={{ padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.9rem', textAlign: 'start', color: 'var(--text-main)' }}>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "منظومة CRM كاملة للفرق والشركات" : "Full team CRM suite"}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "ذكاء اصطناعي فائق السرعة غير محدود" : "Unlimited high-priority AI engine"}</li>
                 <li style={{ display: 'flex', gap: '0.6rem' }}><Check size={18} style={{ color: 'var(--success)' }} /> {isRTL ? "إمكانية تقديم طلبات إعلانات ممولة" : "Sponsored ads management request feature"}</li>
@@ -1076,7 +1076,7 @@ export default function LandingPage({ setPage }) {
       {/* 9. FAQ Accordion Section */}
       <section id="faq" style={{ padding: '5rem 1.5rem', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
             {isRTL ? "الأسئلة الشائعة والمتكررة" : "Frequently Asked Questions"}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem' }}>
@@ -1119,6 +1119,7 @@ export default function LandingPage({ setPage }) {
           ].map((faq, idx) => (
             <div key={idx} className="faq-accordion-item">
               <button 
+                className="faq-accordion-btn"
                 onClick={() => setOpenFaqIndex(openFaqIndex === idx ? -1 : idx)}
                 style={{
                   width: '100%',
@@ -1128,7 +1129,7 @@ export default function LandingPage({ setPage }) {
                   alignItems: 'center',
                   background: 'none',
                   border: 'none',
-                  color: 'white',
+                  color: 'var(--text-main)',
                   fontSize: '1.05rem',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -1160,10 +1161,10 @@ export default function LandingPage({ setPage }) {
           border: '1px solid var(--primary)'
         }}>
           <Sparkles size={40} style={{ color: 'var(--secondary)', marginBottom: '1rem' }} className="float-item" />
-          <h2 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '1rem', color: 'white' }}>
+          <h2 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '1rem', color: 'var(--text-main)' }}>
             {isRTL ? "جاهز لمضاعفة مبيعاتك العقارية من اليوم؟" : "Ready to Supercharge Your Sales Today?"}
           </h2>
-          <p style={{ fontSize: '1.2rem', color: '#c7d2fe', marginBottom: '2.5rem', maxWidth: '650px', marginInline: 'auto' }}>
+          <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '2.5rem', maxWidth: '650px', marginInline: 'auto' }}>
             {isRTL ? "انضم إلى مئات الوسطاء العقاريين الذين يعتمدون على AdToDeal AI يومياً لإدارة العملاء وإغلاق الصفقات بسرعة." : "Join hundreds of top real estate agents closing deals 3X faster with AI."}
           </p>
 
@@ -1178,7 +1179,7 @@ export default function LandingPage({ setPage }) {
       </section>
 
       {/* 11. Footer */}
-      <footer style={{
+      <footer className="landing-footer" style={{
         borderTop: '1px solid var(--card-border)',
         padding: '3rem 1.5rem 2rem',
         background: 'rgba(7, 10, 19, 0.95)',
@@ -1188,7 +1189,7 @@ export default function LandingPage({ setPage }) {
         <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Sparkles style={{ color: 'var(--secondary)' }} size={20} />
-            <strong style={{ color: 'white', fontSize: '1.1rem' }}>AdToDeal AI</strong>
+            <strong style={{ color: 'var(--text-main)', fontSize: '1.1rem' }}>AdToDeal AI</strong>
             <span>— {isRTL ? "نظام إدارة المبيعات والعقارات بالذكاء الاصطناعي" : "AI Sales Platform"}</span>
           </div>
 

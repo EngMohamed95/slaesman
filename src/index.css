@@ -90,13 +90,92 @@
 }
 
 [data-theme="light"] .btn-secondary {
-  background: #f1f5f9;
+  background: #ffffff;
   color: #0f172a;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .btn-secondary:hover {
-  background: #e2e8f0;
+  background: #f1f5f9;
+}
+
+/* Landing Page Light Mode Enhancements */
+[data-theme="light"] .landing-header {
+  background: rgba(241, 245, 249, 0.95) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .landing-logo-text {
+  background: linear-gradient(135deg, #0f172a 30%, var(--primary) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="light"] .hero-headline {
+  background: linear-gradient(135deg, #0f172a 20%, #312e81 60%, #4f46e5 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="light"] .trust-ribbon {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .trust-ribbon-num {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .landing-tab-btn {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .landing-tab-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .landing-tab-btn.active {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(6, 182, 212, 0.15)) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+[data-theme="light"] .demo-screen-container {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .faq-accordion-item {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .faq-accordion-btn {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .landing-footer {
+  background: #e2e8f0 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .landing-footer strong {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .playground-box {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="light"] .playground-output {
+  color: #0f172a !important;
 }
 
 body {

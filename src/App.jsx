@@ -157,12 +157,26 @@ function AppContent() {
       />
 
       {/* Sidebar Navigation */}
-      <aside className={`sidebar ${mobileMenuOpen ? 'active' : ''}`} style={{
-        transform: mobileMenuOpen ? 'translateX(0)' : undefined
-      }}>
-        <div className="sidebar-logo">
-          <Sparkles style={{ color: 'var(--secondary)' }} />
-          <span>{t('appName')}</span>
+      <aside className={`sidebar ${mobileMenuOpen ? 'active' : ''}`}>
+        <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles style={{ color: 'var(--secondary)' }} />
+            <span>{t('appName')}</span>
+          </div>
+          <button 
+            onClick={() => setMobileMenuOpen(false)}
+            className="mobile-close-btn"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'none',
+              padding: '0.25rem'
+            }}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <nav className="sidebar-menu">
@@ -221,7 +235,7 @@ function AppContent() {
               display: 'none',
               background: 'none',
               border: 'none',
-              color: 'white',
+              color: 'var(--text-main)',
               cursor: 'pointer'
             }}
             className="mobile-toggle"
@@ -248,7 +262,7 @@ function AppContent() {
               }}
             >
               {theme === 'dark' ? <Sun size={15} style={{ color: '#f59e0b' }} /> : <Moon size={15} style={{ color: '#4f46e5' }} />}
-              <span>{theme === 'dark' ? (isRTL ? 'نهاري' : 'Light') : (isRTL ? 'ليلي' : 'Dark')}</span>
+              <span className="desktop-only">{theme === 'dark' ? (isRTL ? 'نهاري' : 'Light') : (isRTL ? 'ليلي' : 'Dark')}</span>
             </button>
 
             {/* Quick Lang Indicator */}
@@ -276,7 +290,7 @@ function AppContent() {
               <div style={{ width: '1.5rem', height: '1.5rem', borderRadius: '50%', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <User size={12} style={{ color: '#818cf8' }} />
               </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{user?.email}</span>
+              <span className="profile-email" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{user?.email}</span>
             </div>
           </div>
         </header>
@@ -329,24 +343,7 @@ function AppContent() {
         </button>
       </nav>
 
-      {/* CSS adjustments for sidebar mobile drawer */}
-      <style>{`
-        @media (max-width: 1024px) {
-          .sidebar {
-            transform: translateX(${isRTL ? '100%' : '-100%'});
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000;
-          }
-          .sidebar.active {
-            transform: translateX(0);
-          }
-          .mobile-toggle {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-      `}</style>
+      {/* Dynamic mobile drawer styles consolidated in index.css */}
     </div>
   );
 }

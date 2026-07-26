@@ -571,7 +571,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="page-heading-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{t('navCRM')}</h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>

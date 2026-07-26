@@ -76,7 +76,7 @@ export default function LeadDetailsPage({ leadId, setPage }) {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="page-heading-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <button 
           className="btn btn-secondary" 
           onClick={() => setPage('crm')}

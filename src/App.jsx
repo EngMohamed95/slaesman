@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 function AppContent() {
-  const { user, onboarded, logout, theme, toggleTheme } = useApp();
+  const { user, logout, theme, toggleTheme } = useApp();
   const { t, lang, toggleLanguage, isRTL } = useLanguage();
   const [page, setPage] = useState(() => {
     const hash = window.location.hash;
@@ -220,7 +220,7 @@ function AppContent() {
       {/* Top Header & Content Area */}
       <div className="main-content">
         {/* Top Navbar */}
-        <header style={{
+        <header className="app-topbar" style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -243,7 +243,7 @@ function AppContent() {
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginInlineStart: 'auto' }}>
+          <div className="app-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginInlineStart: 'auto' }}>
             {/* Dark / Light Theme Switcher */}
             <button 
               onClick={toggleTheme}
@@ -286,7 +286,7 @@ function AppContent() {
             </button>
 
             {/* Profile widget */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
+            <div className="app-profile-chip" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
               <div style={{ width: '1.5rem', height: '1.5rem', borderRadius: '50%', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <User size={12} style={{ color: '#818cf8' }} />
               </div>

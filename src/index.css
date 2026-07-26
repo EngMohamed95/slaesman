@@ -195,6 +195,21 @@ body {
   font-family: 'Cairo', system-ui, sans-serif !important;
 }
 
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+}
+
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 6px;
@@ -655,8 +670,32 @@ tr:hover td {
 
   /* Padding adjustments */
   .main-content {
-    padding: 1rem !important;
-    padding-bottom: 5.5rem !important;
+    padding: 0.875rem !important;
+    padding-top: max(0.875rem, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .app-topbar {
+    min-height: 3rem;
+    margin-bottom: 1.25rem !important;
+    padding-bottom: 0.75rem !important;
+    gap: 0.5rem;
+  }
+
+  .app-topbar-actions {
+    min-width: 0;
+    gap: 0.4rem !important;
+  }
+
+  .app-topbar-actions > button,
+  .app-profile-chip {
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  .app-profile-chip {
+    max-width: min(42vw, 150px);
   }
 
   /* Desktop-only helpers */
@@ -672,6 +711,7 @@ tr:hover td {
   /* Table containers scroll momentum */
   .table-container {
     -webkit-overflow-scrolling: touch;
+    max-width: calc(100vw - 1.75rem);
   }
 }
 
@@ -734,7 +774,7 @@ tr:hover td {
 
 @media (max-width: 480px) {
   .profile-email {
-    max-width: 80px;
+    max-width: 62px;
   }
 }
 
@@ -766,6 +806,21 @@ tr:hover td {
     box-sizing: border-box !important;
   }
 
+  .card {
+    padding: 1rem;
+    border-radius: 0.8rem;
+  }
+
+  .card > *,
+  .glass-panel > *,
+  .main-content > * {
+    min-width: 0;
+  }
+
+  p, h1, h2, h3, h4, td, th, label, span {
+    overflow-wrap: anywhere;
+  }
+
   /* Prevent oversized headings on mobile */
   h1 {
     font-size: 1.6rem !important;
@@ -781,5 +836,100 @@ tr:hover td {
   input, select, textarea {
     max-width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  /* Keep common action rows usable instead of letting them leave the viewport. */
+  .card > div[style*="justify-content: space-between"],
+  .card > div[style*="justifyContent: 'space-between'"] {
+    flex-wrap: wrap;
+  }
+
+  /* Landing page: tighter sections, controls and demo panels. */
+  .landing-header > div {
+    padding-inline: 0.875rem !important;
+    gap: 0.5rem;
+  }
+
+  .landing-header .btn {
+    padding-inline: 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .landing-page section {
+    padding: 3rem 1rem !important;
+  }
+
+  .landing-page .demo-screen-container {
+    padding: 1rem !important;
+    border-radius: 0.9rem !important;
+  }
+
+  .landing-tab-btn {
+    flex: 1 1 calc(50% - 0.5rem);
+    justify-content: center;
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  /* The assistant becomes a mobile sheet above the bottom navigation. */
+  .floating-ai-fab {
+    width: 52px !important;
+    height: 52px !important;
+    left: 1rem !important;
+    right: auto !important;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  [dir="rtl"] .floating-ai-fab {
+    right: 1rem !important;
+    left: auto !important;
+  }
+
+  .floating-chat-window {
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    height: min(68vh, 560px) !important;
+    max-height: calc(100dvh - 90px - env(safe-area-inset-top, 0px)) !important;
+    border-radius: 1rem !important;
+  }
+
+  /* Dialog-like full page cards should retain a comfortable edge gutter. */
+  .auth-page .card,
+  .onboarding-page .card {
+    padding: 1.25rem !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .main-content {
+    padding-inline: 0.625rem !important;
+  }
+
+  .app-profile-chip {
+    display: none !important;
+  }
+
+  .mobile-bar-item {
+    padding-inline: 0.2rem;
+    font-size: 0.62rem;
+  }
+
+  .landing-header .btn-secondary {
+    display: none;
+  }
+
+  .landing-page section {
+    padding-inline: 0.75rem !important;
+  }
+}
+
+@media (hover: none) {
+  .card:hover,
+  .feature-card-hover:hover,
+  .btn-primary:hover {
+    transform: none;
   }
 }

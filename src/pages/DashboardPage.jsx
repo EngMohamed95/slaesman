@@ -137,7 +137,8 @@ export default function DashboardPage({ setPage, setSelectedLeadId }) {
                 {isRTL ? "عرض الكل" : "View All"} <ArrowRight size={14} />
               </button>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+            {/* Desktop Recent Leads Table */}
+            <div className="desktop-only" style={{ overflowX: 'auto' }}>
               <table style={{ minWidth: '500px' }}>
                 <thead>
                   <tr>
@@ -178,6 +179,49 @@ export default function DashboardPage({ setPage, setSelectedLeadId }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Recent Leads Cards List */}
+            <div className="mobile-only-flex" style={{ flexDirection: 'column', padding: '0.75rem', gap: '0.75rem' }}>
+              {recentLeads.map((lead) => (
+                <div 
+                  key={lead.id}
+                  onClick={() => {
+                    setSelectedLeadId(lead.id);
+                    setPage('leadDetails');
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--card-border)',
+                    borderRadius: '0.5rem',
+                    padding: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                      {isRTL ? lead.nameAr : lead.name}
+                    </div>
+                    <span className={`badge badge-${lead.status.toLowerCase().replace(' ', '')}`}>
+                      {isRTL ? lead.statusAr : lead.status}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                    <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>
+                      {isRTL ? `${lead.budget.toLocaleString()} ريال` : `$${lead.budget.toLocaleString()}`}
+                    </span>
+                    <span style={{ 
+                      color: lead.interestLevel === 'High' ? 'var(--danger)' : lead.interestLevel === 'Medium' ? 'var(--accent)' : 'var(--text-muted)',
+                      fontWeight: 'bold'
+                    }}>
+                      {isRTL ? lead.interestLevelAr : lead.interestLevel}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

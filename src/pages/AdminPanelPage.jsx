@@ -102,117 +102,177 @@ export default function AdminPanelPage() {
         {/* Tab contents */}
         <div style={{ padding: '1.5rem' }}>
           {activeSubTab === 'briefs' && (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ minWidth: '800px' }}>
-                <thead>
-                  <tr>
-                    <th>{isRTL ? 'التاريخ والمنصة' : 'Date & Platform'}</th>
-                    <th>{isRTL ? 'تفاصيل العرض' : 'Offer Details'}</th>
-                    <th>{isRTL ? 'الميزانية / المدة' : 'Budget / Days'}</th>
-                    <th>{t('status')}</th>
-                    <th>{t('actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaignRequests.map((req) => (
-                    <tr key={req.id}>
-                      <td>
-                        <div style={{ fontWeight: 'bold' }}>{req.platform}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{req.date} • {req.city}</div>
-                      </td>
-                      <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>
-                        <div>{req.offerDetails}</div>
-                        {req.notes && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                            {isRTL ? 'ملاحظات: ' : 'Notes: '}{req.notes}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <div>${req.budget}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{req.duration} {isRTL ? 'أيام' : 'days'}</div>
-                      </td>
-                      <td>
-                        <span className={`badge`} style={{
-                          background: req.status === 'Active & Delivering' ? 'var(--success-glow)' : 'var(--accent-glow)',
-                          color: req.status === 'Active & Delivering' ? 'var(--success)' : 'var(--accent)'
-                        }}>
-                          {isRTL ? req.statusAr : req.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          {req.status === 'Pending Review' && (
-                            <button 
-                              className="btn btn-secondary" 
-                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: 'var(--success)' }}
-                              onClick={() => handleStatusChange(req.id, 'Active & Delivering', 'نشطة وتجلب عملاء')}
-                            >
-                              {t('approveBrief')}
-                            </button>
-                          )}
-                          {req.status === 'Active & Delivering' && (
-                            <button 
-                              className="btn btn-secondary" 
-                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}
-                              onClick={() => handleStatusChange(req.id, 'Completed', 'مكتملة')}
-                            >
-                              {t('markCompleted')}
-                            </button>
-                          )}
-                        </div>
-                      </td>
+            <>
+              {/* Desktop Campaign Briefs Table */}
+              <div className="desktop-only" style={{ overflowX: 'auto' }}>
+                <table style={{ minWidth: '800px' }}>
+                  <thead>
+                    <tr>
+                      <th>{isRTL ? 'التاريخ والمنصة' : 'Date & Platform'}</th>
+                      <th>{isRTL ? 'تفاصيل العرض' : 'Offer Details'}</th>
+                      <th>{isRTL ? 'الميزانية / المدة' : 'Budget / Days'}</th>
+                      <th>{t('status')}</th>
+                      <th>{t('actions')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {campaignRequests.map((req) => (
+                      <tr key={req.id}>
+                        <td>
+                          <div style={{ fontWeight: 'bold' }}>{req.platform}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{req.date} • {req.city}</div>
+                        </td>
+                        <td style={{ maxWidth: '300px', fontSize: '0.85rem' }}>
+                          <div>{req.offerDetails}</div>
+                          {req.notes && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                              {isRTL ? 'ملاحظات: ' : 'Notes: '}{req.notes}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div>${req.budget}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{req.duration} {isRTL ? 'أيام' : 'days'}</div>
+                        </td>
+                        <td>
+                          <span className={`badge`} style={{
+                            background: req.status === 'Active & Delivering' ? 'var(--success-glow)' : 'var(--accent-glow)',
+                            color: req.status === 'Active & Delivering' ? 'var(--success)' : 'var(--accent)'
+                          }}>
+                            {isRTL ? req.statusAr : req.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {req.status === 'Pending Review' && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: 'var(--success)' }}
+                                onClick={() => handleStatusChange(req.id, 'Active & Delivering', 'نشطة وتجلب عملاء')}
+                              >
+                                {t('approveBrief')}
+                              </button>
+                            )}
+                            {req.status === 'Active & Delivering' && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}
+                                onClick={() => handleStatusChange(req.id, 'Completed', 'مكتملة')}
+                              >
+                                {t('markCompleted')}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Campaign Briefs Cards */}
+              <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
+                {campaignRequests.map((req) => (
+                  <div key={req.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{req.platform}</div>
+                      <span className={`badge`} style={{
+                        background: req.status === 'Active & Delivering' ? 'var(--success-glow)' : 'var(--accent-glow)',
+                        color: req.status === 'Active & Delivering' ? 'var(--success)' : 'var(--accent)'
+                      }}>
+                        {isRTL ? req.statusAr : req.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{req.date} • {req.city}</div>
+                    <div style={{ fontSize: '0.85rem' }}>{req.offerDetails}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                      <span>{isRTL ? 'الميزانية:' : 'Budget:'} <strong>${req.budget}</strong></span>
+                      <span>{isRTL ? 'المدة:' : 'Duration:'} <strong>{req.duration} {isRTL ? 'أيام' : 'days'}</strong></span>
+                    </div>
+                    {req.status === 'Pending Review' && (
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '0.5rem', fontSize: '0.8rem', color: 'var(--success)', marginTop: '0.25rem' }}
+                        onClick={() => handleStatusChange(req.id, 'Active & Delivering', 'نشطة وتجلب عملاء')}
+                      >
+                        {t('approveBrief')}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           {activeSubTab === 'users' && (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ minWidth: '900px' }}>
-                <thead>
-                  <tr>
-                    <th>{t('name')}</th>
-                    <th>{t('email')}</th>
-                    <th>{isRTL ? 'خطة الاشتراك' : 'Subscription Tier'}</th>
-                    <th>{isRTL ? 'الحالة' : 'Status'}</th>
-                    <th>{isRTL ? 'طريقة الدفع' : 'Payment Method'}</th>
-                    <th>{isRTL ? 'تاريخ الدفع' : 'Payment Date'}</th>
-                    <th>{isRTL ? 'المبلغ المدفوع' : 'Amount Paid'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockUsers.map(user => (
-                    <tr key={user.id}>
-                      <td style={{ fontWeight: 'bold' }}>{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span className="badge" style={{ 
-                          fontWeight: 'bold',
-                          background: user.plan === 'Growth' ? 'var(--secondary-glow)' : user.plan === 'Pro' ? 'var(--primary-glow)' : 'rgba(255,255,255,0.05)',
-                          color: user.plan === 'Growth' ? 'var(--secondary)' : user.plan === 'Pro' ? 'var(--primary)' : 'var(--text-muted)'
-                        }}>
-                          {user.plan}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="badge" style={{
-                          background: user.status === 'Active' ? 'var(--success-glow)' : 'var(--danger-glow)',
-                          color: user.status === 'Active' ? 'var(--success)' : 'var(--danger)'
-                        }}>
-                          {user.status === 'Active' ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'ملغي' : 'Cancelled')}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{user.paymentMethod}</td>
-                      <td>{user.paymentDate}</td>
-                      <td style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{user.amount}</td>
+            <>
+              {/* Desktop Users Table */}
+              <div className="desktop-only" style={{ overflowX: 'auto' }}>
+                <table style={{ minWidth: '900px' }}>
+                  <thead>
+                    <tr>
+                      <th>{t('name')}</th>
+                      <th>{t('email')}</th>
+                      <th>{isRTL ? 'خطة الاشتراك' : 'Subscription Tier'}</th>
+                      <th>{isRTL ? 'الحالة' : 'Status'}</th>
+                      <th>{isRTL ? 'طريقة الدفع' : 'Payment Method'}</th>
+                      <th>{isRTL ? 'تاريخ الدفع' : 'Payment Date'}</th>
+                      <th>{isRTL ? 'المبلغ المدفوع' : 'Amount Paid'}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {mockUsers.map(user => (
+                      <tr key={user.id}>
+                        <td style={{ fontWeight: 'bold' }}>{user.name}</td>
+                        <td>{user.email}</td>
+                        <td>
+                          <span className="badge" style={{ 
+                            fontWeight: 'bold',
+                            background: user.plan === 'Growth' ? 'var(--secondary-glow)' : user.plan === 'Pro' ? 'var(--primary-glow)' : 'rgba(255,255,255,0.05)',
+                            color: user.plan === 'Growth' ? 'var(--secondary)' : user.plan === 'Pro' ? 'var(--primary)' : 'var(--text-muted)'
+                          }}>
+                            {user.plan}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="badge" style={{
+                            background: user.status === 'Active' ? 'var(--success-glow)' : 'var(--danger-glow)',
+                            color: user.status === 'Active' ? 'var(--success)' : 'var(--danger)'
+                          }}>
+                            {user.status === 'Active' ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'ملغي' : 'Cancelled')}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 600 }}>{user.paymentMethod}</td>
+                        <td>{user.paymentDate}</td>
+                        <td style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{user.amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Users Cards */}
+              <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
+                {mockUsers.map(user => (
+                  <div key={user.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{user.name}</div>
+                      <span className="badge" style={{ 
+                        background: user.plan === 'Growth' ? 'var(--secondary-glow)' : user.plan === 'Pro' ? 'var(--primary-glow)' : 'rgba(255,255,255,0.05)',
+                        color: user.plan === 'Growth' ? 'var(--secondary)' : user.plan === 'Pro' ? 'var(--primary)' : 'var(--text-muted)'
+                      }}>
+                        {user.plan}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                      <span>{user.paymentMethod} • {user.paymentDate}</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{user.amount}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           {activeSubTab === 'templates' && (

@@ -737,3 +737,49 @@ tr:hover td {
     max-width: 80px;
   }
 }
+
+/* Mobile and Desktop Display Utilities */
+.mobile-only,
+.mobile-only-flex,
+.mobile-only-grid {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: block !important;
+  }
+  .mobile-only-flex {
+    display: flex !important;
+  }
+  .mobile-only-grid {
+    display: grid !important;
+  }
+  
+  /* Ensure all cards take 100% width and fit inside parent without overflow */
+  .card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent oversized headings on mobile */
+  h1 {
+    font-size: 1.6rem !important;
+  }
+  h2 {
+    font-size: 1.35rem !important;
+  }
+  h3 {
+    font-size: 1.15rem !important;
+  }
+
+  /* Ensure inputs and selects take 100% width on mobile */
+  input, select, textarea {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}

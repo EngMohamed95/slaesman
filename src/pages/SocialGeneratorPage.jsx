@@ -745,7 +745,7 @@ I have extracted project highlights and generated target social designs, a reels
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {/* Creative Studio Tabs Header */}
-          <div className="card" style={{ padding: '0.5rem', display: 'flex', gap: '0.25rem', overflowX: 'auto' }}>
+          <div className="card" style={{ padding: '0.5rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             {[
               { id: 'image', label: isRTL ? 'تصميم صورة (بوست/ستوري)' : t('tabImage'), icon: <Image size={15} /> },
               { id: 'video', label: isRTL ? 'فيديو وسيناريوهات' : t('tabVideo'), icon: <Compass size={15} /> },

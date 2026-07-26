@@ -733,8 +733,8 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
         </div>
       </div>
 
-      {/* Leads Table Card */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Leads Desktop Table View */}
+      <div className="card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ minWidth: '900px' }}>
             <thead>
@@ -828,6 +828,94 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Leads Mobile Cards View */}
+      <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
+        {filteredLeads.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+            {isRTL ? "لم يتم العثور على عملاء يطابقون خيارات البحث." : "No leads found matching current criteria."}
+          </div>
+        ) : (
+          filteredLeads.map((lead) => (
+            <div key={lead.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                    {isRTL ? lead.nameAr : lead.name}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    {isRTL ? lead.serviceAr : lead.service}
+                  </div>
+                </div>
+                <span className={`badge badge-${lead.status.toLowerCase().replace(' ', '')}`}>
+                  {isRTL ? lead.statusAr : lead.status}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('budget')}</span>
+                  <strong style={{ color: 'var(--success)' }}>
+                    {isRTL ? `${lead.budget.toLocaleString()} ريال` : `$${lead.budget.toLocaleString()}`}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('source')}</span>
+                  <span style={{ fontWeight: 600 }}>{isRTL ? (lead.sourceAr || lead.source) : lead.source}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('phone')}</span>
+                  <span style={{ fontFamily: 'monospace' }}>{lead.phone}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('interestLevel')}</span>
+                  <span style={{ 
+                    color: lead.interestLevel === 'High' ? 'var(--danger)' : lead.interestLevel === 'Medium' ? 'var(--accent)' : 'var(--text-muted)',
+                    fontWeight: 'bold'
+                  }}>
+                    {isRTL ? lead.interestLevelAr : lead.interestLevel}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: '0.5rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                  onClick={() => {
+                    setSelectedLeadId(lead.id);
+                    setPage('leadDetails');
+                  }}
+                >
+                  <Eye size={14} />
+                  <span>{t('leadDetails')}</span>
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ padding: '0.5rem', color: 'var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => {
+                    setSelectedLeadId(lead.id);
+                    setPage('whatsapp');
+                  }}
+                >
+                  <MessageCircle size={14} />
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ padding: '0.5rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => {
+                    if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this lead?')) {
+                      deleteLead(lead.id);
+                    }
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Add Lead Modal Overlay */}

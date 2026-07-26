@@ -596,8 +596,8 @@ I have extracted project highlights and generated target social designs, a reels
   };
 
   return (
-    <div className="fade-in">
-      <div style={{ marginBottom: '2rem' }}>
+    <div className="fade-in social-studio-page">
+      <div className="social-studio-heading" style={{ marginBottom: '2rem' }}>
         <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Sparkles style={{ color: 'var(--secondary)' }} /> 
           {isRTL ? "استوديو صناعة المحتوى بالذكاء الاصطناعي" : t('socialStudioTitle')}
@@ -607,13 +607,13 @@ I have extracted project highlights and generated target social designs, a reels
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '1.5rem' }} className="grid-responsive">
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '1.5rem' }} className="grid-responsive social-studio-layout">
         
         {/* Left Column: Conversational Assistant */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {/* Chat Container Card */}
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '520px', padding: '1.25rem' }}>
+          <div className="card social-chat-card" style={{ display: 'flex', flexDirection: 'column', height: '520px', padding: '1.25rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
               <Compass size={16} style={{ color: 'var(--secondary)' }} />
               {isRTL ? "محادثة مساعد المحتوى الذكي" : t('chatWithAI')}
@@ -671,7 +671,7 @@ I have extracted project highlights and generated target social designs, a reels
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                 {isRTL ? "أفكار مقترحة سريعة للتوجيه:" : t('suggestedQuestions')}
               </span>
-              <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+              <div className="social-prompt-scroller" style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
                 {[
                   { labelAr: "خصم 10% بمشروع النرجس", labelEn: "10% off at Al-Narjis", query: "صمم منشور لخصم 10% بمشروع النرجس" },
                   { labelAr: "شقق الياسمين بالتقسيط", labelEn: "Al-Yasmin installments", query: "اكتب اسكريبت فيديو عن شقق الياسمين بالتقسيط" },
@@ -693,7 +693,7 @@ I have extracted project highlights and generated target social designs, a reels
             </div>
 
             {/* File Upload Widget */}
-            <div style={{
+            <div className="social-upload-row" style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px dashed var(--card-border)',
               borderRadius: '0.5rem',
@@ -725,7 +725,7 @@ I have extracted project highlights and generated target social designs, a reels
             </div>
 
             {/* Chat Send Form */}
-            <form onSubmit={handleChatSubmit} style={{ display: 'flex', gap: '0.5rem' }}>
+            <form className="social-chat-form" onSubmit={handleChatSubmit} style={{ display: 'flex', gap: '0.5rem' }}>
               <input 
                 type="text" 
                 placeholder={isRTL ? "اكتب توجيهاتك لصانع المحتوى هنا..." : "Type custom instructions for AI content creator..."}
@@ -745,7 +745,7 @@ I have extracted project highlights and generated target social designs, a reels
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {/* Creative Studio Tabs Header */}
-          <div className="card" style={{ padding: '0.5rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+          <div className="card social-studio-tabs" style={{ padding: '0.5rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             {[
               { id: 'image', label: isRTL ? 'تصميم صورة (بوست/ستوري)' : t('tabImage'), icon: <Image size={15} /> },
               { id: 'video', label: isRTL ? 'فيديو وسيناريوهات' : t('tabVideo'), icon: <Compass size={15} /> },
@@ -797,8 +797,8 @@ I have extracted project highlights and generated target social designs, a reels
               <>
                 {/* 1. IMAGE DESIGN PREVIEW TAB */}
                 {activeTab === 'image' && (
-                  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                  <div className="card social-output-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
+                    <div className="social-output-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Image size={16} style={{ color: 'var(--secondary)' }} />
                         {isRTL ? "معاينة تصميم المنشور الاجتماعي" : t('draftPost')}
@@ -832,10 +832,10 @@ I have extracted project highlights and generated target social designs, a reels
                     </div>
 
                     {/* Canvas/Styled Preview Card wrapper */}
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '0.75rem' }}>
+                    <div className="social-preview-stage" style={{ display: 'flex', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '0.75rem' }}>
                       
                       {/* Interactive CSS Design Board Mockup */}
-                      <div style={{
+                      <div className="social-design-board" style={{
                         width: '100%',
                         maxWidth: imageFormat === 'post' ? '300px' : '230px',
                         aspectRatio: imageFormat === 'post' ? '1/1' : '9/16',
@@ -922,8 +922,8 @@ I have extracted project highlights and generated target social designs, a reels
 
                 {/* 2. VIDEO SCRIPT & TELEPROMPTER TAB */}
                 {activeTab === 'video' && (
-                  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                  <div className="card social-output-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
+                    <div className="social-output-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Compass size={16} style={{ color: 'var(--primary)' }} />
                         {isRTL ? "معاينة سيناريو وتلقين الفيديو" : t('videoScript')}
@@ -1074,8 +1074,8 @@ I have extracted project highlights and generated target social designs, a reels
 
                 {/* 3. CLIENT PDF BROCHURE TAB */}
                 {activeTab === 'pdf' && (
-                  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                  <div className="card social-output-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
+                    <div className="social-output-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FileText size={16} style={{ color: 'var(--secondary)' }} />
                         {isRTL ? "معاينة كتيب الـ PDF للعميل" : t('pdfBooklet')}
@@ -1108,7 +1108,7 @@ I have extracted project highlights and generated target social designs, a reels
                     </div>
 
                     {/* PDF page content rendering */}
-                    <div style={{
+                    <div className="social-pdf-preview" style={{
                       background: 'white',
                       color: '#1f2937',
                       borderRadius: '0.75rem',
@@ -1229,8 +1229,8 @@ I have extracted project highlights and generated target social designs, a reels
 
                 {/* 4. WEEKLY PUBLISH CALENDAR TAB */}
                 {activeTab === 'calendar' && (
-                  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                  <div className="card social-output-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
+                    <div className="social-output-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Calendar size={16} style={{ color: 'var(--accent)' }} />
                         {isRTL ? "تقويم النشر وجدولة المحتوى الأسبوعي" : t('contentCalendar')}
@@ -1239,7 +1239,8 @@ I have extracted project highlights and generated target social designs, a reels
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       {(isRTL ? generatedContent.calendar : generatedContent.calendarEn).map((cal, index) => (
-                        <div 
+                        <div
+                          className="social-calendar-row"
                           key={index} 
                           style={{ 
                             display: 'flex', 

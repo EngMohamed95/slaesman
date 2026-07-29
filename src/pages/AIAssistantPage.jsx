@@ -504,7 +504,7 @@ Respond in the language matching the client's name (Arabic if name has Arabic le
               
               {/* ChatGPT styled bubbles thread preview */}
               <div style={{
-                background: '#070a13',
+                background: 'var(--bg-darker)',
                 border: '1px solid var(--card-border)',
                 borderRadius: '0.75rem',
                 padding: '0.75rem',
@@ -574,8 +574,9 @@ Respond in the language matching the client's name (Arabic if name has Arabic le
                         whiteSpace: 'pre-wrap',
                         background: msg.sender === 'agent' 
                           ? 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)' 
-                          : 'rgba(255, 255, 255, 0.08)',
+                          : 'var(--card-bg)',
                         color: msg.sender === 'agent' ? '#fff' : 'var(--text-main)',
+                        border: msg.sender === 'agent' ? 'none' : '1px solid var(--card-border)',
                         borderBottomRightRadius: msg.sender === 'agent' ? '2px' : '0.6rem',
                         borderBottomLeftRadius: msg.sender === 'agent' ? '0.6rem' : '2px',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.15)'

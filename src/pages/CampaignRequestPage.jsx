@@ -316,13 +316,13 @@ export default function CampaignRequestPage() {
                           borderRadius: '0.75rem',
                           border: isSelected ? '2px solid var(--secondary)' : '1px solid var(--card-border)',
                           background: isSelected 
-                            ? 'rgba(255,255,255,0.04)' 
-                            : 'rgba(255,255,255,0.01)',
+                            ? 'var(--secondary-glow)' 
+                            : 'var(--card-bg)',
                           cursor: 'pointer',
                           justifyContent: 'center',
                           boxShadow: isSelected ? '0 0 12px rgba(6, 182, 212, 0.25)' : 'none',
                           transition: 'all 0.2s',
-                          color: isSelected ? '#fff' : 'var(--text-muted)'
+                          color: isSelected ? 'var(--text-main)' : 'var(--text-muted)'
                         }}
                       >
                         {plat.icon}
@@ -356,8 +356,8 @@ export default function CampaignRequestPage() {
                           borderRadius: '0.75rem',
                           border: isSelected ? `2px solid ${dest.color}` : '1px solid var(--card-border)',
                           background: isSelected 
-                            ? `${dest.color}0a` 
-                            : 'rgba(255,255,255,0.01)',
+                            ? `${dest.color}15` 
+                            : 'var(--card-bg)',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           textAlign: 'center',
@@ -372,7 +372,7 @@ export default function CampaignRequestPage() {
                         }}>
                           {dest.icon}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isSelected ? '#fff' : 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                           {isRTL ? dest.titleAr : dest.titleEn}
                         </span>
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>

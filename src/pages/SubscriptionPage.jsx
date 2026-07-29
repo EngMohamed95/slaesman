@@ -509,7 +509,7 @@ export default function SubscriptionPage() {
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, textAlign: 'start' }}>{p.name}</h3>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', margin: '1.5rem 0', justifyContent: 'flex-start' }}>
-                  <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#fff' }}>{p.price}</span>
+                  <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>{p.price}</span>
                   <span style={{ fontSize: '1rem', color: 'var(--text-main)', marginInlineStart: '0.25rem' }}>{symbol}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginInlineStart: '0.25rem' }}>/{t('priceMonth')}</span>
                 </div>

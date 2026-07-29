@@ -274,7 +274,7 @@ export default function ReportsPage() {
         flexWrap: 'wrap', 
         padding: '1.25rem', 
         marginBottom: '2rem',
-        background: 'rgba(15, 23, 42, 0.4)',
+        background: 'var(--card-bg)',
         borderColor: 'var(--card-border)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)' }}>

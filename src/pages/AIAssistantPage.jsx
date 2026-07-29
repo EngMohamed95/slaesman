@@ -383,13 +383,22 @@ Respond in the language matching the client's name (Arabic if name has Arabic le
               </button>
             ))}
           </div>
-          <div style={{ background: '#070a13', borderRadius: '0.65rem', border: '1px solid var(--card-border)', padding: '0.75rem', maxHeight: 270, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+          <div style={{ background: 'var(--bg-darker)', borderRadius: '0.65rem', border: '1px solid var(--card-border)', padding: '0.75rem', maxHeight: 270, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
             {sharedMessages.map(message => (
               <div key={message.id} style={{ alignSelf: message.sender === 'user' ? 'flex-end' : 'flex-start', maxWidth: '82%' }}>
-                <div style={{ padding: '0.55rem 0.7rem', borderRadius: '0.65rem', whiteSpace: 'pre-wrap', fontSize: '0.76rem', lineHeight: 1.5, background: message.sender === 'user' ? 'var(--primary)' : 'rgba(255,255,255,.07)' }}>
+                <div style={{ 
+                  padding: '0.55rem 0.7rem', 
+                  borderRadius: '0.65rem', 
+                  whiteSpace: 'pre-wrap', 
+                  fontSize: '0.76rem', 
+                  lineHeight: 1.5, 
+                  background: message.sender === 'user' ? 'var(--primary)' : 'var(--card-bg)',
+                  color: message.sender === 'user' ? '#fff' : 'var(--text-main)',
+                  border: message.sender === 'user' ? 'none' : '1px solid var(--card-border)'
+                }}>
                   {message.text}
                 </div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: 2, textAlign: message.sender === 'user' ? 'right' : 'left' }}>
                   {new Date(message.createdAt || activeConversation?.updatedAt).toLocaleString(isRTL ? 'ar-EG' : undefined, { dateStyle: 'short', timeStyle: 'short' })}
                 </div>
               </div>

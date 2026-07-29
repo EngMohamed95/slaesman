@@ -886,42 +886,41 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
             
             {/* Box 1: Follow-up Priority */}
-            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'rgba(0,0,0,.25)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: '#f59e0b', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
                 <AlertTriangle size={15} /> {isRTL ? 'عملاء المتابعة والفرص العاجلة' : 'Urgent Follow-ups & Hot Leads'}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {followUpCandidates.length ? followUpCandidates.map((lead, index) => (
                   <div
                     key={lead.id}
                     onClick={() => { setSelectedLeadId(lead.id); setPage('leadDetails'); }}
                     style={{ 
                       width: '100%', 
-                      border: 0, 
-                      background: 'none', 
+                      border: '1px solid var(--card-border)', 
+                      background: 'var(--card-bg)', 
                       color: 'var(--text-main)', 
-                      padding: '0.5rem', 
-                      borderRadius: '0.35rem', 
-                      background: 'rgba(255,255,255,0.02)', 
+                      padding: '0.6rem', 
+                      borderRadius: '0.5rem', 
                       cursor: 'pointer', 
                       textAlign: 'start',
                       transition: 'background 0.2s'
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-glow)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'var(--card-bg)'}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 5, fontSize: '0.8rem', fontWeight: 'bold' }}>
                       <span>{isRTL ? lead.nameAr || lead.name : lead.name}</span>
-                      <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}>{isRTL ? `أولوية ${lead.followUpScore}` : `Score ${lead.followUpScore}`}</span>
+                      <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 800 }}>{isRTL ? `أولوية ${lead.followUpScore}` : `Score ${lead.followUpScore}`}</span>
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>
                       {isRTL 
                         ? `آخر تواصل: منذ ${lead.daysSinceContact} يوم • الحالة: ${lead.statusAr || lead.status} • الميزانية: ${Number(lead.expectedValue || lead.budget || 0).toLocaleString()} ${lead.currency || 'ريال'}` 
                         : `${lead.daysSinceContact} days ago • Status: ${lead.status} • Budget: ${Number(lead.expectedValue || lead.budget || 0).toLocaleString()}`}
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: '#a5b4fc', marginTop: 4, display: 'flex', gap: 3, alignItems: 'center' }}>
-                      <Sparkles size={10} />
-                      <span>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-main)', marginTop: 6, display: 'flex', gap: 4, alignItems: 'center', background: 'var(--accent-glow)', padding: '4px 6px', borderRadius: '4px' }}>
+                      <Sparkles size={10} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <span style={{ fontWeight: '600' }}>
                         {isRTL 
                           ? lead.interestLevel === 'High' 
                             ? 'عميل مهتم جداً: تواصل معه فوراً بالواتساب لتقديم العرض الفني.' 
@@ -935,8 +934,8 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
             </div>
 
             {/* Box 2: Source Quality Analysis */}
-            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'rgba(0,0,0,.25)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: '#10b981', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--success)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
                 <Target size={15} /> {isRTL ? 'تحليل جودة مصادر العملاء' : 'Lead Sources Conversion Quality'}
               </div>
               {bestQualifiedSource ? (
@@ -951,12 +950,12 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
                     <span>{bestQualifiedSource.qualified}/{bestQualifiedSource.total} {isRTL ? 'عملاء كواليفايد' : 'qualified leads'}</span>
-                    <span style={{ color: '#10b981', fontWeight: 'bold' }}>{bestQualifiedSource.qualificationRate}% معدل الجودة</span>
+                    <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{bestQualifiedSource.qualificationRate}% معدل الجودة</span>
                   </div>
-                  <div style={{ height: 6, background: 'rgba(255,255,255,.08)', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${bestQualifiedSource.qualificationRate}%`, background: 'linear-gradient(90deg, #10b981, #34d399)', borderRadius: 5 }} />
+                  <div style={{ height: 6, background: 'var(--card-border)', borderRadius: 5, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${bestQualifiedSource.qualificationRate}%`, background: 'linear-gradient(90deg, var(--success), #34d399)', borderRadius: 5 }} />
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-main)', fontWeight: 'bold', marginTop: 2 }}>
                     {isRTL 
                       ? `القيمة المتوقعة للصفقات من هذا المصدر: ${bestQualifiedSource.value.toLocaleString()} ريال` 
                       : `Pipeline value from this source: ${bestQualifiedSource.value.toLocaleString()} SAR`}
@@ -966,22 +965,22 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
             </div>
 
             {/* Box 3: Actionable Campaign Scaling & ROI Strategy */}
-            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'rgba(0,0,0,.25)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: '#818cf8', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                <Sparkles size={15} /> {isRTL ? 'توصيات لزيادة حملات الكواليفايد' : 'Qualified Campaign Recommendations'}
+            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+                <Sparkles size={15} style={{ color: 'var(--primary)' }} /> {isRTL ? 'توصيات لزيادة حملات الكواليفايد' : 'Qualified Campaign Recommendations'}
               </div>
               <div style={{ fontSize: '0.75rem', lineHeight: 1.6, color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {bestQualifiedSource ? (
                   <>
-                    <div style={{ background: 'rgba(129, 140, 248, 0.08)', border: '1px solid rgba(129, 140, 248, 0.2)', padding: '0.5rem', borderRadius: '0.35rem', color: '#a5b4fc' }}>
-                      <strong>{isRTL ? "💡 خطة زيادة الميزانية:" : "💡 Budget Scaling Strategy:"}</strong>{' '}
+                    <div style={{ background: 'var(--primary-glow)', border: '1px solid rgba(79, 70, 229, 0.2)', padding: '0.6rem 0.8rem', borderRadius: '0.5rem', color: 'var(--text-main)' }}>
+                      <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>{isRTL ? "💡 خطة زيادة الميزانية:" : "💡 Budget Scaling Strategy:"}</strong>{' '}
                       {isRTL
                         ? bestQualifiedSource.total < 5
                           ? `مصدر ${bestQualifiedSource.sourceAr} واعد جداً. نقترح زيادة ميزانيته بنسبة 10% تدريجياً كمرحلة أولى، مع مراقبة تكلفة العميل المؤهل قبل الزيادة الكبرى.`
                           : `نوصي بزيادة ميزانية إعلانات ${bestQualifiedSource.sourceAr} بنسبة 20% إلى 25% فوراً مع تقليل ميزانية القنوات الأقل جودة لتعظيم العائد.`
                         : `Scale ${bestQualifiedSource.source} budget by 20% to boost qualified leads.`}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.25rem', flexDirection: 'column', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
                       <span>• {isRTL ? "استخدم مخرجات صانع المحتوى الذكي لاستهداف فئة المهتمين بهذا المصدر." : "Use AI-generated content targeted specifically for this audience."}</span>
                       <span>• {isRTL ? "فعّل الردود السريعة عبر الواتساب للعملاء الجدد لرفع نسبة الجودة (Qualification)." : "Enable fast WhatsApp replies to new leads to boost qualification rate."}</span>
                     </div>

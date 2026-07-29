@@ -19,18 +19,18 @@ export default function UpgradePaywall({ requiredPlan, featureNameAr, featureNam
   // Set prices dynamically based on currency
   const getUpgradePrice = () => {
     if (selectedCurrency === 'SAR') {
-      return requiredPlan === 'Growth' ? '399 ريال / شهرياً' : '199 ريال / شهرياً';
+      return requiredPlan === 'Growth' ? '999 ريال / شهرياً' : '399 ريال / شهرياً';
     }
     if (selectedCurrency === 'AED') {
-      return requiredPlan === 'Growth' ? '390 درهم / شهرياً' : '195 درهم / شهرياً';
+      return requiredPlan === 'Growth' ? '999 درهم / شهرياً' : '399 درهم / شهرياً';
     }
     if (selectedCurrency === 'EGP') {
-      return requiredPlan === 'Growth' ? '5,190 جنيه / شهرياً' : '2,590 جنيه / شهرياً';
+      return requiredPlan === 'Growth' ? '13,000 جنيه / شهرياً' : '5,200 جنيه / شهرياً';
     }
     if (selectedCurrency === 'JOD') {
-      return requiredPlan === 'Growth' ? '76 دينار / شهرياً' : '38 دينار / شهرياً';
+      return requiredPlan === 'Growth' ? '190 دينار / شهرياً' : '76 دينار / شهرياً';
     }
-    return requiredPlan === 'Growth' ? '$107 / month' : '$53 / month';
+    return requiredPlan === 'Growth' ? '$272 / month' : '$109 / month';
   };
 
   const handlePayPalCheckout = () => {

@@ -1,17 +1,36 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
-import { ShieldCheck, Users, Megaphone, DollarSign, Settings2, CheckCircle, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Users, Megaphone, DollarSign, Settings2, CheckCircle, RefreshCw, Key, Sparkles, Globe, Save } from 'lucide-react';
+import { getGeminiApiKey, setGeminiApiKey } from '../utils/gemini';
 
 export default function AdminPanelPage() {
   const { t, isRTL } = useLanguage();
   const { campaignRequests, updateCampaignStatus } = useCRM();
 
-  const [activeSubTab, setActiveSubTab] = useState('briefs'); // briefs, users, templates
+  const [activeSubTab, setActiveSubTab] = useState('briefs'); // briefs, users, templates, settings
   const [prompts, setPrompts] = useState([
     { id: 1, title: 'Objection Handler Default prompt', text: 'Act as an expert real estate sales coach. Solve objection: {objection}...' },
     { id: 2, title: 'WhatsApp Template compiler prompt', text: 'Create direct conversational WhatsApp messages incorporating lead: {name}...' }
   ]);
+
+  const [geminiKey, setGeminiKeyVal] = useState(getGeminiApiKey());
+  const [googleClientId, setGoogleClientId] = useState(() => localStorage.getItem('salesmate_google_client_id') || '');
+  const [settingsSaved, setSettingsSaved] = useState(false);
+
+  const handleSaveSettings = (e) => {
+    e.preventDefault();
+    setGeminiApiKey(geminiKey);
+    if (googleClientId.trim()) {
+      localStorage.setItem('salesmate_google_client_id', googleClientId.trim());
+    } else {
+      localStorage.removeItem('salesmate_google_client_id');
+    }
+    setSettingsSaved(true);
+    setTimeout(() => {
+      setSettingsSaved(false);
+    }, 3000);
+  };
 
   const mockUsers = [
     { id: 'u1', name: 'Salma Al-Harbi', email: 'salma@adtodeal.com', plan: 'Pro', registeredDate: '2026-05-10', paymentDate: '2026-07-10', paymentMethod: 'Visa', amount: '199 SAR', status: 'Active' },
@@ -78,7 +97,8 @@ export default function AdminPanelPage() {
           {[
             { id: 'briefs', label: t('briefList') },
             { id: 'users', label: t('userList') },
-            { id: 'templates', label: isRTL ? 'إدارة قوالب الذكاء الاصطناعي' : 'AI Prompt Templates' }
+            { id: 'templates', label: isRTL ? 'إدارة قوالب الذكاء الاصطناعي' : 'AI Prompt Templates' },
+            { id: 'settings', label: isRTL ? 'إعدادات النظام والربط' : 'System & AI Settings' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -297,6 +317,121 @@ export default function AdminPanelPage() {
                 {isRTL ? "حفظ القوالب" : "Save Prompt Templates"}
               </button>
             </div>
+          )}
+
+          {activeSubTab === 'settings' && (
+            <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {settingsSaved && (
+                <div style={{
+                  background: 'var(--success-glow)',
+                  color: 'var(--success)',
+                  padding: '1rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  border: '1px solid rgba(16, 185, 129, 0.2)'
+                }}>
+                  {isRTL ? "تم حفظ الإعدادات بنجاح!" : "Configuration settings saved successfully!"}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Gemini API Section */}
+                <div style={{ borderBottom: '1px solid var(--card-border)', paddingBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 1rem', textAlign: 'start' }}>
+                    {isRTL 
+                      ? "لربط البرنامج بنظام ذكاء اصطناعي حقيقي وتفعيل صانع المحتوى ومحلل المحادثات بالكامل، يرجى إدخال مفتاح API الخاص بـ Google Gemini أدناه. يمكنك الحصول على مفتاح مجاني من خلال منصة Google AI Studio."
+                      : "To connect the application to a live AI model for real-time copy generation, chat transcripts analysis, and brochure creation, enter your Google Gemini API Key below. Obtain a free key from Google AI Studio."
+                    }
+                  </p>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                      {isRTL ? "مفتاح Google Gemini API Key" : "Google Gemini API Key"}
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+                      <Key size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '0.75rem', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="password" 
+                        placeholder="AIzaSy..." 
+                        value={geminiKey} 
+                        onChange={e => setGeminiKeyVal(e.target.value)} 
+                        style={{ paddingInlineStart: '2.25rem', flex: 1, color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: geminiKey ? 'var(--success-glow)' : 'var(--danger-glow)',
+                    color: geminiKey ? 'var(--success)' : 'var(--danger)',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    alignSelf: 'flex-start',
+                    marginTop: '0.75rem',
+                    width: 'fit-content'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: geminiKey ? 'var(--success)' : 'var(--danger)'
+                    }} />
+                    <span>
+                      {geminiKey 
+                        ? (isRTL ? "مفتاح الـ API مضاف (البرنامج متصل بالذكاء الاصطناعي)" : "API Key Added (AI Assistant Active)")
+                        : (isRTL ? "غير متصل (يعمل بوضع المحاكاة التجريبي)" : "Disconnected (Running in Mock Simulation Mode)")
+                      }
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'start', marginTop: '0.5rem' }}>
+                    <a 
+                      href="https://aistudio.google.com/" 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      style={{ color: 'var(--secondary)', textDecoration: 'underline' }}
+                    >
+                      {isRTL ? "احصل على مفتاح API مجاني من Google AI Studio" : "Get a free Gemini API Key from Google AI Studio"}
+                    </a>
+                  </div>
+                </div>
+
+                {/* Google Client ID Section */}
+                <div style={{ paddingBottom: '1rem' }}>
+                  <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-main)', textAlign: 'start' }}>
+                    {isRTL ? "ربط تسجيل الدخول بجوجل (Google Sign-In OAuth)" : "Google Sign-In OAuth Setup"}
+                  </h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 1rem', textAlign: 'start' }}>
+                    {isRTL 
+                      ? "لتفعيل الدخول الفعلي بحسابات Google لمستخدمي منصتك (SaaS)، يرجى إدخال معرّف العميل (Google Client ID) الخاص بمشروعك في Google Cloud Console."
+                      : "To enable real Google account logins for your platform users (SaaS), configure your OAuth 2.0 Client ID generated from Google Cloud Console."
+                    }
+                  </p>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                      {isRTL ? "معرف عميل جوجل (Google Client ID)" : "Google OAuth Client ID"}
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+                      <Globe size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '0.75rem', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="text" 
+                        placeholder="xxxxxxxx.apps.googleusercontent.com" 
+                        value={googleClientId} 
+                        onChange={e => setGoogleClientId(e.target.value)} 
+                        style={{ paddingInlineStart: '2.25rem', flex: 1, color: 'var(--text-main)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', display: 'flex', gap: '0.5rem' }}>
+                <Save size={16} /> {isRTL ? "حفظ الإعدادات" : "Save Settings"}
+              </button>
+            </form>
           )}
         </div>
       </div>

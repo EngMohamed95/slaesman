@@ -14,7 +14,7 @@ const CURRENCIES = {
     flag: '🇸🇦', 
     nameAr: 'ريال سعودي', 
     nameEn: 'Saudi Riyal', 
-    prices: { Basic: 99, Pro: 199, Growth: 399 } 
+    prices: { Basic: 100, Pro: 399, Growth: 999 } 
   },
   USD: { 
     id: 'USD',
@@ -23,7 +23,7 @@ const CURRENCIES = {
     flag: '🇺🇸', 
     nameAr: 'دولار أمريكي', 
     nameEn: 'US Dollar', 
-    prices: { Basic: 27, Pro: 53, Growth: 107 } 
+    prices: { Basic: 27, Pro: 109, Growth: 272 } 
   },
   AED: { 
     id: 'AED',
@@ -32,7 +32,7 @@ const CURRENCIES = {
     flag: '🇦🇪', 
     nameAr: 'درهم إماراتي', 
     nameEn: 'UAE Dirham', 
-    prices: { Basic: 97, Pro: 195, Growth: 390 } 
+    prices: { Basic: 100, Pro: 399, Growth: 999 } 
   },
   EGP: { 
     id: 'EGP',
@@ -41,7 +41,7 @@ const CURRENCIES = {
     flag: '🇪🇬', 
     nameAr: 'جنيه مصري', 
     nameEn: 'Egyptian Pound', 
-    prices: { Basic: 1290, Pro: 2590, Growth: 5190 } 
+    prices: { Basic: 1300, Pro: 5200, Growth: 13000 } 
   },
   JOD: { 
     id: 'JOD',
@@ -50,7 +50,7 @@ const CURRENCIES = {
     flag: '🇯🇴', 
     nameAr: 'دينار أردني', 
     nameEn: 'Jordanian Dinar', 
-    prices: { Basic: 19, Pro: 38, Growth: 76 } 
+    prices: { Basic: 19, Pro: 76, Growth: 190 } 
   }
 };
 
@@ -273,7 +273,8 @@ export default function SubscriptionPage() {
       features: [
         t('featuresCRM'),
         t('featuresReminders'),
-        isRTL ? "توليد ذكاء اصطناعي محدود (20 شهرياً)" : "Limited AI generation (20/mo)"
+        t('featuresAIFull'),
+        isRTL ? "متابعة وإدارة العملاء بالكامل" : "Full client follow-up & management"
       ]
     },
     {
@@ -283,8 +284,8 @@ export default function SubscriptionPage() {
       features: [
         t('featuresCRM'),
         t('featuresReminders'),
-        isRTL ? "مساعد شخصي ذكي غير محدود 24/7" : "Unlimited personal AI assistant 24/7",
-        isRTL ? "جدولة وصناعة محتوى تواصل اجتماعي أسبوعي" : "Weekly social content generation & schedules"
+        t('featuresAIFull'),
+        isRTL ? "صانع المحتوى (جدولة وتوليد منشورات أسبوعية)" : "Social Content Creator (Weekly post generation)"
       ],
       popular: true
     },
@@ -294,10 +295,10 @@ export default function SubscriptionPage() {
       price: currencyInfo.prices.Growth,
       features: [
         isRTL ? "نظام إدارة علاقات العملاء CRM كامل" : "Full premium CRM suite",
-        isRTL ? "مساعد شخصي ذكي غير محدود 24/7" : "Unlimited personal AI assistant 24/7",
-        isRTL ? "جدولة وصناعة محتوى تواصل اجتماعي أسبوعي" : "Weekly social content generation & schedules",
-        isRTL ? "إمكانية إرسال طلبات الحملات الإعلانية" : "Sponsored advertising request capabilities",
-        isRTL ? "دعم فني ذو أولوية عبر الواتساب" : "Priority WhatsApp customer support"
+        t('featuresAIFull'),
+        isRTL ? "صانع المحتوى (جدولة وتوليد منشورات أسبوعية)" : "Social Content Creator (Weekly post generation)",
+        isRTL ? "إرسال طلبات الحملات الإعلانية الممولة" : "Sponsored advertising campaign requests",
+        t('featuresSupport')
       ]
     }
   ];

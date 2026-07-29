@@ -9,28 +9,44 @@ import {
 } from 'lucide-react';
 
 // Custom SVG Brand Icons
-const MetaLogo = ({ size = 22 }) => (
+const MetaLogo = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2C6.477 2 2 6.477 2 12c0 5.523 4.477 10 10 10s10-4.477 10-10C22 6.477 17.523 2 12 2zm1 14.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zm-4.5-2.5c0-2.48 2.02-4.5 4.5-4.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5-4.5-2.02-4.5-4.5z" fill="url(#meta-grad)"/>
-    <defs>
-      <linearGradient id="meta-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#0064e0"/>
-        <stop offset="0.5" stopColor="#b900b4"/>
-        <stop offset="1" stopColor="#ff5050"/>
-      </linearGradient>
-    </defs>
+    <path 
+      d="M16.5 6C14.28 6 12.4 7.23 11.23 9C10.05 7.23 8.18 6 6 6 2.69 6 0 8.69 0 12s2.69 6 6 6c2.18 0 4.05-1.23 5.23-3 1.17 1.77 3.05 3 5.27 3 3.31 0 6-2.69 6-6s-2.69-6-6-6zm-10.5 9c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm10.5 0c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" 
+      fill="#FFFFFF"
+    />
   </svg>
 );
 
-const SnapchatLogo = ({ size = 20 }) => (
+const SnapchatLogo = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 3c-1.8 0-3.3 1.2-3.8 2.8-.8-.2-1.7 0-2.2.6-.6.6-.7 1.6-.2 2.3.1.2.3.4.5.5C6.1 10.6 6 12 6 13c0 2.2.8 3.5 2.2 4.1-.2.5-.5 1.1-.5 1.7 0 1.2.9 2.2 2.1 2.2 1.4 0 2.4-.8 2.8-2 .5.1.9.1 1.4.1.5 0 .9 0 1.4-.1.4 1.2 1.4 2 2.8 2 1.2 0 2.1-1 2.1-2.2 0-.6-.3-1.2-.5-1.7 1.4-.6 2.2-1.9 2.2-4.1 0-1-.1-2.4-.3-3.8.2-.1.4-.3.5-.5.5-.7.4-1.7-.2-2.3-.5-.6-1.4-.8-2.2-.6C15.3 4.2 13.8 3 12 3z" fill="#000000"/>
+    <path 
+      d="M12 3.5c-1.93 0-3.33 1.38-3.85 3.09-.64-.17-1.33.08-1.74.57-.42.5-.47 1.24-.16 1.79.09.16.23.3.38.39-.1.88-.19 1.83-.19 2.66 0 1.9.72 2.94 1.86 3.42-.16.4-.38.86-.38 1.32 0 1 .74 1.8 1.74 1.8 1.13 0 1.95-.62 2.19-1.55.37.07.72.07 1.09.07s.72 0 1.09-.07c.24.93 1.06 1.55 2.19 1.55 1 0 1.74-.8 1.74-1.8 0-.46-.22-.92-.38-1.32 1.14-.48 1.86-1.52 1.86-3.42 0-.83-.09-1.78-.19-2.66.15-.09.29-.23.38-.39.31-.55.26-1.29-.16-1.79-.41-.49-1.1-.74-1.74-.57-.52-1.71-1.92-3.09-3.85-3.09z" 
+      fill="#FFFFFF"
+      stroke="#000000"
+      strokeWidth="0.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
-const TikTokLogo = ({ size = 20 }) => (
+const TikTokLogo = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12.53.02C13.84 0 15 .88 15 2.16c.01 1.7 1.05 3.19 2.6 3.73v3.13c-1.25-.13-2.44-.73-3.32-1.68v7.24a5.55 5.55 0 0 1-5.55 5.55 5.55 5.55 0 0 1-5.55-5.55c0-3.07 2.49-5.55 5.55-5.55.51 0 1 .07 1.47.2V12.3a2.76 2.76 0 0 0-1.47-.41c-1.54 0-2.77 1.24-2.77 2.78s1.24 2.77 2.77 2.77 2.78-1.24 2.78-2.77V.02h2.06z" fill="#FFFFFF"/>
+    <path 
+      d="M11.53.02C12.84 0 14 .88 14 2.16c.01 1.7 1.05 3.19 2.6 3.73v3.13c-1.25-.13-2.44-.73-3.32-1.68v7.24a5.55 5.55 0 0 1-5.55 5.55 5.55 5.55 0 0 1-5.55-5.55c0-3.07 2.49-5.55 5.55-5.55.51 0 1 .07 1.47.2V12.3a2.76 2.76 0 0 0-1.47-.41c-1.54 0-2.77 1.24-2.77 2.78s1.24 2.77 2.77 2.77 2.78-1.24 2.78-2.77V.02h2.06z" 
+      fill="#00f2fe"
+      transform="translate(-1, -1)"
+    />
+    <path 
+      d="M11.53.02C12.84 0 14 .88 14 2.16c.01 1.7 1.05 3.19 2.6 3.73v3.13c-1.25-.13-2.44-.73-3.32-1.68v7.24a5.55 5.55 0 0 1-5.55 5.55 5.55 5.55 0 0 1-5.55-5.55c0-3.07 2.49-5.55 5.55-5.55.51 0 1 .07 1.47.2V12.3a2.76 2.76 0 0 0-1.47-.41c-1.54 0-2.77 1.24-2.77 2.78s1.24 2.77 2.77 2.77 2.78-1.24 2.78-2.77V.02h2.06z" 
+      fill="#fe0979"
+      transform="translate(1, 1)"
+    />
+    <path 
+      d="M11.53.02C12.84 0 14 .88 14 2.16c.01 1.7 1.05 3.19 2.6 3.73v3.13c-1.25-.13-2.44-.73-3.32-1.68v7.24a5.55 5.55 0 0 1-5.55 5.55 5.55 5.55 0 0 1-5.55-5.55c0-3.07 2.49-5.55 5.55-5.55.51 0 1 .07 1.47.2V12.3a2.76 2.76 0 0 0-1.47-.41c-1.54 0-2.77 1.24-2.77 2.78s1.24 2.77 2.77 2.77 2.78-1.24 2.78-2.77V.02h2.06z" 
+      fill="#FFFFFF"
+    />
   </svg>
 );
 
@@ -46,7 +62,16 @@ const GoogleLogo = ({ size = 20 }) => (
 export default function CampaignRequestPage() {
   const { t, isRTL } = useLanguage();
   const { campaignRequests, addCampaignRequest } = useCRM();
-  const { validateFeatureAccess } = useApp();
+  const { validateFeatureAccess, selectedCurrency } = useApp();
+
+  const getServiceFeeText = () => {
+    if (selectedCurrency === 'SAR') return isRTL ? '999 ريال سعودي' : '999 SAR';
+    if (selectedCurrency === 'AED') return isRTL ? '999 درهم إماراتي' : '999 AED';
+    if (selectedCurrency === 'EGP') return isRTL ? '13,000 جنيه مصري' : '13,000 EGP';
+    if (selectedCurrency === 'JOD') return isRTL ? '190 دينار أردني' : '190 JOD';
+    return isRTL ? '270 دولار أمريكي' : '$270';
+  };
+  const feeText = getServiceFeeText();
 
   if (!validateFeatureAccess('campaigns')) {
     return (
@@ -109,7 +134,7 @@ export default function CampaignRequestPage() {
 
     addCampaignRequest({
       platform: selectedPlatforms.join(', '),
-      goal: deliveryDestination === 'whatsapp' ? 'WhatsApp Leads' : deliveryDestination === 'crm' ? 'CRM Leads' : 'Excel Export',
+      goal: deliveryDestination === 'whatsapp' ? 'WhatsApp Leads' : 'CRM & Excel Leads',
       deliveryDestination,
       budget: Number(budget),
       city,
@@ -139,10 +164,35 @@ export default function CampaignRequestPage() {
 
   // Static configs
   const PLATFORMS = [
-    { id: 'Meta', nameAr: 'فيسبوك + إنستغرام', nameEn: 'Facebook + Instagram', color: 'linear-gradient(135deg, #1877f2 0%, #e1306c 100%)', icon: <MetaLogo /> },
-    { id: 'Snapchat', nameAr: 'سناب شات', nameEn: 'Snapchat', color: '#FFFC00', icon: <SnapchatLogo />, darkText: true },
-    { id: 'TikTok', nameAr: 'تيك توك', nameEn: 'TikTok', color: '#010101', icon: <TikTokLogo />, borderGlow: '#00f2fe' },
-    { id: 'Google', nameAr: 'إعلانات جوجل', nameEn: 'Google Search/Maps', color: '#ffffff', icon: <GoogleLogo /> }
+    { 
+      id: 'Meta', 
+      nameAr: 'فيسبوك + إنستغرام', 
+      nameEn: 'Facebook + Instagram', 
+      icon: (
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          <img src="https://img.icons8.com/color/48/facebook-new.png" style={{ width: '18px', height: '18px' }} alt="Facebook" />
+          <img src="https://img.icons8.com/color/48/instagram-new.png" style={{ width: '18px', height: '18px' }} alt="Instagram" />
+        </div>
+      )
+    },
+    { 
+      id: 'Snapchat', 
+      nameAr: 'سناب شات', 
+      nameEn: 'Snapchat', 
+      icon: <img src="https://img.icons8.com/color/48/snapchat.png" style={{ width: '18px', height: '18px', borderRadius: '3px' }} alt="Snapchat" /> 
+    },
+    { 
+      id: 'TikTok', 
+      nameAr: 'تيك توك', 
+      nameEn: 'TikTok', 
+      icon: <img src="https://upload.wikimedia.org/wikipedia/commons/3/34/Ionicons_logo-tiktok.svg" style={{ width: '18px', height: '18px', filter: 'brightness(0) invert(1)' }} alt="TikTok" /> 
+    },
+    { 
+      id: 'Google', 
+      nameAr: 'إعلانات جوجل', 
+      nameEn: 'Google Search/Maps', 
+      icon: <img src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Google_Ads_logo.svg" style={{ width: '18px', height: '18px' }} alt="Google Ads" /> 
+    }
   ];
 
   const DESTINATIONS = [
@@ -156,22 +206,13 @@ export default function CampaignRequestPage() {
       icon: <MessageSquare size={20} /> 
     },
     { 
-      id: 'crm', 
-      titleAr: 'قاعدة بيانات الـ CRM', 
-      titleEn: 'CRM Database', 
-      descAr: 'تسجيل العميل تلقائياً في جدول العملاء والمهام', 
-      descEn: 'Leads auto-saved inside CRM database', 
+      id: 'crm_excel', 
+      titleAr: 'حملة ليدز (قاعدة بيانات الـ CRM + إكسيل)', 
+      titleEn: 'Lead Gen Campaign (CRM + Excel)', 
+      descAr: 'تسجيل العملاء تلقائياً في قاعدة البيانات وتصدير ملف Excel للتحميل', 
+      descEn: 'Leads saved in CRM database and exportable to Excel files', 
       color: '#6366f1', 
       icon: <Database size={20} /> 
-    },
-    { 
-      id: 'excel', 
-      titleAr: 'تقرير ملف إكسيل', 
-      titleEn: 'Excel Sheets', 
-      descAr: 'تصدير جدول العملاء كملف Excel أو Google Sheet', 
-      descEn: 'Regular spreadsheet database dumps', 
-      color: '#10b981', 
-      icon: <FileSpreadsheet size={20} /> 
     }
   ];
 
@@ -201,9 +242,34 @@ export default function CampaignRequestPage() {
           
           {/* Main Request Form */}
           <div className="card">
-            <h3 style={{ margin: '0 0 1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+            <h3 style={{ margin: '0 0 1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem', textAlign: 'start' }}>
               {isRTL ? "موجز وتفاصيل الحملة المطلوبة" : "Configure Campaign Brief"}
             </h3>
+
+            {/* Service Fee Notice */}
+            <div style={{
+              background: 'rgba(99, 102, 241, 0.05)',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: '0.75rem',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              gap: '0.75rem',
+              alignItems: 'center',
+              textAlign: 'start'
+            }}>
+              <Megaphone size={24} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <div>
+                <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-main)' }}>
+                  {isRTL ? "خدمة إطلاق الحملات الممولة المعتمدة" : "Certified Ad Launch Service"}
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  {isRTL 
+                    ? `سيتواصل معك خبير إعلانات (Media Buyer) معتمد ومتخصص في مجالك لإعداد وإطلاق حملتك. رسوم الخدمة هي ${feeText} لكل حملة.` 
+                    : `A certified Media Buyer specialized in your industry will contact you to set up and launch your campaign. Service fee: ${feeText} per campaign.`}
+                </p>
+              </div>
+            </div>
 
             {submitted && (
               <div style={{
@@ -234,7 +300,7 @@ export default function CampaignRequestPage() {
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.6rem', color: 'var(--text-main)', textAlign: 'start' }}>
                   {isRTL ? "اختر منصات الإعلان المستهدفة:" : "Select Advertising Platforms:"}
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
                   {PLATFORMS.map((plat) => {
                     const isSelected = selectedPlatforms.includes(plat.id);
                     return (
@@ -245,12 +311,12 @@ export default function CampaignRequestPage() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.75rem',
+                          gap: '0.6rem',
+                          padding: '0.6rem 0.8rem',
                           borderRadius: '0.75rem',
                           border: isSelected ? '2px solid var(--secondary)' : '1px solid var(--card-border)',
                           background: isSelected 
-                            ? 'rgba(255,255,255,0.03)' 
+                            ? 'rgba(255,255,255,0.04)' 
                             : 'rgba(255,255,255,0.01)',
                           cursor: 'pointer',
                           justifyContent: 'center',
@@ -259,19 +325,8 @@ export default function CampaignRequestPage() {
                           color: isSelected ? '#fff' : 'var(--text-muted)'
                         }}
                       >
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          background: plat.color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: plat.borderGlow ? `0 0 8px ${plat.borderGlow}` : 'none'
-                        }}>
-                          {plat.icon}
-                        </div>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        {plat.icon}
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
                           {isRTL ? plat.nameAr : plat.nameEn}
                         </span>
                       </button>

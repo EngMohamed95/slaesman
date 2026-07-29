@@ -5,8 +5,60 @@ import UpgradePaywall from '../components/UpgradePaywall';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { 
   Sparkles, Calendar, FileText, Compass, Send, 
-  Paperclip, X, Download, Play, Square, Image, FileDown, Check 
+  Paperclip, X, Download, Play, Square, Image, FileDown, Check,
+  Layers, Film, Smartphone
 } from 'lucide-react';
+
+const TEMPLATES = [
+  {
+    id: 1,
+    titleAr: "فيلا مودرن للبيع في النرجس",
+    titleEn: "Modern Villa for Sale in Al-Narjis",
+    categoryAr: "منشور صورة",
+    categoryEn: "Post Design",
+    img: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=600&q=80",
+    detailsAr: "تصميم عصري | مساحة 450 م | مسبح خاص وحديقة خلفية واسعة",
+    detailsEn: "Modern design | 450 sqm | Private pool & large backyard",
+    badgeAr: "متاح الآن",
+    badgeEn: "Available Now"
+  },
+  {
+    id: 2,
+    titleAr: "شقق فاخرة في الياسمين بالتقسيط",
+    titleEn: "Luxury Apartments in Al-Yasmin on Installments",
+    categoryAr: "ستوري تفاعلي",
+    categoryEn: "Story Design",
+    img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80",
+    detailsAr: "دفعة حجز 10% وتقسيط حتى 7 سنوات بدون فوائد",
+    detailsEn: "10% down payment and up to 7 years interest-free installments",
+    badgeAr: "تقسيط ميسر",
+    badgeEn: "Easy Payment"
+  },
+  {
+    id: 3,
+    titleAr: "فيلا كلاسيكية بإطلالة الجولف",
+    titleEn: "Classic Villa with Golf View",
+    categoryAr: "سيناريو فيديو",
+    categoryEn: "Video Script",
+    img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80",
+    detailsAr: "تشطيب سوبر لوكس | إطلالة مفتوحة على ملعب الجولف العالمي",
+    detailsEn: "Super deluxe finishing | Open view on international golf course",
+    badgeAr: "مميز",
+    badgeEn: "Premium"
+  },
+  {
+    id: 4,
+    titleAr: "شقق بنتهاوس فاخرة وسط المدينة",
+    titleEn: "Premium Penthouse Downtown",
+    categoryAr: "منشور صورة",
+    categoryEn: "Post Design",
+    img: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80",
+    detailsAr: "روف خاص | مصعد ذكي | إطلالة بانورامية كاملة على أبراج المدينة",
+    detailsEn: "Private roof | Smart elevator | Panoramic city tower views",
+    badgeAr: "إطلالة مميزة",
+    badgeEn: "Panoramic"
+  }
+];
 
 const INITIAL_CONTENT = {
   imageTitle: "شقة أحلامك في وسط الرياض",
@@ -104,7 +156,23 @@ Audio: "Units are selling fast. Click the link in bio to book your tour today!"`
 
 export default function SocialGeneratorPage() {
   const { t, isRTL } = useLanguage();
-  const { validateFeatureAccess } = useApp();
+  const { validateFeatureAccess, selectedCurrency } = useApp();
+
+  const [credits, setCredits] = useState(() => Number(localStorage.getItem('social_creator_credits') || 2000));
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeSuccess, setRechargeSuccess] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('social_creator_credits', credits.toString());
+  }, [credits]);
+
+  const getRechargePrice = () => {
+    if (selectedCurrency === 'SAR') return '399 ريال';
+    if (selectedCurrency === 'AED') return '399 درهم';
+    if (selectedCurrency === 'EGP') return '5,200 جنيه';
+    if (selectedCurrency === 'JOD') return '76 دينار';
+    return '$109';
+  };
 
   if (!validateFeatureAccess('socialCreator')) {
     return (
@@ -124,6 +192,7 @@ export default function SocialGeneratorPage() {
 
   // Chat states
   const [chatInput, setChatInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [chatHistory, setChatHistory] = useState([
     {
       sender: 'ai',
@@ -377,10 +446,24 @@ export default function SocialGeneratorPage() {
     e?.preventDefault();
     if (!chatInput.trim()) return;
 
+    if (credits < 100) {
+      const errorMsg = isRTL 
+        ? "⚠️ عذراً، رصيدك الحالي غير كافٍ لتوليد المحتوى بالذكاء الاصطناعي (مطلوب 100 كريديت على الأقل). يرجى شحن الرصيد للاستمرار."
+        : "⚠️ Insufficient credits (100 credits required). Please recharge your credits to continue.";
+      setChatHistory(prev => [
+        ...prev, 
+        { sender: 'user', text: chatInput },
+        { sender: 'ai', text: errorMsg }
+      ]);
+      setChatInput('');
+      return;
+    }
+
     const userText = chatInput;
     setChatHistory(prev => [...prev, { sender: 'user', text: userText }]);
     setChatInput('');
     setLoadingOutput(true);
+    setCredits(prev => Math.max(0, prev - 100));
 
     if (isGeminiActive()) {
       const success = await generateCampaignWithGemini(userText);
@@ -422,6 +505,15 @@ export default function SocialGeneratorPage() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (credits < 100) {
+      alert(isRTL 
+        ? "⚠️ عذراً، رصيدك غير كافٍ لرفع وتحليل الملفات (مطلوب 100 كريديت على الأقل)." 
+        : "⚠️ Insufficient credits. 100 credits required to parse files.");
+      return;
+    }
+
+    setCredits(prev => Math.max(0, prev - 100));
 
     const fileNameClean = file.name.replace(/\.[^/.]+$/, "").replace(/[_\-]/g, " ");
     setChatHistory(prev => [...prev, { 
@@ -597,14 +689,32 @@ I have extracted project highlights and generated target social designs, a reels
 
   return (
     <div className="fade-in social-studio-page">
-      <div className="social-studio-heading" style={{ marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Sparkles style={{ color: 'var(--secondary)' }} /> 
-          {isRTL ? "استوديو صناعة المحتوى بالذكاء الاصطناعي" : t('socialStudioTitle')}
-        </h1>
-        <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
-          {isRTL ? "دردش مع المساعد الذكي، ارفع بيانات المشروع، وولد تصاميم الصور والفيديوهات والبروشورات لعملائك فوراً." : t('socialStudioSubtitle')}
-        </p>
+      <div className="social-studio-heading" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ textAlign: 'start' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles style={{ color: 'var(--secondary)' }} /> 
+            {isRTL ? "استوديو صناعة المحتوى بالذكاء الاصطناعي" : t('socialStudioTitle')}
+          </h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+            {isRTL ? "دردش مع المساعد الذكي، ارفع بيانات المشروع، وولد تصاميم الصور والفيديوهات والبروشورات لعملائك فوراً." : t('socialStudioSubtitle')}
+          </p>
+        </div>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          padding: '0.4rem 0.8rem',
+          borderRadius: '2rem',
+          fontSize: '0.8rem',
+          fontWeight: 'bold',
+          color: '#c084fc',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.25rem',
+          boxShadow: '0 0 10px rgba(99, 102, 241, 0.2)'
+        }}>
+          <Sparkles size={14} style={{ color: 'var(--secondary)' }} />
+          <span>{isRTL ? "مدعوم بـ nanobanana pro" : "Powered by nanobanana pro"}</span>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '1.5rem' }} className="grid-responsive social-studio-layout">
@@ -612,6 +722,39 @@ I have extracted project highlights and generated target social designs, a reels
         {/* Left Column: Conversational Assistant */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
+          {/* Credit status card */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={16} style={{ color: 'var(--secondary)' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  {isRTL ? "رصيد صناعة المحتوى بالذكاء الاصطناعي" : "AI Creator Credits"}
+                </span>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: '#818cf8', borderColor: 'rgba(129, 140, 248, 0.4)' }}
+                onClick={() => setShowRechargeModal(true)}
+              >
+                {isRTL ? `شحن الرصيد (${getRechargePrice()})` : `Recharge (${getRechargePrice()})`}
+              </button>
+            </div>
+            
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                <span>{isRTL ? `المتبقي: ${credits} كريديت` : `${credits} credits remaining`}</span>
+                <span>2,000 / 2,000</span>
+              </div>
+              <div style={{ height: '8px', background: 'var(--card-border)', borderRadius: '9999px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, (credits / 2000) * 100)}%`, background: 'linear-gradient(90deg, var(--secondary) 0%, var(--primary) 100%)', transition: 'width 0.4s ease' }} />
+              </div>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem', textAlign: 'start' }}>
+                {isRTL ? "* يستهلك كل توليد بالذكاء الاصطناعي 100 كريديت" : "* Each AI generation consumes 100 credits"}
+              </span>
+            </div>
+          </div>
+
           {/* Chat Container Card */}
           <div className="card social-chat-card" style={{ display: 'flex', flexDirection: 'column', height: '520px', padding: '1.25rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
@@ -748,9 +891,10 @@ I have extracted project highlights and generated target social designs, a reels
           <div className="card social-studio-tabs" style={{ padding: '0.5rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             {[
               { id: 'image', label: isRTL ? 'تصميم صورة (بوست/ستوري)' : t('tabImage'), icon: <Image size={15} /> },
-              { id: 'video', label: isRTL ? 'فيديو وسيناريوهات' : t('tabVideo'), icon: <Compass size={15} /> },
+              { id: 'video', label: isRTL ? 'فيديو وسيناريوهات' : t('tabVideo'), icon: <Film size={15} /> },
               { id: 'pdf', label: isRTL ? 'بروشور PDF للعملاء' : t('tabPDF'), icon: <FileText size={15} /> },
-              { id: 'calendar', label: isRTL ? 'تقويم النشر الأسبوعي' : t('tabCalendar'), icon: <Calendar size={15} /> }
+              { id: 'calendar', label: isRTL ? 'تقويم النشر الأسبوعي' : t('tabCalendar'), icon: <Calendar size={15} /> },
+              { id: 'library', label: isRTL ? 'مكتبة المحتوى الجاهز' : 'Template Library', icon: <Layers size={15} /> }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -810,10 +954,14 @@ I have extracted project highlights and generated target social designs, a reels
                             padding: '0.25rem 0.5rem',
                             fontSize: '0.75rem',
                             background: imageFormat === 'post' ? 'var(--primary)' : 'transparent',
-                            color: '#fff'
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
                           }}
                           onClick={() => setImageFormat('post')}
                         >
+                          <Square size={12} />
                           {isRTL ? "مربع (1:1)" : "Post (1:1)"}
                         </button>
                         <button 
@@ -822,10 +970,14 @@ I have extracted project highlights and generated target social designs, a reels
                             padding: '0.25rem 0.5rem',
                             fontSize: '0.75rem',
                             background: imageFormat === 'story' ? 'var(--primary)' : 'transparent',
-                            color: '#fff'
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
                           }}
                           onClick={() => setImageFormat('story')}
                         >
+                          <Smartphone size={12} />
                           {isRTL ? "قصة (9:16)" : "Story (9:16)"}
                         </button>
                       </div>
@@ -1125,13 +1277,16 @@ I have extracted project highlights and generated target social designs, a reels
                       {/* PAGE 1: COVER */}
                       {pdfPage === 1 && (
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', flex: 1 }}>
-                          <div style={{ borderBottom: '2px solid #4f46e5', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4f46e5', letterSpacing: '0.1em' }}>
-                              ADTODEAL REAL ESTATE MARKETING
-                            </span>
-                            <h2 style={{ margin: '0.5rem 0 0', color: '#111827', fontSize: '1.4rem', fontWeight: 800 }}>
-                              {isRTL ? generatedContent.pdfTitle : generatedContent.pdfTitleEn}
-                            </h2>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #4f46e5', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                            <div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4f46e5', letterSpacing: '0.1em' }}>
+                                ADTODEAL REAL ESTATE MARKETING
+                              </span>
+                              <h2 style={{ margin: '0.5rem 0 0', color: '#111827', fontSize: '1.4rem', fontWeight: 800 }}>
+                                {isRTL ? generatedContent.pdfTitle : generatedContent.pdfTitleEn}
+                              </h2>
+                            </div>
+                            <FileText size={48} style={{ color: '#ef4444', flexShrink: 0 }} />
                           </div>
 
                           <div style={{ marginY: 'auto', padding: '0.5rem 0' }}>
@@ -1264,6 +1419,142 @@ I have extracted project highlights and generated target social designs, a reels
                     </div>
                   </div>
                 )}
+
+                {/* 5. READY TEMPLATE LIBRARY TAB */}
+                {activeTab === 'library' && (
+                  <div className="card social-output-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: '400px' }}>
+                    <div className="social-output-header" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'start' }}>
+                        <Layers size={16} style={{ color: 'var(--secondary)' }} />
+                        {isRTL ? "مكتبة المحتوى الجاهز والتصاميم العقارية" : "Ready Content & Template Library"}
+                      </h3>
+                      <input 
+                        type="text" 
+                        placeholder={isRTL ? "بحث في التصاميم الجاهزة (مثال: فيلا، تقسيط، النرجس)..." : "Search ready designs (e.g., villa, installments)..."}
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        style={{ 
+                          width: '100%', 
+                          fontSize: '0.85rem', 
+                          padding: '0.5rem 0.75rem',
+                          borderRadius: '0.5rem',
+                          border: '1px solid var(--card-border)',
+                          background: 'rgba(0,0,0,0.2)',
+                          color: 'var(--text-main)'
+                        }}
+                      />
+                    </div>
+
+                    {/* Grid of templates */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                      {TEMPLATES.filter(t => {
+                        const q = searchQuery.toLowerCase();
+                        return t.titleAr.toLowerCase().includes(q) || 
+                               t.titleEn.toLowerCase().includes(q) || 
+                               t.detailsAr.toLowerCase().includes(q) || 
+                               t.detailsEn.toLowerCase().includes(q) ||
+                               t.categoryAr.toLowerCase().includes(q) ||
+                               t.categoryEn.toLowerCase().includes(q);
+                      }).map((temp) => (
+                        <div key={temp.id} className="card-sub" style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          borderRadius: '0.5rem', 
+                          border: '1px solid var(--card-border)', 
+                          background: 'rgba(255,255,255,0.01)',
+                          overflow: 'hidden',
+                          transition: 'transform 0.2s',
+                          cursor: 'default'
+                        }}>
+                          <div style={{ position: 'relative', width: '100%', height: '120px', overflow: 'hidden' }}>
+                            <img src={temp.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={temp.titleEn} />
+                            <span style={{ 
+                              position: 'absolute', 
+                              top: '5px', 
+                              right: '5px', 
+                              background: 'var(--primary)', 
+                              color: '#fff', 
+                              fontSize: '0.65rem', 
+                              padding: '2px 6px', 
+                              borderRadius: '3px',
+                              fontWeight: 'bold'
+                            }}>
+                              {isRTL ? temp.categoryAr : temp.categoryEn}
+                            </span>
+                          </div>
+                          <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, textAlign: 'start' }}>
+                            <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-main)' }}>
+                              {isRTL ? temp.titleAr : temp.titleEn}
+                            </h4>
+                            <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.3, flex: 1 }}>
+                              {isRTL ? temp.detailsAr : temp.detailsEn}
+                            </p>
+                            <button 
+                              type="button" 
+                              className="btn btn-primary" 
+                              style={{ width: '100%', padding: '0.35rem', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.25rem' }}
+                              onClick={() => {
+                                // Copy template to active preview
+                                setGeneratedContent({
+                                  imageTitle: temp.titleAr,
+                                  imageTitleEn: temp.titleEn,
+                                  imageBody: temp.detailsAr,
+                                  imageBodyEn: temp.detailsEn,
+                                  imageBadge: temp.badgeAr,
+                                  imageBadgeEn: temp.badgeEn,
+                                  imageCTA: isRTL ? "احجز الآن" : "Book Now",
+                                  imageCTAEn: "Book Now",
+                                  videoTitle: temp.titleAr,
+                                  videoTitleEn: temp.titleEn,
+                                  videoScriptText: isRTL ? `[سيناريو فيديو جاهز لـ ${temp.titleAr}]\n\nالمشهد: لقطات ممتازة للعقار.\nالصوت: تفضل بمشاهدة التفاصيل الممتازة لهذا العقار الرائع.` : `[Ready video script for ${temp.titleEn}]\n\nScene: Premium property shots.\nAudio: Take a look at the excellent specs of this gorgeous home.`,
+                                  videoScriptTextEn: `[Ready video script for ${temp.titleEn}]\n\nScene: Premium property shots.\nAudio: Take a look at the specs.`,
+                                  pdfTitle: temp.titleAr,
+                                  pdfTitleEn: temp.titleEn,
+                                  pdfDeveloper: isRTL ? "المطور العقاري المعتمد" : "Authorized Developer",
+                                  pdfDeveloperEn: "Authorized Developer",
+                                  pdfDescription: temp.detailsAr,
+                                  pdfDescriptionEn: temp.detailsEn,
+                                  pdfSpecs: [
+                                    { label: isRTL ? "الموقع" : "Location", val: isRTL ? "الرياض" : "Riyadh" },
+                                    { label: isRTL ? "النوع" : "Type", val: isRTL ? "عقار فاخر" : "Luxury Real Estate" }
+                                  ],
+                                  pdfSpecsEn: [
+                                    { label: "Location", val: "Riyadh" },
+                                    { label: "Type", val: "Luxury Real Estate" }
+                                  ],
+                                  pdfAmenities: [
+                                    isRTL ? "مسبح خاص" : "Private Pool",
+                                    isRTL ? "موقف سيارات" : "Parking Slot"
+                                  ],
+                                  pdfAmenitiesEn: [
+                                    "Private Pool",
+                                    "Parking Slot"
+                                  ],
+                                  pdfPaymentPlan: [
+                                    { step: isRTL ? "الدفعة الأولى" : "Down Payment", pct: "10%", desc: isRTL ? "عند الحجز" : "On booking" }
+                                  ],
+                                  pdfPaymentPlanEn: [
+                                    { step: "Down Payment", pct: "10%", desc: "On booking" }
+                                  ],
+                                  calendar: [
+                                    { day: isRTL ? "الأحد" : "Sunday", platform: "Instagram", topic: temp.titleAr }
+                                  ],
+                                  calendarEn: [
+                                    { day: "Sunday", platform: "Instagram", topic: temp.titleEn }
+                                  ]
+                                });
+                                setActiveTab('image');
+                                alert(isRTL ? `تم تحميل قالب "${temp.titleAr}" بنجاح في لوحة المعاينة!` : `Loaded "${temp.titleEn}" template successfully!`);
+                              }}
+                            >
+                              {isRTL ? "استخدام هذا القالب" : "Use Template"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1271,6 +1562,110 @@ I have extracted project highlights and generated target social designs, a reels
         </div>
 
       </div>
+
+      {/* Recharge Modal */}
+      {showRechargeModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card" style={{ width: '400px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
+            <button 
+              type="button" 
+              onClick={() => { setShowRechargeModal(false); setRechargeSuccess(false); }}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+
+            {!rechargeSuccess ? (
+              <>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ 
+                    width: '60px', 
+                    height: '60px', 
+                    borderRadius: '50%', 
+                    background: 'rgba(99, 102, 241, 0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    margin: '0 auto 1rem'
+                  }}>
+                    <Sparkles size={30} style={{ color: 'var(--secondary)' }} />
+                  </div>
+                  <h3 style={{ margin: 0 }}>{isRTL ? "شحن رصيد صانع المحتوى" : "Recharge Social Creator Credits"}</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                    {isRTL 
+                      ? "اشحن 2000 كريديت إضافية فوراً لتستمر في توليد المنشورات والسيناريوهات والبروشورات العقارية."
+                      : "Add 2,000 credits to continue generating professional campaigns & brochures."}
+                  </p>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                    <span>{isRTL ? "الخدمة" : "Service"}</span>
+                    <strong>{isRTL ? "شحن 2,000 كريديت" : "2,000 Creator Credits"}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--success)' }}>
+                    <span>{isRTL ? "الإجمالي المستحق" : "Total Due"}</span>
+                    <strong>{getRechargePrice()}</strong>
+                  </div>
+                </div>
+
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  style={{ width: '100%', padding: '0.75rem', fontWeight: 'bold' }}
+                  onClick={() => {
+                    setCredits(2000);
+                    setRechargeSuccess(true);
+                  }}
+                >
+                  {isRTL ? "دفع وإتمام الشحن الآن" : "Pay & Recharge Now"}
+                </button>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ 
+                  width: '60px', 
+                  height: '60px', 
+                  borderRadius: '50%', 
+                  background: 'rgba(16, 185, 129, 0.1)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center'
+                }}>
+                  <Check size={30} style={{ color: 'var(--success)' }} />
+                </div>
+                <h3 style={{ margin: 0 }}>{isRTL ? "تم الشحن بنجاح!" : "Recharged Successfully!"}</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  {isRTL 
+                    ? "تمت إضافة 2,000 كريديت إلى حسابك بنجاح. يمكنك المتابعة الآن."
+                    : "2,000 credits have been credited to your account. You're ready to go!"}
+                </p>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                  onClick={() => { setShowRechargeModal(false); setRechargeSuccess(false); }}
+                >
+                  {isRTL ? "العودة للاستوديو" : "Back to Studio"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

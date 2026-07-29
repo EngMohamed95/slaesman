@@ -29,7 +29,7 @@ import {
 export default function ReportsPage() {
   const { t, isRTL, lang } = useLanguage();
   const { leads, tasks, campaignRequests } = useCRM();
-  const { validateFeatureAccess } = useApp();
+  const { validateFeatureAccess, selectedCurrency } = useApp();
 
   // Tabs
   const [activeTab, setActiveTab] = useState('overview'); // overview, funnel, sources, campaigns, ai
@@ -82,11 +82,11 @@ export default function ReportsPage() {
   
   const totalPipeline = filteredLeads
     .filter(l => l.status !== 'Lost' && l.status !== 'Not Interested')
-    .reduce((sum, current) => sum + (current.expectedValue || 0), 0);
+    .reduce((sum, current) => sum + (current.expectedValue || current.budget || 0), 0);
 
   const wonPipeline = filteredLeads
     .filter(l => l.status === 'Won')
-    .reduce((sum, current) => sum + (current.expectedValue || 0), 0);
+    .reduce((sum, current) => sum + (current.expectedValue || current.budget || 0), 0);
 
   const averageLeadBudget = totalLeads > 0 
     ? Math.round(filteredLeads.reduce((sum, l) => sum + (l.budget || 0), 0) / totalLeads) 
@@ -98,6 +98,34 @@ export default function ReportsPage() {
   const completedTasks = tasks.filter(t => t.completed).length;
   const totalTasks = tasks.length;
   const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // New Leads
+  const newLeadsCount = filteredLeads.filter(l => l.status === 'New').length;
+
+  // Marketing Budget Calculations
+  const allocatedMarketingBudget = 30000; // 30,000 in selected currency
+  const totalCampaignBudget = campaignRequests.reduce((sum, c) => sum + (c.budget || 0), 0);
+  const activeCampaignsCount = campaignRequests.filter(c => c.status.includes('Active') || c.statusAr.includes('نشطة')).length;
+  const remainingMarketingBudget = Math.max(0, allocatedMarketingBudget - totalCampaignBudget);
+  const roas = totalCampaignBudget > 0 ? (wonPipeline / totalCampaignBudget).toFixed(1) : '0.0';
+
+  // Currency symbols
+  const getCurrencySymbol = () => {
+    if (selectedCurrency === 'AED') return isRTL ? 'درهم' : 'AED';
+    if (selectedCurrency === 'EGP') return isRTL ? 'جنيه' : 'EGP';
+    if (selectedCurrency === 'JOD') return isRTL ? 'دينار' : 'JOD';
+    if (selectedCurrency === 'USD') return '$';
+    return isRTL ? 'ريال' : 'SAR';
+  };
+  const cSymbol = getCurrencySymbol();
+
+  // Mock Social Media performance indicators
+  const mockSocialStats = {
+    postsCreated: 24,
+    calendarScheduled: 3,
+    engagementRate: '5.2%',
+    reach: '12,400'
+  };
 
   // Funnel calculations
   const funnelStats = filteredLeads.reduce((acc, lead) => {
@@ -148,8 +176,6 @@ export default function ReportsPage() {
   }, {});
 
   // Campaign Analytics Summary
-  const totalCampaignBudget = campaignRequests.reduce((sum, c) => sum + (c.budget || 0), 0);
-  const activeCampaignsCount = campaignRequests.filter(c => c.status.includes('Active') || c.statusAr.includes('نشطة')).length;
 
   // Run AI Sales Analyst
   const handleGenerateAIReport = async () => {
@@ -348,107 +374,220 @@ export default function ReportsPage() {
 
       {/* TAB CONTENT: 1. OVERVIEW */}
       {activeTab === 'overview' && (
-        <div className="fade-in">
-          {/* Key Stats Grid */}
-          <div className="grid-4" style={{ marginBottom: '2rem' }}>
-            
-            {/* Conversion Gauge Card */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('conversionRate')}</span>
-                <Percent size={18} style={{ color: 'var(--secondary)' }} />
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+          
+          {/* 1. Sales & Revenue Metrics Section */}
+          <div>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a5b4fc', textAlign: 'start' }}>
+              <TrendingUp size={20} style={{ color: 'var(--secondary)' }} />
+              {isRTL ? "أداء المبيعات والإيرادات والعملاء الجدد" : "Sales, Revenue & New Leads Performance"}
+            </h3>
+            <div className="grid-4">
+              {/* Conversion Gauge Card */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('conversionRate')}</span>
+                  <Percent size={18} style={{ color: 'var(--secondary)' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ position: 'relative', width: '54px', height: '54px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="54" height="54" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                      <path
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="var(--card-border)"
+                        strokeWidth="3.5"
+                      />
+                      <path
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="var(--secondary)"
+                        strokeWidth="3.5"
+                        strokeDasharray={`${conversionRate}, 100`}
+                      />
+                    </svg>
+                    <span style={{ position: 'absolute', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>{conversionRate}%</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>{wonLeads} / {totalLeads}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "صفقات مغلقة بنجاح" : "Won contracts total"}</div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ position: 'relative', width: '54px', height: '54px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="54" height="54" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="var(--card-border)"
-                      strokeWidth="3.5"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="var(--secondary)"
-                      strokeWidth="3.5"
-                      strokeDasharray={`${conversionRate}, 100`}
-                    />
-                  </svg>
-                  <span style={{ position: 'absolute', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>{conversionRate}%</span>
+
+              {/* Money Collected Card */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {isRTL ? "الفلوس المحصلة من العميل" : "Revenue Collected (Won)"}
+                  </span>
+                  <Award size={18} style={{ color: 'var(--success)' }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>{wonLeads} / {totalLeads}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "صفقات مغلقة بنجاح" : "Won contracts total"}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--success)', textAlign: 'start' }}>
+                    {wonPipeline.toLocaleString()} {cSymbol}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', textAlign: 'start' }}>
+                    {isRTL ? `إجمالي الفلوس المحصلة فعلياً` : `Total actual money collected`}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Sales Pipeline Value */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('salesPipeline')}</span>
-                <TrendingUp size={18} style={{ color: 'var(--success)' }} />
-              </div>
-              <div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--success)' }}>
-                  {isRTL ? `${totalPipeline.toLocaleString()} ريال` : `$${totalPipeline.toLocaleString()}`}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <ArrowUpRight size={12} style={{ color: 'var(--success)' }} />
-                  <span>{isRTL ? `من أصل ${filteredLeads.filter(l => l.status !== 'Lost').length} صفقات جارية` : `From ${filteredLeads.filter(l => l.status !== 'Lost').length} active deals`}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Task Completion Efficiency */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? 'معدل إنجاز المهام' : 'Follow-up Completion'}</span>
-                <Award size={18} style={{ color: 'var(--accent)' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ position: 'relative', width: '54px', height: '54px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="54" height="54" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="var(--card-border)"
-                      strokeWidth="3.5"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="var(--accent)"
-                      strokeWidth="3.5"
-                      strokeDasharray={`${taskCompletionRate}, 100`}
-                    />
-                  </svg>
-                  <span style={{ position: 'absolute', fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>{taskCompletionRate}%</span>
+              {/* Potential Sales Pipeline Value */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "المبيعات المحتملة الجارية" : "Potential Active Pipeline"}</span>
+                  <TrendingUp size={18} style={{ color: '#818cf8' }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>{completedTasks} / {totalTasks}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{isRTL ? "متابعات مكتملة بنجاح" : "Completed tasks"}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#818cf8', textAlign: 'start' }}>
+                    {(totalPipeline - wonPipeline).toLocaleString()} {cSymbol}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem', textAlign: 'start' }}>
+                    <ArrowUpRight size={12} style={{ color: '#818cf8' }} />
+                    <span>{isRTL ? `من أصل ${filteredLeads.filter(l => l.status !== 'Lost' && l.status !== 'Won' && l.status !== 'Not Interested').length} صفقات جارية` : `From open active deals`}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* New Leads Added Card */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "الليدز الجديدة (New Leads)" : "New Leads Added"}</span>
+                  <Users size={18} style={{ color: 'var(--secondary)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--secondary)', textAlign: 'start' }}>
+                    {newLeadsCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', textAlign: 'start' }}>
+                    {isRTL ? "عملاء جدد بانتظار المتابعة" : "Leads awaiting first contact"}
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Average Deal Size */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '140px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "متوسط ميزانية العملاء" : "Avg Lead Budget"}</span>
-                <DollarSign size={18} style={{ color: '#818cf8' }} />
-              </div>
-              <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#818cf8' }}>
-                  {isRTL ? `${averageLeadBudget.toLocaleString()} ريال` : `$${averageLeadBudget.toLocaleString()}`}
+          {/* 2. Marketing & Ads Budgets Section */}
+          <div>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a5b4fc', textAlign: 'start' }}>
+              <Target size={20} style={{ color: 'var(--accent)' }} />
+              {isRTL ? "ميزانيات الحملات الإعلانية الممولة" : "Marketing & Paid Ad Budgets"}
+            </h3>
+            <div className="grid-4">
+              {/* Allocated Marketing Budget */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '130px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "ميزانية التسويق المعتمدة" : "Allocated Marketing Budget"}</span>
+                  <DollarSign size={18} style={{ color: 'var(--text-muted)' }} />
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  {isRTL ? `أعلى ميزانية: ${highestLeadBudget.toLocaleString()} ريال` : `Highest: $${highestLeadBudget.toLocaleString()}`}
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', textAlign: 'start' }}>
+                    {allocatedMarketingBudget.toLocaleString()} {cSymbol}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>{isRTL ? "الميزانية المحددة للتسويق" : "Total platform ad allowance"}</span>
+                </div>
+              </div>
+
+              {/* Spent Ad Budget */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '130px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "الميزانية المصروفة إعلانياً" : "Spent Ad Budget"}</span>
+                  <Briefcase size={18} style={{ color: 'var(--accent)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent)', textAlign: 'start' }}>
+                    {totalCampaignBudget.toLocaleString()} {cSymbol}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>
+                    {isRTL ? `موزعة على ${campaignRequests.length} حملات معلنة` : `Spent on active campaigns`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Remaining Ad Budget */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '130px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "الميزانية المتبقية للتسويق" : "Remaining Ad Budget"}</span>
+                  <Layers size={18} style={{ color: 'var(--secondary)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--secondary)', textAlign: 'start' }}>
+                    {remainingMarketingBudget.toLocaleString()} {cSymbol}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>{isRTL ? "رصيد تسويق متاح وحر" : "Available for new campaign briefs"}</span>
+                </div>
+              </div>
+
+              {/* ROAS Card */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '130px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "معدل العائد على الإعلانات (ROAS)" : "Return on Ad Spend (ROAS)"}</span>
+                  <Zap size={18} style={{ color: 'var(--success)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--success)', textAlign: 'start' }}>
+                    {roas}x
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>
+                    {isRTL ? "عائد المبيعات الفعلي / المصاريف" : "Revenue / Spent campaign budget ratio"}
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
 
+          {/* 3. Social Media & Content Section */}
+          <div>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a5b4fc', textAlign: 'start' }}>
+              <Sparkles size={20} style={{ color: '#ec72b6' }} />
+              {isRTL ? "أداء وقنوات وسائل التواصل (السوشيال ميديا)" : "Social Media & Content Analytics"}
+            </h3>
+            <div className="grid-3">
+              {/* AI Generated Content */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContext: 'space-between', minHeight: '110px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "محتوى السوشيال ميديا المولد بالـ AI" : "AI Content Generated"}</span>
+                  <Sparkles size={16} style={{ color: '#ec72b6' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', textAlign: 'start' }}>
+                    {mockSocialStats.postsCreated} {isRTL ? "منشور وسيناريو ريلز" : "posts & scripts"}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>{isRTL ? "تم توليدها تلقائياً عبر صانع المحتوى" : "Generated via Social Creator Copilot"}</span>
+                </div>
+              </div>
+
+              {/* Scheduled Posts */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContext: 'space-between', minHeight: '110px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "المنشورات المجدولة في تقويم النشر" : "Scheduled Calendar Posts"}</span>
+                  <Calendar size={16} style={{ color: 'var(--secondary)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--secondary)', textAlign: 'start' }}>
+                    {mockSocialStats.calendarScheduled} {isRTL ? "منشورات مجدولة أسبوعياً" : "scheduled items"}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>{isRTL ? "موزعة بالتقويم على قنوات النشر" : "Planned for the current weekly cycle"}</span>
+                </div>
+              </div>
+
+              {/* Engagement and Reach */}
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContext: 'space-between', minHeight: '110px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{isRTL ? "الوصول والتفاعل التقديري" : "Reach & Engagement Rate"}</span>
+                  <Users size={16} style={{ color: 'var(--success)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--success)', textAlign: 'start' }}>
+                    {mockSocialStats.reach} {isRTL ? "وصول وتفاعل" : "reach"}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textAlign: 'start' }}>
+                    {isRTL ? `بمتوسط معدل تفاعل ${mockSocialStats.engagementRate}` : `Average engagement of ${mockSocialStats.engagementRate}`}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Sub-Overview Details */}

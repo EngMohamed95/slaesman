@@ -111,12 +111,13 @@ export const AppProvider = ({ children }) => {
 
   const login = (email, password) => {
     // Mock login
-    setUser({ email, role: email.includes('admin') ? 'admin' : 'salesperson' });
-    // Fetch saved plan for this email if it exists
-    const savedUserPlan = localStorage.getItem(`salesmate_plan_${email}`);
-    if (savedUserPlan) {
-      setPlan(savedUserPlan);
-    }
+    const matchedRole = email.includes('admin') ? 'admin' : 'salesperson';
+    setUser({ email, role: matchedRole });
+    
+    // Fetch saved plan or default
+    const defaultPlan = matchedRole === 'admin' ? 'Growth' : 'Trial';
+    const savedUserPlan = localStorage.getItem(`salesmate_plan_${email}`) || defaultPlan;
+    setPlan(savedUserPlan);
     return true;
   };
 
@@ -144,8 +145,8 @@ export const AppProvider = ({ children }) => {
     if (featureKey === 'admin') return false;
     
     if (plan === 'Basic') {
-      // Basic unlocks only dashboard, crm, tasks, reports, settings
-      const basicPages = ['dashboard', 'crm', 'tasks', 'reports', 'settings'];
+      // Basic unlocks only dashboard, crm, tasks, aiAssistant, whatsapp, reports, settings
+      const basicPages = ['dashboard', 'crm', 'tasks', 'aiAssistant', 'whatsapp', 'reports', 'settings'];
       return basicPages.includes(featureKey);
     }
     
@@ -160,8 +161,9 @@ export const AppProvider = ({ children }) => {
     }
 
     if (plan === 'Trial') {
-      // Trial unlocks everything except admin
-      return true;
+      // Trial behaves like Basic: restricts socialCreator and campaigns
+      const basicPages = ['dashboard', 'crm', 'tasks', 'aiAssistant', 'whatsapp', 'reports', 'settings'];
+      return basicPages.includes(featureKey);
     }
     
     return true;

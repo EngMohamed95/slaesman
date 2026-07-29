@@ -167,18 +167,82 @@ export const CRMProvider = ({ children }) => {
 
   // Task Actions
   const addTask = (task) => {
+    const now = new Date().toISOString();
     const newTask = {
       id: Date.now().toString(),
       completed: false,
+      status: 'todo',
+      createdAt: now,
+      updatedAt: now,
       ...task
     };
     setTasks((prev) => [newTask, ...prev]);
+    return newTask;
   };
 
   const toggleTask = (id) => {
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const completed = !t.completed;
+        return {
+          ...t,
+          completed,
+          status: completed ? 'done' : 'todo',
+          completedAt: completed ? new Date().toISOString() : null,
+          updatedAt: new Date().toISOString()
+        };
+      })
     );
+  };
+
+  const updateTask = (id, updatedFields) => {
+    setTasks((prev) =>
+      prev.map((task) => {
+        if (task.id !== id) return task;
+        const next = { ...task, ...updatedFields, updatedAt: new Date().toISOString() };
+        if (updatedFields.status) {
+          next.completed = updatedFields.status === 'done';
+          next.completedAt = next.completed
+            ? (task.completedAt || new Date().toISOString())
+            : null;
+        }
+        return next;
+      })
+    );
+  };
+
+  const addFollowUpSequence = ({ leadId, title, titleAr, priority, type, notes, startAt }) => {
+    const baseTime = new Date(startAt || Date.now()).getTime();
+    const schedule = [
+      { key: '48h', hours: 48, labelAr: 'متابعة بعد 48 ساعة', labelEn: '48-hour follow-up' },
+      { key: '4d', hours: 96, labelAr: 'متابعة بعد 4 أيام', labelEn: '4-day follow-up' },
+      { key: '7d', hours: 168, labelAr: 'متابعة بعد أسبوع', labelEn: '7-day follow-up' }
+    ];
+    const sequenceId = `seq-${Date.now()}`;
+    const createdAt = new Date().toISOString();
+    const sequenceTasks = schedule.map((step, index) => {
+      const dueAt = new Date(baseTime + step.hours * 60 * 60 * 1000).toISOString();
+      return {
+        id: `${Date.now()}-${index}`,
+        leadId,
+        title: `${title || 'Client follow-up'} — ${step.labelEn}`,
+        titleAr: `${titleAr || title || 'متابعة العميل'} — ${step.labelAr}`,
+        priority,
+        type,
+        notes,
+        dueAt,
+        dueDate: dueAt.split('T')[0],
+        status: 'todo',
+        completed: false,
+        sequenceId,
+        sequenceStep: step.key,
+        createdAt,
+        updatedAt: createdAt
+      };
+    });
+    setTasks((prev) => [...sequenceTasks, ...prev]);
+    return sequenceTasks;
   };
 
   const deleteTask = (id) => {
@@ -215,6 +279,8 @@ export const CRMProvider = ({ children }) => {
       deleteLead,
       tasks,
       addTask,
+      addFollowUpSequence,
+      updateTask,
       toggleTask,
       deleteTask,
       campaignRequests,

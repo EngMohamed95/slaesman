@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
-import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw, TrendingUp, Target, AlertTriangle } from 'lucide-react';
+
+const WHATSAPP_BRIDGE_URL = (import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 // Mock contacts for MacBook / phone address book fallback
 const MOCK_CONTACTS = [
@@ -15,6 +17,9 @@ const MOCK_CONTACTS = [
   { name: 'محمد الصالح', nameEn: 'Mohammad Al-Saleh', phone: '+971501234567', email: 'm.saleh@realestate.ae', company: 'دبي عقار' }
 ];
 
+/* Legacy demo chats are intentionally disabled: live sync must never present
+   sample data as if it came from the connected WhatsApp account. */
+// eslint-disable-next-line no-unused-vars
 const MOCK_WHATSAPP_CHATS = [
   {
     id: 'w1',
@@ -196,7 +201,8 @@ const analyzeWhatsAppChat = (text, isRTL) => {
 
   // Fallbacks
   if (!name) name = isRTL ? 'عميل واتساب جديد' : 'New WhatsApp Lead';
-  if (!phone) phone = '+966500000000';
+  // Never invent a phone number; leave it empty when it is not present in the chat.
+  if (!phone) phone = '';
   if (!service) service = isRTL ? 'عقار غير محدد بعد' : 'Unspecified Property';
   if (!budget) budget = '0';
 
@@ -263,14 +269,191 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
   // WhatsApp Web Integration States
   const [isWhatsappConnected, setIsWhatsappConnected] = useState(false);
   const [isQrScanning, setIsQrScanning] = useState(false);
-  const [selectedWhatsappChatId, setSelectedWhatsappChatId] = useState('w1');
+  const [selectedWhatsappChatId, setSelectedWhatsappChatId] = useState(null);
+  const [whatsappChats, setWhatsappChats] = useState([]);
 
-  const handleSimulateQrScan = () => {
+  // Real WhatsApp Server Connection States
+  const [isServerOnline, setIsServerOnline] = useState(false);
+  const [qrFromServer, setQrFromServer] = useState(null);
+  const [connectedPhone, setConnectedPhone] = useState('');
+  const [isRealChatsLoaded, setIsRealChatsLoaded] = useState(false);
+  const [whatsappError, setWhatsappError] = useState('');
+  const [isWhatsappMessagesLoading, setIsWhatsappMessagesLoading] = useState(false);
+
+  // Polling Real-time WhatsApp Server status
+  useEffect(() => {
+    if (importMode !== 'whatsappSync') {
+      setIsServerOnline(false);
+      setQrFromServer(null);
+      return;
+    }
+
+    let intervalId;
+    const checkServerStatus = async () => {
+      try {
+        const response = await fetch(`${WHATSAPP_BRIDGE_URL}/status`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsServerOnline(true);
+          setWhatsappError(data.error || '');
+          if (data.phone) {
+            setConnectedPhone(data.phone);
+          }
+          if (data.status === 'QR_READY' && data.qr) {
+            setQrFromServer(data.qr);
+            setIsWhatsappConnected(false);
+          } else if (data.status === 'CONNECTED') {
+            setQrFromServer(null);
+            setIsWhatsappConnected(true);
+          } else {
+            setQrFromServer(null);
+            setIsWhatsappConnected(false);
+            setIsRealChatsLoaded(false);
+            setWhatsappChats([]);
+          }
+        } else {
+          throw new Error('Server offline');
+        }
+      } catch {
+        setIsServerOnline(false);
+        setQrFromServer(null);
+        setWhatsappError(isRTL ? 'تعذر الوصول إلى خادم ربط واتساب.' : 'Could not reach the WhatsApp bridge.');
+      }
+    };
+
+    checkServerStatus();
+    intervalId = setInterval(checkServerStatus, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [importMode, isRTL]);
+
+  // Fetch WhatsApp Chats list when connected to real server
+  useEffect(() => {
+    if (!isWhatsappConnected || !isServerOnline) {
+      setWhatsappChats([]);
+      setIsRealChatsLoaded(false);
+      return;
+    }
+
+    const fetchChats = async () => {
+      try {
+        const response = await fetch(`${WHATSAPP_BRIDGE_URL}/chats`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.chats) {
+            setWhatsappChats(previousChats => {
+              const messagesByChatId = new Map(
+                previousChats.map(chat => [chat.id, chat.messages || []])
+              );
+              return data.chats.map(chat => ({
+                ...chat,
+                messages: messagesByChatId.get(chat.id) || []
+              }));
+            });
+            setIsRealChatsLoaded(true);
+            setWhatsappError('');
+            setSelectedWhatsappChatId(prev => {
+              if (data.chats.some(c => c.id === prev)) return prev;
+              return data.chats[0]?.id || null;
+            });
+          }
+        } else {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.details || data.error || `HTTP ${response.status}`);
+        }
+      } catch (err) {
+        console.error("Failed to fetch WhatsApp chats:", err);
+        setWhatsappError(err.message);
+        setIsRealChatsLoaded(true);
+      }
+    };
+
+    fetchChats();
+    const intervalId = setInterval(fetchChats, 8000);
+
+    return () => clearInterval(intervalId);
+  }, [isWhatsappConnected, isServerOnline]);
+
+  // Fetch WhatsApp Messages for active selected chat
+  useEffect(() => {
+    if (!isWhatsappConnected || !isServerOnline || !selectedWhatsappChatId) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let isCurrentChatRequest = true;
+    let intervalId;
+
+    const fetchMessages = async (loadFullHistory = false) => {
+      if (loadFullHistory) setIsWhatsappMessagesLoading(true);
+      try {
+        const query = loadFullHistory ? 'all=true' : 'limit=100';
+        const response = await fetch(
+          `${WHATSAPP_BRIDGE_URL}/chats/${encodeURIComponent(selectedWhatsappChatId)}/messages?${query}`,
+          { signal: controller.signal }
+        );
+        if (!isCurrentChatRequest) return;
+        if (response.ok) {
+          const data = await response.json();
+          if (!isCurrentChatRequest) return;
+          setWhatsappChats(prevChats => {
+            return prevChats.map(c => {
+              if (c.id === selectedWhatsappChatId) {
+                if (loadFullHistory) return { ...c, messages: data.messages };
+
+                const merged = new Map((c.messages || []).map(message => [message.id, message]));
+                data.messages.forEach(message => merged.set(message.id, message));
+                return {
+                  ...c,
+                  messages: [...merged.values()].sort((a, b) => a.timestamp - b.timestamp)
+                };
+              }
+              return c;
+            });
+          });
+          setWhatsappError('');
+        } else {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.details || data.error || `HTTP ${response.status}`);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error("Failed to fetch messages for selected chat:", err);
+        setWhatsappError(err.message);
+      } finally {
+        if (loadFullHistory && isCurrentChatRequest) {
+          setIsWhatsappMessagesLoading(false);
+        }
+      }
+    };
+
+    fetchMessages(true).then(() => {
+      if (isCurrentChatRequest) {
+        intervalId = setInterval(() => fetchMessages(false), 3000);
+      }
+    });
+
+    return () => {
+      isCurrentChatRequest = false;
+      controller.abort();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [selectedWhatsappChatId, isWhatsappConnected, isServerOnline]);
+
+  const handleSimulateQrScan = async () => {
     setIsQrScanning(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${WHATSAPP_BRIDGE_URL}/status`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      setIsServerOnline(true);
+      setWhatsappError('');
+    } catch {
+      setWhatsappError(isRTL
+        ? 'خادم واتساب غير شغال. شغّله بالأمر npm run whatsapp-server ثم أعد المحاولة.'
+        : 'WhatsApp bridge is offline. Run npm run whatsapp-server and retry.');
+    } finally {
       setIsQrScanning(false);
-      setIsWhatsappConnected(true);
-    }, 1800);
+    }
   };
 
   const handleSyncChatAnalysis = async (messagesArray, chatName, chatPhone) => {
@@ -475,40 +658,63 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
       }
     }
 
-    setTimeout(() => {
-      setAnalysisStep(2);
-      
-      setTimeout(() => {
-        setAnalysisStep(3);
+    setAnalysisStep(2);
+    const result = analyzeWhatsAppChat(pastedChat, isRTL);
+    setAnalysisStep(3);
 
-        setTimeout(() => {
-          const result = analyzeWhatsAppChat(pastedChat, isRTL);
-          
-          setNewName(result.name);
-          setNewPhone(result.phone);
-          if (result.email) setNewEmail(result.email);
-          if (result.service) setNewService(result.service);
-          if (result.budget) {
-            setNewBudget(result.budget);
-            setNewExpectedValue(result.budget);
-          }
-          setNewInterestLevel(result.interestLevel);
-          setNewSource('WhatsApp'); // Auto-set source to WhatsApp
-          
-          const finalNotes = (isRTL 
-            ? `[ملخص محادثة واتساب بالذكاء الاصطناعي]:\nتم استخراج البيانات من المحادثة المرفقة.\n\n--- توصيات المساعد الذكي ---\n${result.suggestions}`
-            : `[AI WhatsApp Chat Summary]:\nData extracted from the attached conversation.\n\n--- AI Suggestions ---\n${result.suggestions}`
-          );
-          setNewNotes(finalNotes);
-          setAiSuggestions(result.suggestions);
+    setNewName(result.name || (isRTL ? 'عميل واتساب جديد' : 'New WhatsApp Lead'));
+    setNewPhone(result.phone || '');
+    if (result.email) setNewEmail(result.email);
+    if (result.service) setNewService(result.service);
+    if (result.budget) {
+      setNewBudget(result.budget);
+      setNewExpectedValue(result.budget);
+    }
+    setNewInterestLevel(result.interestLevel);
+    setNewSource('WhatsApp');
 
-          setIsAnalyzing(false);
-          setAnalysisStep(0);
-          setImportMode(null); // Return to standard view with filled form
-          alert(isRTL ? 'تم تحليل المحادثة وتعبئة البيانات بنجاح!' : 'Conversation analyzed and data populated successfully!');
-        }, 1000);
-      }, 1000);
-    }, 1000);
+    const finalNotes = (isRTL
+      ? `[ملخص محادثة واتساب]:\nتم استخراج البيانات من المحادثة المرفقة.\n\n--- توصيات المتابعة ---\n${result.suggestions}`
+      : `[WhatsApp Chat Summary]:\nData extracted from the attached conversation.\n\n--- Follow-up Suggestions ---\n${result.suggestions}`
+    );
+    setNewNotes(finalNotes);
+    setAiSuggestions(result.suggestions);
+    setIsAnalyzing(false);
+    setAnalysisStep(0);
+    setImportMode(null);
+    alert(isRTL ? 'تم تحليل المحادثة وتعبئة البيانات بنجاح!' : 'Conversation analyzed and data populated successfully!');
+  };
+
+  const pasteWhatsAppChatFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        throw new Error('Clipboard API is not available');
+      }
+      const clipboardText = await navigator.clipboard.readText();
+      if (!clipboardText.trim()) {
+        alert(isRTL
+          ? 'الحافظة فارغة. انسخ محادثة واتساب أولاً ثم اضغط لصق.'
+          : 'Clipboard is empty. Copy a WhatsApp conversation first.');
+        return false;
+      }
+      setPastedChat(clipboardText);
+      return true;
+    } catch (error) {
+      console.warn('Could not read clipboard:', error);
+      alert(isRTL
+        ? 'المتصفح منع قراءة الحافظة. الصق المحادثة يدويًا داخل مربع النص باستخدام Ctrl + V.'
+        : 'Clipboard access was blocked. Paste manually into the text box using Ctrl + V.');
+      return false;
+    }
+  };
+
+  const handlePasteChatMode = async () => {
+    if (importMode === 'whatsapp') {
+      setImportMode(null);
+      return;
+    }
+    setImportMode('whatsapp');
+    await pasteWhatsAppChatFromClipboard();
   };
 
   const handleContactImportClick = async () => {
@@ -569,6 +775,44 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     return matchesSearch && matchesStatus && matchesSource;
   });
 
+  const qualifiedStatuses = new Set(['Interested', 'Needs Follow-up', 'Close to Deal', 'Won']);
+  const sourcePerformance = Object.values(leads.reduce((result, lead) => {
+    const source = lead.source || 'Unknown';
+    if (!result[source]) {
+      result[source] = { source, sourceAr: lead.sourceAr || source, total: 0, qualified: 0, won: 0, value: 0 };
+    }
+    const qualified = lead.interestLevel === 'High' || qualifiedStatuses.has(lead.status);
+    result[source].total += 1;
+    if (qualified) {
+      result[source].qualified += 1;
+      result[source].value += Number(lead.expectedValue || lead.budget || 0);
+    }
+    if (lead.status === 'Won') result[source].won += 1;
+    return result;
+  }, {})).map(source => ({
+    ...source,
+    qualificationRate: source.total ? Math.round((source.qualified / source.total) * 100) : 0,
+    score: (source.qualified * 35) + (source.won * 50) + Math.min(30, source.value / 100000)
+  })).sort((a, b) => b.score - a.score);
+
+  const bestQualifiedSource = sourcePerformance[0];
+  const followUpCandidates = leads
+    .filter(lead => !['Won', 'Lost', 'Not Interested'].includes(lead.status))
+    .map(lead => {
+      const lastContactTime = lead.lastContact ? new Date(lead.lastContact).getTime() : 0;
+      const daysSinceContact = lastContactTime
+        ? Math.max(0, Math.floor((Date.now() - lastContactTime) / 86400000))
+        : 30;
+      const score =
+        (lead.interestLevel === 'High' ? 45 : lead.interestLevel === 'Medium' ? 25 : 5)
+        + (['Needs Follow-up', 'No Response', 'Postponed'].includes(lead.status) ? 25 : 0)
+        + Math.min(20, daysSinceContact * 2)
+        + Math.min(10, Number(lead.expectedValue || lead.budget || 0) / 100000);
+      return { ...lead, followUpScore: Math.round(score), daysSinceContact };
+    })
+    .sort((a, b) => b.followUpScore - a.followUpScore)
+    .slice(0, 3);
+
   return (
     <div className="fade-in">
       <div className="page-heading-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -581,6 +825,87 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
           <Plus size={16} /> {t('addLead')}
         </button>
+      </div>
+
+      <div className="card" style={{
+        marginBottom: '1rem',
+        padding: '1rem',
+        background: 'linear-gradient(135deg, rgba(79,70,229,.12), rgba(6,182,212,.07))',
+        border: '1px solid rgba(99,102,241,.28)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontWeight: 800 }}>
+              <Sparkles size={17} color="#818cf8" />
+              {isRTL ? 'تحليل العملاء والحملات من بيانات CRM' : 'CRM Lead & Campaign Intelligence'}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>
+              {isRTL ? 'ترتيب المتابعة وجودة المصادر تتحدث تلقائيًا حسب حالة العملاء وقيم الصفقات.' : 'Follow-up priority and source quality update automatically from live CRM data.'}
+            </div>
+          </div>
+          <button className="btn btn-secondary" onClick={() => setPage('reports')} style={{ padding: '0.45rem 0.7rem', fontSize: '0.75rem' }}>
+            <TrendingUp size={14} /> {isRTL ? 'التقرير التفصيلي' : 'Detailed report'}
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(220px, 1fr))', gap: '0.65rem', overflowX: 'auto' }}>
+          <div style={{ padding: '0.75rem', borderRadius: '0.6rem', background: 'rgba(0,0,0,.13)', border: '1px solid var(--card-border)' }}>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 800 }}>
+              <AlertTriangle size={14} /> {isRTL ? 'أولوية المتابعة الآن' : 'Follow up now'}
+            </div>
+            {followUpCandidates.length ? followUpCandidates.map((lead, index) => (
+              <button
+                key={lead.id}
+                onClick={() => { setSelectedLeadId(lead.id); setPage('leadDetails'); }}
+                style={{ width: '100%', border: 0, borderBottom: index < followUpCandidates.length - 1 ? '1px solid var(--card-border)' : 0, background: 'none', color: 'var(--text-main)', padding: '0.45rem 0', cursor: 'pointer', textAlign: 'start' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 5, fontSize: '0.74rem' }}>
+                  <strong>{index + 1}. {isRTL ? lead.nameAr : lead.name}</strong>
+                  <span style={{ color: '#f59e0b' }}>{lead.followUpScore}</span>
+                </div>
+                <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>
+                  {isRTL ? `آخر تواصل منذ ${lead.daysSinceContact} يوم • ${lead.statusAr || lead.status}` : `${lead.daysSinceContact} days since contact • ${lead.status}`}
+                </div>
+              </button>
+            )) : <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: 8 }}>{isRTL ? 'لا توجد متابعات عاجلة.' : 'No urgent follow-ups.'}</div>}
+          </div>
+
+          <div style={{ padding: '0.75rem', borderRadius: '0.6rem', background: 'rgba(0,0,0,.13)', border: '1px solid var(--card-border)' }}>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: '#10b981', fontSize: '0.75rem', fontWeight: 800 }}>
+              <Target size={14} /> {isRTL ? 'أفضل مصدر للعملاء المؤهلين' : 'Best qualified source'}
+            </div>
+            {bestQualifiedSource ? (
+              <>
+                <div style={{ fontSize: '1rem', fontWeight: 800, marginTop: '0.55rem' }}>{isRTL ? bestQualifiedSource.sourceAr : bestQualifiedSource.source}</div>
+                <div style={{ display: 'flex', gap: '0.8rem', marginTop: 5, fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  <span>{bestQualifiedSource.qualified}/{bestQualifiedSource.total} {isRTL ? 'مؤهل' : 'qualified'}</span>
+                  <span>{bestQualifiedSource.qualificationRate}%</span>
+                  <span>{bestQualifiedSource.value.toLocaleString()} {isRTL ? 'قيمة متوقعة' : 'pipeline value'}</span>
+                </div>
+                <div style={{ height: 5, background: 'rgba(255,255,255,.08)', borderRadius: 5, marginTop: 9 }}>
+                  <div style={{ height: '100%', width: `${bestQualifiedSource.qualificationRate}%`, background: '#10b981', borderRadius: 5 }} />
+                </div>
+              </>
+            ) : <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: 8 }}>{isRTL ? 'أضف عملاء لبدء التحليل.' : 'Add leads to begin analysis.'}</div>}
+          </div>
+
+          <div style={{ padding: '0.75rem', borderRadius: '0.6rem', background: 'rgba(0,0,0,.13)', border: '1px solid var(--card-border)' }}>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: '#818cf8', fontSize: '0.75rem', fontWeight: 800 }}>
+              <TrendingUp size={14} /> {isRTL ? 'توصية ميزانية الحملات' : 'Campaign budget advice'}
+            </div>
+            <div style={{ fontSize: '0.72rem', lineHeight: 1.65, marginTop: '0.5rem', color: 'var(--text-main)' }}>
+              {bestQualifiedSource
+                ? isRTL
+                  ? bestQualifiedSource.total < 5
+                    ? `المصدر الأقوى مبدئيًا هو ${bestQualifiedSource.sourceAr}. اجمع 5 عملاء على الأقل قبل زيادة كبيرة، وابدأ باختبار زيادة 10% مع متابعة تكلفة العميل المؤهل.`
+                    : `زد ميزانية ${bestQualifiedSource.sourceAr} بنسبة 20% تدريجيًا لأنه يحقق ${bestQualifiedSource.qualificationRate}% عملاء مؤهلين. أوقف الزيادة إذا انخفضت الجودة أو ارتفعت تكلفة العميل المؤهل.`
+                  : bestQualifiedSource.total < 5
+                    ? `${bestQualifiedSource.source} is the early leader. Gather at least 5 leads before scaling; test a 10% increase and track cost per qualified lead.`
+                    : `Scale ${bestQualifiedSource.source} by 20% gradually; it produces ${bestQualifiedSource.qualificationRate}% qualified leads. Pause scaling if quality falls or qualified lead cost rises.`
+                : (isRTL ? 'لا توجد بيانات كافية لتوصية حملة.' : 'Not enough data for campaign advice.')}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Classification Tabs & Bulk WhatsApp Campaign action button */}
@@ -971,7 +1296,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                 <button 
                   type="button"
                   className="btn btn-secondary" 
-                  onClick={() => setImportMode(importMode === 'whatsapp' ? null : 'whatsapp')}
+                  onClick={handlePasteChatMode}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1209,6 +1534,16 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                     textAlign: 'start'
                   }}
                 />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={pasteWhatsAppChatFromClipboard}
+                  disabled={isAnalyzing}
+                  style={{ marginBottom: '1rem', alignSelf: 'flex-start' }}
+                >
+                  <Smartphone size={14} />
+                  {isRTL ? 'لصق من الحافظة' : 'Paste from clipboard'}
+                </button>
 
                 {isAnalyzing ? (
                   <div style={{
@@ -1291,7 +1626,38 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
 
                 {!isWhatsappConnected ? (
                   /* Connection Screen with QR Code */
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1.5rem', textAlign: 'center', gap: '1.25rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', textAlign: 'center', gap: '1.25rem' }}>
+                    
+                    {!isServerOnline && (
+                      <div style={{
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.25)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        fontSize: '0.8rem',
+                        textAlign: 'start',
+                        color: 'var(--text-main)',
+                        maxWidth: '440px',
+                        marginBottom: '0.25rem',
+                        lineHeight: '1.5'
+                      }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontWeight: 'bold', color: '#f59e0b', marginBottom: '0.5rem' }}>
+                          <MessageCircle size={16} />
+                          <span>{isRTL ? "خادم ربط الواتساب غير نشط (وضع المحاكاة)" : "WhatsApp Bridge Server Offline (Demo)"}</span>
+                        </div>
+                        <p style={{ margin: '0 0 0.5rem' }}>
+                          {isRTL 
+                            ? "البرنامج حالياً في وضع المحاكاة الافتراضية. لتوصيل واتسابك الحقيقي ومسح الكود:"
+                            : "The app is currently in Demo Simulation Mode. To link your live WhatsApp and scan the QR code:"}
+                        </p>
+                        <ol style={{ margin: 0, paddingInlineStart: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <li>{isRTL ? "افتح موجه الأوامر (Terminal) في مجلد المشروع." : "Open a terminal inside the project folder."}</li>
+                          <li>{isRTL ? "قم بتشغيل الخادم بتنفيذ الأمر:" : "Start the bridge server by running:"} <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0.1rem 0.3rem', borderRadius: '0.25rem', color: '#818cf8', fontWeight: 'bold' }}>npm run whatsapp-server</code></li>
+                          <li>{isRTL ? "سيتم تلقائياً تفعيل الربط الحقيقي وعرض رمز الاستجابة السريعة (QR Code) الخاص بواتسابك هنا." : "The page will automatically load your live WhatsApp Web QR Code here."}</li>
+                        </ol>
+                      </div>
+                    )}
+
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '420px', margin: 0 }}>
                       {isRTL 
                         ? "قم بمسح رمز الاستجابة السريعة (QR Code) لتوصيل حساب واتساب وسحب محادثات عملائك مباشرة داخل البرنامج."
@@ -1324,12 +1690,21 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                         animation: 'scan 2.5s linear infinite',
                         zIndex: 2
                       }} />
-                      {/* Simulated QR Code SVG */}
-                      <svg viewBox="0 0 24 24" width="160" height="160" style={{ opacity: isQrScanning ? 0.35 : 1, transition: 'opacity 0.3s' }}>
-                        <path d="M2 2h6v6H2zm2 2v2h2V4zm14-2h6v6h-6zm2 2v2h2V4zM2 16h6v6H2zm2 2v2h2v-2zm16-4h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zm-6-8h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm-2-4h2v2h-2zm0 4h2v2h-2zm4-8h2v2h-2zm-4 0h2v2h-2zm-2 4h2v2h-2zm2 2h2v2h-2z" fill="#0c111d" />
-                      </svg>
+                      
+                      {isServerOnline && qrFromServer ? (
+                        <img 
+                          src={qrFromServer} 
+                          style={{ width: '160px', height: '160px', zIndex: 1 }} 
+                          alt="WhatsApp QR Code" 
+                        />
+                      ) : (
+                        /* QR placeholder shown until the real bridge supplies a code */
+                        <svg viewBox="0 0 24 24" width="160" height="160" style={{ opacity: isQrScanning ? 0.35 : 1, transition: 'opacity 0.3s' }}>
+                          <path d="M2 2h6v6H2zm2 2v2h2V4zm14-2h6v6h-6zm2 2v2h2V4zM2 16h6v6H2zm2 2v2h2v-2zm16-4h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zm-6-8h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm-2-4h2v2h-2zm0 4h2v2h-2zm4-8h2v2h-2zm-4 0h2v2h-2zm-2 4h2v2h-2zm2 2h2v2h-2z" fill="#0c111d" />
+                        </svg>
+                      )}
 
-                      {isQrScanning && (
+                      {((isQrScanning || (isServerOnline && !qrFromServer))) && (
                         <div style={{
                           position: 'absolute',
                           inset: 0,
@@ -1341,7 +1716,8 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                           background: 'rgba(255,255,255,0.9)',
                           color: '#070a13',
                           fontWeight: 'bold',
-                          fontSize: '0.8rem'
+                          fontSize: '0.8rem',
+                          zIndex: 3
                         }}>
                           <div style={{
                             width: '28px',
@@ -1351,34 +1727,56 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                             borderRadius: '50%',
                             animation: 'spin 1s linear infinite'
                           }} />
-                          <span>{isRTL ? "جاري مسح الكود..." : "Scanning..."}</span>
+                          <span>{isRTL ? "جاري الاتصال بالخادم..." : "Connecting server..."}</span>
                         </div>
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={isQrScanning}
-                      onClick={handleSimulateQrScan}
-                      className="btn"
-                      style={{
-                        background: '#25D366',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '0.75rem 1.75rem',
-                        borderRadius: '2rem',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        boxShadow: '0 4px 15px rgba(37, 211, 102, 0.25)'
-                      }}
-                    >
-                      <RefreshCw size={16} className={isQrScanning ? 'spin-animation' : ''} />
-                      <span>{isRTL ? "محاكاة مسح الكود والربط" : "Simulate QR Scan & Connect"}</span>
-                    </button>
+                    {!isServerOnline ? (
+                      <button
+                        type="button"
+                        disabled={isQrScanning}
+                        onClick={handleSimulateQrScan}
+                        className="btn"
+                        style={{
+                          background: '#25D366',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '0.75rem 1.75rem',
+                          borderRadius: '2rem',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 4px 15px rgba(37, 211, 102, 0.25)'
+                        }}
+                      >
+                        <RefreshCw size={16} className={isQrScanning ? 'spin-animation' : ''} />
+                        <span>{isRTL ? "إعادة فحص خادم الربط" : "Retry bridge connection"}</span>
+                      </button>
+                    ) : (
+                      <div style={{ color: '#25D366', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <RefreshCw size={14} className="spin-animation" />
+                        <span>{isRTL ? "خادم الواتساب متصل. امسح كود الـ QR من جوالك للربط آلياً" : "WhatsApp bridge active. Scan the QR code from your phone to connect."}</span>
+                      </div>
+                    )}
+
+                    {whatsappError && (
+                      <div style={{
+                        width: '100%',
+                        padding: '0.65rem 0.8rem',
+                        borderRadius: '0.5rem',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        color: 'var(--danger)',
+                        fontSize: '0.75rem',
+                        textAlign: 'start'
+                      }}>
+                        {whatsappError}
+                      </div>
+                    )}
                     
                     <style>{`
                       @keyframes scan {
@@ -1404,12 +1802,22 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#25d366', display: 'inline-block' }} />
                         <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
-                          {isRTL ? "حساب متصل: +966 50 123 4567" : "Connected account: +966 50 123 4567"}
+                          {isRTL 
+                            ? `حساب متصل: ${connectedPhone || '+966 50 123 4567'}` 
+                            : `Connected account: ${connectedPhone || '+966 50 123 4567'}`}
                         </span>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setIsWhatsappConnected(false)}
+                        onClick={async () => {
+                          try {
+                            await fetch(`${WHATSAPP_BRIDGE_URL}/logout`, { method: 'POST' });
+                            setIsWhatsappConnected(false);
+                            setIsRealChatsLoaded(false);
+                          } catch (err) {
+                            console.error("Failed to disconnect:", err);
+                          }
+                        }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 'bold' }}
                       >
                         {isRTL ? "قطع الاتصال" : "Disconnect"}
@@ -1429,28 +1837,51 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                     }}>
                       {/* Left Side: Chats list */}
                       <div style={{ borderRight: isRTL ? 'none' : '1px solid var(--card-border)', borderLeft: isRTL ? '1px solid var(--card-border)' : 'none', overflowY: 'auto' }}>
-                        {MOCK_WHATSAPP_CHATS.map(chat => (
-                          <div
-                            key={chat.id}
-                            onClick={() => setSelectedWhatsappChatId(chat.id)}
-                            style={{
-                              padding: '0.75rem',
-                              borderBottom: '1px solid var(--card-border)',
-                              cursor: 'pointer',
-                              background: selectedWhatsappChatId === chat.id ? 'rgba(37, 211, 102, 0.08)' : 'transparent',
-                              transition: 'background 0.2s',
-                              textAlign: 'start'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: selectedWhatsappChatId === chat.id ? '#25d366' : 'var(--text-main)' }}>{chat.name}</span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{chat.time}</span>
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {chat.lastMsg}
-                            </div>
+                        {!isRealChatsLoaded && isServerOnline ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '1rem', textAlign: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                            <RefreshCw size={20} className="spin-animation" style={{ color: '#25D366' }} />
+                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-main)' }}>
+                              {isRTL ? "جاري مزامنة المحادثات..." : "Syncing your chats..."}
+                            </span>
+                            <span style={{ fontSize: '0.65rem' }}>
+                              {isRTL ? "يتم الآن جلب البيانات من جوالك..." : "Fetching latest messages from your phone..."}
+                            </span>
                           </div>
-                        ))}
+                        ) : isRealChatsLoaded && whatsappChats.length === 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+                              {isRTL ? "لم يتم العثور على محادثات" : "No chats found"}
+                            </span>
+                          </div>
+                        ) : (
+                          whatsappChats.map(chat => (
+                            <div
+                              key={chat.id}
+                              onClick={() => setSelectedWhatsappChatId(chat.id)}
+                              style={{
+                                padding: '0.75rem',
+                                borderBottom: '1px solid var(--card-border)',
+                                cursor: 'pointer',
+                                background: selectedWhatsappChatId === chat.id ? 'rgba(37, 211, 102, 0.08)' : 'transparent',
+                                transition: 'background 0.2s',
+                                textAlign: 'start'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: selectedWhatsappChatId === chat.id ? '#25d366' : 'var(--text-main)' }}>{chat.name}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                  {chat.time ? new Date(chat.time).toLocaleString(isRTL ? 'ar-EG' : undefined, { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}>
+                                {chat.phone || (chat.isGroup ? (isRTL ? 'مجموعة واتساب' : 'WhatsApp group') : '')}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {chat.lastMsg || (isRTL ? "لا توجد رسائل" : "No messages")}
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
 
                       {/* Right Side: Conversation thread */}
@@ -1465,7 +1896,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                           gap: '0.75rem',
                           background: 'rgba(255,255,255,0.01)'
                         }}>
-                          {MOCK_WHATSAPP_CHATS.find(c => c.id === selectedWhatsappChatId)?.messages.map((m, idx) => (
+                          {whatsappChats.find(c => c.id === selectedWhatsappChatId)?.messages.map((m, idx) => (
                             <div
                               key={idx}
                               style={{
@@ -1487,9 +1918,24 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                                 textAlign: 'start'
                               }}>
                                 {m.text}
+                                {!m.text && m.hasMedia && (
+                                  <span>{isRTL ? `[وسائط: ${m.type}]` : `[Media: ${m.type}]`}</span>
+                                )}
                               </div>
                             </div>
                           ))}
+                          {selectedWhatsappChatId && isWhatsappMessagesLoading && (
+                            <div style={{ margin: 'auto', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                              {isRTL ? 'جاري تحميل المحادثة الكاملة...' : 'Loading full conversation...'}
+                            </div>
+                          )}
+                          {selectedWhatsappChatId
+                            && !isWhatsappMessagesLoading
+                            && whatsappChats.find(c => c.id === selectedWhatsappChatId)?.messages.length === 0 && (
+                            <div style={{ margin: 'auto', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                              {isRTL ? 'لا توجد رسائل في هذه المحادثة.' : 'This conversation has no messages.'}
+                            </div>
+                          )}
                         </div>
 
                         {/* Analysis Action Footer */}
@@ -1509,7 +1955,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                             type="button"
                             disabled={isAnalyzing}
                             onClick={() => {
-                              const activeChat = MOCK_WHATSAPP_CHATS.find(c => c.id === selectedWhatsappChatId);
+                              const activeChat = whatsappChats.find(c => c.id === selectedWhatsappChatId);
                               if (activeChat) {
                                 handleSyncChatAnalysis(activeChat.messages, activeChat.name, activeChat.phone);
                               }

@@ -19,6 +19,20 @@ export default function DashboardPage({ setPage, setSelectedLeadId }) {
   const dueFollowupsToday = tasks.filter(t => !t.completed).length;
   const noResponseLeads = leads.filter(l => l.status === 'No Response').length;
   const hotLeadsCount = leads.filter(l => l.interestLevel === 'High' && l.status !== 'Won' && l.status !== 'Lost').length;
+  const now = Date.now();
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+  const taskDueTime = task => new Date(task.dueAt || `${task.dueDate || '2999-12-31'}T23:59:59`).getTime();
+  const overdueTasks = tasks.filter(task => !task.completed && taskDueTime(task) < now);
+  const weeklyTasks = tasks.filter(task => new Date(task.createdAt || task.dueDate || 0).getTime() >= weekAgo);
+  const monthlyTasks = tasks.filter(task => new Date(task.createdAt || task.dueDate || 0).getTime() >= monthAgo);
+  const completedIn = list => list.filter(task => task.completed).length;
+  const rateFor = list => list.length ? Math.round((completedIn(list) / list.length) * 100) : 0;
+  const weeklyCompletionRate = rateFor(weeklyTasks);
+  const monthlyCompletionRate = rateFor(monthlyTasks);
+  const followUpScore = Math.max(0, Math.min(100, Math.round(
+    (weeklyCompletionRate * 0.6) + ((tasks.length ? (1 - overdueTasks.length / tasks.length) : 1) * 40)
+  )));
 
   const expectedSalesValue = leads
     .filter(l => l.status !== 'Lost' && l.status !== 'Not Interested')
@@ -36,7 +50,10 @@ export default function DashboardPage({ setPage, setSelectedLeadId }) {
   }, {});
   let bestSource = Object.keys(sourceCounts).reduce((a, b) => sourceCounts[a] > sourceCounts[b] ? a : b, 'None');
 
-  const todayTasks = tasks.filter(task => !task.completed).slice(0, 3);
+  const todayTasks = tasks
+    .filter(task => !task.completed)
+    .sort((a, b) => taskDueTime(a) - taskDueTime(b))
+    .slice(0, 3);
   const recentLeads = leads.slice(0, 4);
 
   return (
@@ -119,6 +136,32 @@ export default function DashboardPage({ setPage, setSelectedLeadId }) {
           <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#a5b4fc', marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {bestSource}
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(79,70,229,.1), rgba(6,182,212,.08))' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800 }}>
+              <Sparkles size={18} color="#818cf8" /> {isRTL ? 'مراقب أداء المتابعات الذكي' : 'AI Follow-up Performance'}
+            </div>
+            <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              {isRTL
+                ? overdueTasks.length
+                  ? `يوجد ${overdueTasks.length} متابعة متأخرة. الأولوية الآن لتنفيذ المهام عالية الأهمية ثم تحديث حالتها على اللوحة.`
+                  : 'المتابعات تسير بصورة جيدة ولا توجد مهام متأخرة حاليًا.'
+                : overdueTasks.length
+                  ? `${overdueTasks.length} follow-ups are overdue. Complete high-priority items first and update their board status.`
+                  : 'Follow-ups are healthy with no overdue tasks.'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '1.2rem', textAlign: 'center' }}>
+            <div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#818cf8' }}>{followUpScore}%</div><small style={{ color: 'var(--text-muted)' }}>{isRTL ? 'درجة الأداء' : 'Score'}</small></div>
+            <div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>{weeklyCompletionRate}%</div><small style={{ color: 'var(--text-muted)' }}>{isRTL ? 'أسبوعي' : 'Weekly'}</small></div>
+            <div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#06b6d4' }}>{monthlyCompletionRate}%</div><small style={{ color: 'var(--text-muted)' }}>{isRTL ? 'شهري' : 'Monthly'}</small></div>
+            <div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: overdueTasks.length ? '#ef4444' : '#10b981' }}>{overdueTasks.length}</div><small style={{ color: 'var(--text-muted)' }}>{isRTL ? 'متأخرة' : 'Overdue'}</small></div>
+          </div>
+          <button className="btn btn-secondary" onClick={() => setPage('reports')}>{isRTL ? 'فتح التقرير الكامل' : 'Full report'}</button>
         </div>
       </div>
 

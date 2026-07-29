@@ -401,6 +401,60 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
+      {/* Free Trial Banner */}
+      {plan === 'Trial' && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.1)',
+          border: '1.5px dashed rgba(59, 130, 246, 0.4)',
+          borderRadius: '1rem',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          textAlign: 'start',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.05)'
+        }} className="fade-in">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              background: 'rgba(59, 130, 246, 0.2)',
+              color: '#60a5fa',
+              padding: '0.5rem',
+              borderRadius: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#fff' }}>
+                {isRTL ? "أنت حالياً تستخدم النسخة التجريبية المجانية" : "You are currently on the Free Trial"}
+              </h4>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                {isRTL 
+                  ? "اشتراكك التجريبي صالح لمدة 30 يوماً. يمكنك الترقية إلى أي باقة مدفوعة أدناه للاستفادة الكاملة وبدون انقطاع."
+                  : "Your trial subscription is valid for 30 days. You can upgrade to any paid tier below to get full, uninterrupted access."}
+              </p>
+            </div>
+          </div>
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.15)',
+            color: '#60a5fa',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            border: '1px solid rgba(59, 130, 246, 0.3)'
+          }}>
+            {isRTL ? "متبقي 30 يوماً" : "30 days remaining"}
+          </div>
+        </div>
+      )}
+
       {/* Pricing Header Title */}
       <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
         <h1 style={{ margin: 0, fontSize: '2.25rem', fontWeight: 800 }}>

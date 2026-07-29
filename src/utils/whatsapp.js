@@ -22,12 +22,29 @@ export const isWhatsAppCloudApiActive = () => {
   return !!(phoneNumberId && accessToken);
 };
 
+const normalizeWhatsAppPhone = (phone) => phone
+  .replace(/[^\d]/g, '')
+  .replace(/^00/, '');
+
+export const openWhatsAppConversation = (recipientPhone, messageText = '') => {
+  const cleaned = normalizeWhatsAppPhone(recipientPhone);
+  const encodedText = encodeURIComponent(messageText);
+  const waUrl = cleaned
+    ? `https://web.whatsapp.com/send?phone=${cleaned}&text=${encodedText}`
+    : 'https://web.whatsapp.com';
+  const openedWindow = window.open(waUrl, '_blank', 'noopener,noreferrer');
+  if (!openedWindow) {
+    throw new Error('Popup blocked. Please allow popups for this site.');
+  }
+  return openedWindow;
+};
+
 export const sendRealWhatsAppMessage = async (recipientPhone, messageText) => {
   const { phoneNumberId, accessToken } = getWhatsAppConfig();
 
   // If Meta WhatsApp Business Cloud API credentials exist, make real HTTP POST request to Graph API
   if (phoneNumberId && accessToken) {
-    const cleanedPhone = recipientPhone.replace(/[^\d]/g, '');
+    const cleanedPhone = normalizeWhatsAppPhone(recipientPhone);
     const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
 
     const response = await fetch(url, {
@@ -53,13 +70,50 @@ export const sendRealWhatsAppMessage = async (recipientPhone, messageText) => {
     return await response.json();
   }
 
-  // Fallback: Open real WhatsApp Web / App directly in browser
-  const cleaned = recipientPhone.replace(/[^\d]/g, '');
-  const encodedText = encodeURIComponent(messageText);
-  const waUrl = cleaned 
-    ? `https://api.whatsapp.com/send?phone=${cleaned}&text=${encodedText}` 
-    : `https://web.whatsapp.com`;
-    
-  window.open(waUrl, '_blank');
+  // Fallback: Open real WhatsApp Web / App directly in browser. Opening the
+  // window is deliberately synchronous so browsers do not block it as a popup.
+  openWhatsAppConversation(recipientPhone, messageText);
   return { success: true, mode: 'wa.me' };
+};
+
+const WHATSAPP_BRIDGE_URL = (import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+export const sendWhatsAppAttachment = async (recipientPhone, file, caption = '') => {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read the selected attachment.'));
+    reader.readAsDataURL(file);
+  });
+  const base64 = String(dataUrl).split(',')[1];
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
+  let response;
+  try {
+    response = await fetch(`${WHATSAPP_BRIDGE_URL}/send-media`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: recipientPhone,
+        data: base64,
+        mimetype: file.type,
+        filename: file.name,
+        caption
+      })
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('WhatsApp attachment upload timed out.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.details || result.error || `WhatsApp bridge HTTP ${response.status}`);
+  }
+  return result;
 };

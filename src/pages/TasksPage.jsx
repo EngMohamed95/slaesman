@@ -1,196 +1,254 @@
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Plus, Trash2, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import {
+  Plus, Trash2, Clock3, Phone, MessageCircle, Mail, Bell,
+  CalendarClock, UserRound, Sparkles, GripVertical
+} from 'lucide-react';
+
+const COLUMNS = [
+  { id: 'todo', ar: 'مطلوب تنفيذها', en: 'To do', color: '#f59e0b' },
+  { id: 'doing', ar: 'جاري المتابعة', en: 'In progress', color: '#6366f1' },
+  { id: 'done', ar: 'تمت', en: 'Done', color: '#10b981' }
+];
+
+const toLocalDateTimeValue = (date = new Date()) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
+
+const getDueAt = (task) => task.dueAt || (task.dueDate ? `${task.dueDate}T09:00:00` : null);
 
 export default function TasksPage() {
-  const { tasks, addTask, toggleTask, deleteTask, leads } = useCRM();
-  const { t, isRTL } = useLanguage();
-
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [selectedLead, setSelectedLead] = useState('');
+  const { tasks, addTask, addFollowUpSequence, updateTask, deleteTask, leads } = useCRM();
+  const { isRTL } = useLanguage();
+  const [title, setTitle] = useState('');
+  const [leadId, setLeadId] = useState('');
   const [priority, setPriority] = useState('Medium');
-  const [dueDate, setDueDate] = useState('');
-  const [filter, setFilter] = useState('all'); // all, pending, completed
+  const [type, setType] = useState('whatsapp');
+  const [dueAt, setDueAt] = useState(toLocalDateTimeValue(new Date(Date.now() + 60 * 60 * 1000)));
+  const [notes, setNotes] = useState('');
+  const [createSequence, setCreateSequence] = useState(false);
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [notificationPermission, setNotificationPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
 
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!newTaskTitle) return;
+  const normalizedTasks = useMemo(() => tasks.map(task => ({
+    ...task,
+    status: task.status || (task.completed ? 'done' : 'todo')
+  })), [tasks]);
 
-    addTask({
-      title: newTaskTitle,
-      titleAr: newTaskTitle,
-      leadId: selectedLead || null,
-      priority,
-      dueDate: dueDate || new Date().toISOString().split('T')[0]
+  const selectedLead = leads.find(lead => lead.id === leadId);
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const completed = normalizedTasks.filter(task => task.status === 'done');
+    const overdue = normalizedTasks.filter(task => {
+      const date = getDueAt(task);
+      return task.status !== 'done' && date && new Date(date).getTime() < now;
     });
+    const onTime = completed.filter(task => {
+      const date = getDueAt(task);
+      return !date || !task.completedAt || new Date(task.completedAt) <= new Date(date);
+    });
+    return {
+      total: normalizedTasks.length,
+      completed: completed.length,
+      overdue: overdue.length,
+      onTimeRate: completed.length ? Math.round((onTime.length / completed.length) * 100) : 0
+    };
+  }, [normalizedTasks]);
 
-    setNewTaskTitle('');
-    setSelectedLead('');
-    setDueDate('');
+  useEffect(() => {
+    if (notificationPermission !== 'granted') return undefined;
+    const notified = new Set(JSON.parse(localStorage.getItem('salesmate_notified_tasks') || '[]'));
+    const checkDueTasks = () => {
+      const now = Date.now();
+      normalizedTasks.forEach(task => {
+        const date = getDueAt(task);
+        if (!date || task.status === 'done' || notified.has(task.id)) return;
+        const dueTime = new Date(date).getTime();
+        if (dueTime <= now && dueTime > now - 24 * 60 * 60 * 1000) {
+          const lead = leads.find(item => item.id === task.leadId);
+          new Notification(isRTL ? 'موعد متابعة عميل' : 'Client follow-up due', {
+            body: `${isRTL ? task.titleAr : task.title}${lead ? ` — ${isRTL ? lead.nameAr : lead.name}` : ''}`
+          });
+          notified.add(task.id);
+        }
+      });
+      localStorage.setItem('salesmate_notified_tasks', JSON.stringify([...notified]));
+    };
+    checkDueTasks();
+    const interval = setInterval(checkDueTasks, 60000);
+    return () => clearInterval(interval);
+  }, [normalizedTasks, leads, isRTL, notificationPermission]);
+
+  const handleEnableNotifications = async () => {
+    if (typeof Notification === 'undefined') return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
   };
 
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'completed') return task.completed;
-    if (filter === 'pending') return !task.completed;
-    return true;
-  });
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    const payload = {
+      title: title.trim(),
+      titleAr: title.trim(),
+      leadId: leadId || null,
+      priority,
+      type,
+      notes: notes.trim(),
+      dueAt: new Date(dueAt).toISOString(),
+      dueDate: dueAt.slice(0, 10)
+    };
+    if (createSequence) addFollowUpSequence({ ...payload, startAt: new Date().toISOString() });
+    else addTask(payload);
+    setTitle('');
+    setNotes('');
+  };
+
+  const moveTask = (taskId, status) => {
+    updateTask(taskId, { status });
+    setDraggedTaskId(null);
+  };
+
+  const typeIcon = {
+    whatsapp: <MessageCircle size={13} />,
+    call: <Phone size={13} />,
+    email: <Mail size={13} />,
+    reminder: <Bell size={13} />
+  };
 
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{t('navTasks')}</h1>
-        <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
-          {isRTL ? "قم بجدولة ومتابعة مهام تواصلك مع العملاء لضمان استجابة سريعة." : "Schedule and follow up on client tasks to maximize closing rates."}
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{isRTL ? 'مهام المتابعة' : 'Follow-up Tasks'}</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+            {isRTL ? 'لوحة متابعة للعملاء بالمواعيد والتنبيهات وسلاسل المتابعة الذكية.' : 'A client follow-up board with schedules, reminders and smart sequences.'}
+          </p>
+        </div>
+        {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
+          <button className="btn btn-secondary" onClick={handleEnableNotifications}>
+            <Bell size={15} /> {isRTL ? 'تفعيل تنبيهات المواعيد' : 'Enable reminders'}
+          </button>
+        )}
       </div>
 
-      <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
-        
-        {/* Left Column: Create Task Form */}
-        <div className="card" style={{ height: 'fit-content' }}>
-          <h3 style={{ margin: '0 0 1.25rem' }}>{isRTL ? "إضافة مهمة جديدة" : "Add New Task"}</h3>
-          <form onSubmit={handleAddTask} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                {isRTL ? "عنوان المهمة / الإجراء" : "Task Action"}
-              </label>
-              <input 
-                type="text" 
-                placeholder={isRTL ? "مثال: إرسال عرض الأسعار المعدل" : "e.g., Send new quotation"} 
-                value={newTaskTitle} 
-                onChange={e => setNewTaskTitle(e.target.value)} 
-                required 
-              />
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+        {[
+          [isRTL ? 'كل المهام' : 'Total tasks', stats.total, '#818cf8'],
+          [isRTL ? 'تم تنفيذها' : 'Completed', stats.completed, '#10b981'],
+          [isRTL ? 'متأخرة' : 'Overdue', stats.overdue, '#ef4444'],
+          [isRTL ? 'الالتزام بالموعد' : 'On-time rate', `${stats.onTimeRate}%`, '#06b6d4']
+        ].map(([label, value, color]) => (
+          <div className="card" key={label} style={{ padding: '0.85rem 1rem' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{label}</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color }}>{value}</div>
+          </div>
+        ))}
+      </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                {isRTL ? "ربط مع عميل (اختياري)" : "Associate with Lead (Optional)"}
-              </label>
-              <select value={selectedLead} onChange={e => setSelectedLead(e.target.value)}>
-                <option value="">{isRTL ? "غير مرتبط بعميل" : "No Lead Associated"}</option>
-                {leads.map(lead => (
-                  <option key={lead.id} value={lead.id}>{isRTL ? lead.nameAr : lead.name}</option>
-                ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 0.8fr) minmax(0, 2.2fr)', gap: '1rem', alignItems: 'start' }}>
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>{isRTL ? 'إضافة متابعة' : 'Add follow-up'}</h3>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <input value={title} onChange={event => setTitle(event.target.value)} placeholder={isRTL ? 'مثال: إرسال عرض السعر' : 'e.g. Send quotation'} required />
+            <select value={leadId} onChange={event => setLeadId(event.target.value)}>
+              <option value="">{isRTL ? 'اختر العميل' : 'Select lead'}</option>
+              {leads.map(lead => <option key={lead.id} value={lead.id}>{isRTL ? lead.nameAr : lead.name} — {lead.phone}</option>)}
+            </select>
+            {selectedLead && (
+              <div style={{ padding: '0.7rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.03)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <strong style={{ color: 'var(--text-main)' }}>{isRTL ? selectedLead.nameAr : selectedLead.name}</strong>
+                <div>{selectedLead.phone} {selectedLead.email ? `• ${selectedLead.email}` : ''}</div>
+                <div style={{ marginTop: '0.25rem' }}>{isRTL ? selectedLead.notesAr : selectedLead.notes}</div>
+              </div>
+            )}
+            <div className="grid-2">
+              <select value={type} onChange={event => setType(event.target.value)}>
+                <option value="whatsapp">{isRTL ? 'رسالة واتساب' : 'WhatsApp'}</option>
+                <option value="call">{isRTL ? 'مكالمة' : 'Call'}</option>
+                <option value="email">{isRTL ? 'بريد إلكتروني' : 'Email'}</option>
+                <option value="reminder">{isRTL ? 'تذكير داخلي' : 'Reminder'}</option>
+              </select>
+              <select value={priority} onChange={event => setPriority(event.target.value)}>
+                <option value="High">{isRTL ? 'أولوية عالية' : 'High priority'}</option>
+                <option value="Medium">{isRTL ? 'أولوية متوسطة' : 'Medium priority'}</option>
+                <option value="Low">{isRTL ? 'أولوية منخفضة' : 'Low priority'}</option>
               </select>
             </div>
-
-            <div className="grid-2">
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                  {isRTL ? "الأولوية" : "Priority"}
-                </label>
-                <select value={priority} onChange={e => setPriority(e.target.value)}>
-                  <option value="High">{isRTL ? "عالية" : "High"}</option>
-                  <option value="Medium">{isRTL ? "متوسطة" : "Medium"}</option>
-                  <option value="Low">{isRTL ? "منخفضة" : "Low"}</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
-                  {isRTL ? "تاريخ الاستحقاق" : "Due Date"}
-                </label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-              </div>
-            </div>
-
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-              <Plus size={16} /> {isRTL ? "إضافة المهمة" : "Add Task"}
-            </button>
+            {!createSequence && <input type="datetime-local" value={dueAt} onChange={event => setDueAt(event.target.value)} required />}
+            <textarea rows="3" value={notes} onChange={event => setNotes(event.target.value)} placeholder={isRTL ? 'نبذة المحادثة أو المطلوب في المتابعة...' : 'Conversation summary or follow-up notes...'} />
+            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', fontSize: '0.78rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={createSequence} onChange={event => setCreateSequence(event.target.checked)} style={{ width: 'auto', marginTop: 2 }} />
+              <span>
+                <strong style={{ color: 'var(--text-main)' }}>{isRTL ? 'سلسلة متابعة ذكية' : 'Smart follow-up sequence'}</strong>
+                <br />{isRTL ? 'إنشاء مهام تلقائيًا بعد 48 ساعة، 4 أيام، وأسبوع.' : 'Create tasks after 48 hours, 4 days and one week.'}
+              </span>
+            </label>
+            <button className="btn btn-primary" type="submit"><Plus size={15} /> {isRTL ? 'إضافة للوحة' : 'Add to board'}</button>
           </form>
         </div>
 
-        {/* Right Column: Tasks Checklist */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <h3 style={{ margin: 0 }}>{isRTL ? "قائمة المهام والمتابعات" : "Follow-ups Checklist"}</h3>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {['all', 'pending', 'completed'].map(f => (
-                <button 
-                  key={f}
-                  className={`btn ${filter === f ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', boxShadow: 'none' }}
-                  onClick={() => setFilter(f)}
-                >
-                  {f === 'all' ? (isRTL ? "الكل" : "All") : f === 'pending' ? (isRTL ? "المعلقة" : "Pending") : (isRTL ? "المكتملة" : "Completed")}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {filteredTasks.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
-                {isRTL ? "لا توجد مهام مطابقة للفلتر المحدد." : "No tasks found matching current filter."}
-              </div>
-            ) : (
-              filteredTasks.map(task => {
-                const associatedLead = leads.find(l => l.id === task.leadId);
-                return (
-                  <div 
-                    key={task.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      borderRadius: '0.75rem',
-                      background: task.completed ? 'rgba(255, 255, 255, 0.01)' : 'rgba(255, 255, 255, 0.03)',
-                      border: `1px solid ${task.completed ? 'transparent' : 'var(--card-border)'}`,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                      <button 
-                        onClick={() => toggleTask(task.id)}
-                        style={{ background: 'none', border: 'none', color: task.completed ? 'var(--success)' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(230px, 1fr))', gap: '0.75rem', overflowX: 'auto' }}>
+          {COLUMNS.map(column => {
+            const columnTasks = normalizedTasks.filter(task => task.status === column.id);
+            return (
+              <section
+                key={column.id}
+                onDragOver={event => event.preventDefault()}
+                onDrop={() => draggedTaskId && moveTask(draggedTaskId, column.id)}
+                style={{ minHeight: 470, padding: '0.7rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.018)', border: '1px solid var(--card-border)' }}
+              >
+                <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.7rem', padding: '0.25rem' }}>
+                  <strong style={{ color: column.color }}>{isRTL ? column.ar : column.en}</strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{columnTasks.length}</span>
+                </header>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {columnTasks.map(task => {
+                    const lead = leads.find(item => item.id === task.leadId);
+                    const date = getDueAt(task);
+                    const overdue = column.id !== 'done' && date && new Date(date) < new Date();
+                    return (
+                      <article
+                        key={task.id}
+                        draggable
+                        onDragStart={() => setDraggedTaskId(task.id)}
+                        style={{ padding: '0.75rem', borderRadius: '0.65rem', background: 'var(--bg-card)', border: `1px solid ${overdue ? 'rgba(239,68,68,.5)' : 'var(--card-border)'}`, cursor: 'grab' }}
                       >
-                        {task.completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
-                      </button>
-                      <div>
-                        <div style={{ 
-                          fontWeight: 600, 
-                          textDecoration: task.completed ? 'line-through' : 'none',
-                          color: task.completed ? 'var(--text-muted)' : 'var(--text-main)',
-                          fontSize: '0.95rem'
-                        }}>
-                          {isRTL ? task.titleAr : task.title}
+                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-start' }}>
+                          <GripVertical size={14} color="var(--text-muted)" />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>{isRTL ? task.titleAr : task.title}</div>
+                            {lead && <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', marginTop: '0.4rem', color: '#a5b4fc', fontSize: '0.72rem' }}><UserRound size={12} /> {isRTL ? lead.nameAr : lead.name}</div>}
+                          </div>
+                          <button onClick={() => deleteTask(task.id)} style={{ border: 0, background: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 2 }}><Trash2 size={13} /></button>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {associatedLead && (
-                            <span>
-                              {isRTL ? "العميل: " : "Lead: "} 
-                              <strong style={{ color: 'var(--text-main)' }}>
-                                {isRTL ? associatedLead.nameAr : associatedLead.name}
-                              </strong>
-                            </span>
-                          )}
-                          <span>•</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <AlertCircle size={12} style={{ color: task.priority === 'High' ? 'var(--danger)' : 'var(--accent)' }} />
-                            {task.priority}
+                        {task.notes && <div style={{ marginTop: '0.45rem', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.5, maxHeight: 42, overflow: 'hidden' }}>{task.notes}</div>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap', fontSize: '0.68rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: overdue ? '#ef4444' : 'var(--text-muted)' }}>
+                            <Clock3 size={11} /> {date ? new Date(date).toLocaleString(isRTL ? 'ar-EG' : undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-'}
                           </span>
-                          <span>•</span>
-                          <span>{task.dueDate}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: task.priority === 'High' ? '#ef4444' : '#f59e0b' }}>{typeIcon[task.type] || <CalendarClock size={13} />} {task.sequenceStep || task.priority}</span>
                         </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      className="btn btn-secondary" 
-                      style={{ padding: '0.4rem', color: 'var(--danger)' }}
-                      onClick={() => deleteTask(task.id)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                        {lead && (
+                          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.6rem' }}>
+                            <a className="btn btn-secondary" href={`https://web.whatsapp.com/send?phone=${lead.phone.replace(/\D/g, '').replace(/^00/, '')}`} target="_blank" rel="noreferrer" style={{ padding: '0.28rem 0.45rem', fontSize: '0.68rem', textDecoration: 'none' }}><MessageCircle size={11} /></a>
+                            <a className="btn btn-secondary" href={`tel:${lead.phone}`} style={{ padding: '0.28rem 0.45rem', fontSize: '0.68rem', textDecoration: 'none' }}><Phone size={11} /></a>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                  {columnTasks.length === 0 && <div style={{ padding: '2rem 0.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem' }}><Sparkles size={18} style={{ marginBottom: 5 }} /><br />{isRTL ? 'اسحب المهام إلى هنا' : 'Drop tasks here'}</div>}
+                </div>
+              </section>
+            );
+          })}
         </div>
-
       </div>
     </div>
   );

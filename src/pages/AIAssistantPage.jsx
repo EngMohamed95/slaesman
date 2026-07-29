@@ -3,7 +3,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
 import { useApp } from '../context/AppContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
-import { Sparkles, MessageSquare, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
+import { useAIConversations } from '../utils/aiConversations';
+import { Sparkles, MessageSquare, ShieldAlert, FileText, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 
 // Helper to parse pasted chat text into structured message bubble objects
 const parseChatToMessages = (text) => {
@@ -115,7 +116,16 @@ const analyzeChatContent = (text, isRTL) => {
 export default function AIAssistantPage() {
   const { t, isRTL } = useLanguage();
   const { leads } = useCRM();
-  const { checkAILimit, incrementAICount } = useApp();
+  const { checkAILimit, incrementAICount, user } = useApp();
+  const {
+    conversations,
+    activeConversation,
+    messages: sharedMessages,
+    setMessages: setSharedMessages,
+    selectConversation,
+    newConversation,
+    deleteConversation
+  } = useAIConversations(user?.email || 'default', isRTL ? 'ar' : 'en');
 
   const [selectedLeadId, setSelectedLeadId] = useState(leads[0]?.id || '');
   const [activeTab, setActiveTab] = useState('objections'); // objections, scripts, summarize
@@ -132,6 +142,22 @@ export default function AIAssistantPage() {
   useEffect(() => {
     setChatMessages(parseChatToMessages(pastedChatText));
   }, [pastedChatText]);
+
+  useEffect(() => {
+    if (!aiOutput) return;
+    setSharedMessages(previous => {
+      if (previous.at(-1)?.text === aiOutput) return previous;
+      return [...previous, {
+        id: `page-${Date.now()}`,
+        sender: 'ai',
+        text: aiOutput,
+        createdAt: new Date().toISOString(),
+        source: 'assistant-page'
+      }];
+    });
+    // aiOutput is the event being archived; shared storage updates separately.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiOutput]);
 
   const selectedLead = leads.find(l => l.id === selectedLeadId);
 
@@ -310,6 +336,66 @@ Respond in the language matching the client's name (Arabic if name has Arabic le
           <Sparkles style={{ color: 'var(--secondary)' }} /> {t('aiAssistantTitle')}
         </h1>
         <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{t('aiSubtitle')}</p>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1rem', padding: '0.85rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div>
+            <strong>{isRTL ? 'سجل محادثات المساعد' : 'Assistant conversation history'}</strong>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+              {isRTL ? 'متزامن فورًا مع أيقونة المساعد أسفل الشاشة' : 'Synced instantly with the floating assistant'}
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={newConversation} style={{ padding: '0.45rem 0.7rem', fontSize: '0.75rem' }}>
+            <Plus size={14} /> {isRTL ? 'محادثة جديدة' : 'New chat'}
+          </button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, .8fr) minmax(0, 2.2fr)', gap: '0.75rem', minHeight: 220 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 270, overflowY: 'auto' }}>
+            {conversations.map(conversation => (
+              <button
+                key={conversation.id}
+                onClick={() => selectConversation(conversation.id)}
+                style={{
+                  border: `1px solid ${activeConversation?.id === conversation.id ? 'var(--primary)' : 'var(--card-border)'}`,
+                  background: activeConversation?.id === conversation.id ? 'var(--primary-glow)' : 'rgba(255,255,255,.02)',
+                  color: 'var(--text-main)',
+                  borderRadius: '0.55rem',
+                  padding: '0.65rem',
+                  cursor: 'pointer',
+                  textAlign: 'start'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.4rem' }}>
+                  <strong style={{ fontSize: '0.76rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conversation.title}</strong>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={event => { event.stopPropagation(); deleteConversation(conversation.id); }}
+                    onKeyDown={event => { if (event.key === 'Enter') deleteConversation(conversation.id); }}
+                    style={{ color: 'var(--danger)', flexShrink: 0 }}
+                  ><Trash2 size={12} /></span>
+                </div>
+                <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conversation.summary}</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  {new Date(conversation.updatedAt).toLocaleString(isRTL ? 'ar-EG' : undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div style={{ background: '#070a13', borderRadius: '0.65rem', border: '1px solid var(--card-border)', padding: '0.75rem', maxHeight: 270, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            {sharedMessages.map(message => (
+              <div key={message.id} style={{ alignSelf: message.sender === 'user' ? 'flex-end' : 'flex-start', maxWidth: '82%' }}>
+                <div style={{ padding: '0.55rem 0.7rem', borderRadius: '0.65rem', whiteSpace: 'pre-wrap', fontSize: '0.76rem', lineHeight: 1.5, background: message.sender === 'user' ? 'var(--primary)' : 'rgba(255,255,255,.07)' }}>
+                  {message.text}
+                </div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                  {new Date(message.createdAt || activeConversation?.updatedAt).toLocaleString(isRTL ? 'ar-EG' : undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '2fr 3fr', gap: '1.5rem' }}>

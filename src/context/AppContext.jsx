@@ -12,7 +12,7 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('salesmate_onboarded') === 'true';
   });
   const [plan, setPlan] = useState(() => {
-    return localStorage.getItem('salesmate_plan') || 'Pro'; // Basic, Pro, Growth
+    return localStorage.getItem('salesmate_plan') || 'Trial'; // Default to Trial for free trial
   });
 
   const [profile, setProfile] = useState(() => {
@@ -120,7 +120,7 @@ export const AppProvider = ({ children }) => {
     return true;
   };
 
-  const register = (email, password, chosenPlan = 'Pro') => {
+  const register = (email, password, chosenPlan = 'Trial') => {
     // Mock register
     setUser({ email, role: email.includes('admin') ? 'admin' : 'salesperson' });
     setPlan(chosenPlan);
@@ -140,6 +140,9 @@ export const AppProvider = ({ children }) => {
     // Admin bypass
     if (user?.role === 'admin') return true;
     
+    // admin feature is locked for everyone else
+    if (featureKey === 'admin') return false;
+    
     if (plan === 'Basic') {
       // Basic unlocks only dashboard, crm, tasks, reports, settings
       const basicPages = ['dashboard', 'crm', 'tasks', 'reports', 'settings'];
@@ -148,12 +151,17 @@ export const AppProvider = ({ children }) => {
     
     if (plan === 'Pro') {
       // Pro unlocks everything except campaigns and admin
-      return featureKey !== 'campaigns' && featureKey !== 'admin';
+      return featureKey !== 'campaigns';
     }
     
     if (plan === 'Growth') {
       // Growth unlocks everything except admin panel which requires admin role
-      return featureKey !== 'admin' || user?.role === 'admin';
+      return true;
+    }
+
+    if (plan === 'Trial') {
+      // Trial unlocks everything except admin
+      return true;
     }
     
     return true;

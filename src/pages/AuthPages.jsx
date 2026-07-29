@@ -19,7 +19,7 @@ export default function AuthPages({ mode, setPage }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(mode === 'register');
-  const [chosenPlan, setChosenPlan] = useState('Pro'); // Basic, Pro, Growth
+  const [chosenPlan, setChosenPlan] = useState('Trial'); // Default to Trial plan
   const [error, setError] = useState('');
   const [googleLoaded, setGoogleLoaded] = useState(false);
 
@@ -250,7 +250,7 @@ export default function AuthPages({ mode, setPage }) {
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
             {isRegister 
-              ? (isRTL ? "اختر خطة الاشتراك وانضم إلينا اليوم" : "Select subscription tier and register today.")
+              ? (isRTL ? "أنشئ حسابك التجريبي المجاني لمدة شهر وابدأ اليوم" : "Create your 1-month free trial account and start today.")
               : (isRTL ? "مرحباً بك مجدداً في لوحة تحكمك" : "Welcome back to your workspace.")}
           </p>
         </div>
@@ -272,45 +272,6 @@ export default function AuthPages({ mode, setPage }) {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          {/* Plan Selector visible ONLY during Registration */}
-          {isRegister && (
-            <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', textAlign: 'start', fontWeight: 700 }}>
-                {isRTL ? "اختر خطة الاشتراك (SaaS Plan)" : "Choose Subscription Plan"}
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                {[
-                  { id: 'Basic', label: isRTL ? 'الأساسية' : 'Basic', price: isRTL ? '99 ر.س' : '$27' },
-                  { id: 'Pro', label: isRTL ? 'الاحترافية' : 'Pro', price: isRTL ? '199 ر.س' : '$53' },
-                  { id: 'Growth', label: isRTL ? 'النمو' : 'Growth', price: isRTL ? '399 ر.س' : '$107' }
-                ].map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setChosenPlan(p.id)}
-                    style={{
-                      padding: '0.6rem 0.25rem',
-                      borderRadius: '0.5rem',
-                      border: chosenPlan === p.id ? '2px solid var(--secondary)' : '1px solid var(--card-border)',
-                      background: chosenPlan === p.id ? 'var(--secondary-glow)' : 'rgba(255, 255, 255, 0.02)',
-                      color: chosenPlan === p.id ? 'var(--secondary)' : 'var(--text-main)',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.2rem',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span>{p.label}</span>
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{p.price}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', textAlign: 'start' }}>

@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
 import { useApp } from '../context/AppContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
+import { useAIConversations } from '../utils/aiConversations';
 import { Sparkles, X, Send, MessageSquare, AlertCircle, HelpCircle } from 'lucide-react';
 
 export default function FloatingAIAssistant() {
@@ -13,55 +14,18 @@ export default function FloatingAIAssistant() {
   const userEmail = user?.email || 'default';
 
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem(`adtodeal_floating_chat_${user?.email || 'default'}`);
-    if (saved) return JSON.parse(saved);
-    
-    // Initial welcome message
-    return [
-      {
-        id: 'welcome',
-        sender: 'ai',
-        text: lang === 'ar' 
-          ? "مرحباً! أنا مساعدك الشخصي الذكي. يمكنك أن تسألني عن أي شيء يخص مبيعاتك، عملائك، أو تنظيم مهامك اليومية."
-          : "Hello! I am your AI Sales Assistant. Ask me anything about your deals, customer info, or follow-up tasks.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ];
-  });
+  const {
+    messages,
+    setMessages,
+    newConversation,
+    activeConversation
+  } = useAIConversations(userEmail, lang);
   
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const messagesEndRef = useRef(null);
-
-  // Sync chat messages state whenever active user changes
-  useEffect(() => {
-    if (!userEmail) return;
-    const saved = localStorage.getItem(`adtodeal_floating_chat_${userEmail}`);
-    if (saved) {
-      setMessages(JSON.parse(saved));
-    } else {
-      setMessages([
-        {
-          id: 'welcome',
-          sender: 'ai',
-          text: lang === 'ar' 
-            ? "مرحباً! أنا مساعدك الشخصي الذكي. يمكنك أن تسألني عن أي شيء يخص مبيعاتك، عملائك، أو تنظيم مهامك اليومية."
-            : "Hello! I am your AI Sales Assistant. Ask me anything about your deals, customer info, or follow-up tasks.",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    }
-  }, [userEmail]);
-
-  // Persist messages in localStorage isolated per user
-  useEffect(() => {
-    if (userEmail) {
-      localStorage.setItem(`adtodeal_floating_chat_${userEmail}`, JSON.stringify(messages));
-    }
-  }, [messages, userEmail]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -82,7 +46,7 @@ export default function FloatingAIAssistant() {
       id: Date.now().toString(),
       sender: 'user',
       text: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      createdAt: new Date().toISOString()
     };
 
     setMessages(prev => [...prev, newMessage]);
@@ -98,7 +62,7 @@ export default function FloatingAIAssistant() {
           text: lang === 'ar'
             ? "🚨 لقد استنفدت الحد المسموح به للحساب المجاني (3 عمليات توليد بالذكاء الاصطناعي). يرجى ترقية باقتك إلى الاحترافية (Pro) أو النمو (Growth) من صفحة الاشتراكات للحصول على استخدام غير محدود وبدون قيود."
             : "🚨 You have reached the limit of the free tier (3 AI queries). Please upgrade to the Pro or Growth plan in the Subscriptions page to unlock unlimited access.",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          createdAt: new Date().toISOString()
         }]);
       }, 500);
       return;
@@ -114,7 +78,7 @@ export default function FloatingAIAssistant() {
           text: lang === 'ar'
             ? "تنبيه: مفتاح Gemini API غير مضاف. يرجى التوجه لصفحة الإعدادات وتثبيت المفتاح لتفعيل الدردشة المباشرة."
             : "Notice: Gemini API Key is missing. Please navigate to the Settings page and add your API key to activate live chat.",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          createdAt: new Date().toISOString()
         }]);
       }, 500);
       return;
@@ -174,7 +138,7 @@ export default function FloatingAIAssistant() {
         id: Date.now().toString(),
         sender: 'ai',
         text: aiResponseText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        createdAt: new Date().toISOString()
       }]);
 
     } catch (err) {
@@ -187,7 +151,7 @@ export default function FloatingAIAssistant() {
         text: lang === 'ar'
           ? "عذراً، حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. يرجى التحقق من اتصال الإنترنت ومفتاح الـ API."
           : "Sorry, an error occurred while connecting to the AI. Please verify your internet connection and API key.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        createdAt: new Date().toISOString()
       }]);
     } finally {
       setLoading(false);
@@ -200,20 +164,7 @@ export default function FloatingAIAssistant() {
     }
   };
 
-  const clearChat = () => {
-    const defaultMsg = [
-      {
-        id: 'welcome',
-        sender: 'ai',
-        text: lang === 'ar' 
-          ? "مرحباً! أنا مساعدك الشخصي الذكي. يمكنك أن تسألني عن أي شيء يخص مبيعاتك، عملائك، أو تنظيم مهامك اليومية."
-          : "Hello! I am your AI Sales Assistant. Ask me anything about your deals, customer info, or follow-up tasks.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ];
-    setMessages(defaultMsg);
-    localStorage.setItem(`adtodeal_floating_chat_${userEmail}`, JSON.stringify(defaultMsg));
-  };
+  const clearChat = () => newConversation();
 
   // Predefined prompt chips
   const promptChips = lang === 'ar' ? [
@@ -299,7 +250,7 @@ export default function FloatingAIAssistant() {
               </div>
               <div style={{ textAlign: 'start' }}>
                 <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', display: 'block' }}>
-                  {isRTL ? "مساعد أد تو ديل AI" : "AdToDeal AI Assistant"}
+                  {activeConversation?.title || (isRTL ? "مساعد أد تو ديل AI" : "AdToDeal AI Assistant")}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--success)' }}>● {isRTL ? "متصل بالبيانات" : "Connected to CRM"}</span>
               </div>
@@ -384,7 +335,7 @@ export default function FloatingAIAssistant() {
                     marginTop: '2px',
                     textAlign: isUser ? 'right' : 'left'
                   }}>
-                    {msg.timestamp}
+                    {new Date(msg.createdAt || Date.now()).toLocaleString(isRTL ? 'ar-EG' : undefined, { dateStyle: 'short', timeStyle: 'short' })}
                   </span>
                 </div>
               );

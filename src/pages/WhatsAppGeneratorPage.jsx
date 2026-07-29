@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
-import { sendRealWhatsAppMessage } from '../utils/whatsapp';
-import { MessageSquare, ExternalLink, Send, ArrowLeft } from 'lucide-react';
+import { openWhatsAppConversation, sendWhatsAppAttachment } from '../utils/whatsapp';
+import { MessageSquare, ExternalLink, Send, Paperclip, X } from 'lucide-react';
 
 export default function WhatsAppGeneratorPage({ defaultLeadId }) {
   const { t, isRTL } = useLanguage();
@@ -12,8 +12,20 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
   const [template, setTemplate] = useState('intro'); // intro, followup, viewing, payment, price
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const [attachmentPreview, setAttachmentPreview] = useState('');
 
   const selectedLead = leads.find(l => l.id === selectedLeadId);
+
+  useEffect(() => {
+    if (!attachment) {
+      setAttachmentPreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(attachment);
+    setAttachmentPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [attachment]);
 
   // Auto compile templates based on selected lead
   useEffect(() => {
@@ -52,7 +64,14 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
     if (!selectedLead) return;
     setIsSending(true);
     try {
-      await sendRealWhatsAppMessage(selectedLead.phone, message);
+      if (attachment) {
+        // Must happen directly in the click event or the browser may block it.
+        openWhatsAppConversation(selectedLead.phone);
+        await sendWhatsAppAttachment(selectedLead.phone, attachment, message);
+        setAttachment(null);
+      } else {
+        openWhatsAppConversation(selectedLead.phone, message);
+      }
     } catch (e) {
       alert(isRTL ? `حدث خطأ أثناء إرسال الواتساب: ${e.message}` : `Error sending WhatsApp message: ${e.message}`);
     } finally {
@@ -134,6 +153,55 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
               onChange={e => setMessage(e.target.value)}
             />
 
+            <div style={{
+              border: '1px dashed var(--card-border)',
+              borderRadius: '0.65rem',
+              padding: '0.85rem'
+            }}>
+              {!attachment ? (
+                <label className="btn" style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.04)'
+                }}>
+                  <Paperclip size={16} />
+                  {isRTL ? 'إرفاق صورة أو فيديو' : 'Attach image or video'}
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    hidden
+                    onChange={event => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 25 * 1024 * 1024) {
+                        alert(isRTL ? 'حجم الملف يجب ألا يتجاوز 25 ميجابايت.' : 'File size must not exceed 25 MB.');
+                        event.target.value = '';
+                        return;
+                      }
+                      setAttachment(file);
+                    }}
+                  />
+                </label>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  {attachment.type.startsWith('image/') ? (
+                    <img src={attachmentPreview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: '0.5rem' }} />
+                  ) : (
+                    <video src={attachmentPreview} style={{ width: 110, height: 72, objectFit: 'cover', borderRadius: '0.5rem' }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>{attachment.name}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{(attachment.size / 1024 / 1024).toFixed(2)} MB</div>
+                  </div>
+                  <button type="button" className="btn" onClick={() => setAttachment(null)} aria-label={isRTL ? 'حذف المرفق' : 'Remove attachment'}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
             {selectedLead && (
               <div style={{
                 background: selectedLead.consent?.whatsapp !== false ? 'var(--success-glow)' : 'var(--danger-glow)',
@@ -159,9 +227,15 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
               className="btn btn-primary" 
               style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)' }}
               onClick={handleOpenWhatsApp}
-              disabled={!selectedLeadId}
+              disabled={!selectedLeadId || isSending || (!message.trim() && !attachment)}
             >
-              <Send size={16} /> {t('generateAndOpen')} <ExternalLink size={14} />
+              <Send size={16} />
+              {isSending
+                ? (isRTL ? 'جاري الإرسال...' : 'Sending...')
+                : attachment
+                  ? (isRTL ? 'إرسال المرفق وفتح واتساب' : 'Send attachment & open WhatsApp')
+                  : t('generateAndOpen')}
+              <ExternalLink size={14} />
             </button>
           </div>
         </div>

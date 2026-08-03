@@ -73,16 +73,6 @@ export default function CampaignRequestPage() {
   };
   const feeText = getServiceFeeText();
 
-  if (!validateFeatureAccess('campaigns')) {
-    return (
-      <UpgradePaywall 
-        requiredPlan="Growth" 
-        featureNameAr="طلب تمويل وإطلاق الحملات الإعلانية" 
-        featureNameEn="AI Sponsored Ad Campaign Request" 
-      />
-    );
-  }
-
   // Selected advertising platforms
   const [selectedPlatforms, setSelectedPlatforms] = useState(['Meta']); // Meta, Snapchat, TikTok, Google
   // Lead Delivery Destination
@@ -113,6 +103,17 @@ export default function CampaignRequestPage() {
       setAdTitle(offerDetails);
     }
   }, [offerDetails]);
+
+  // Paywall gate lives below every hook so the hook order never changes.
+  if (!validateFeatureAccess('campaigns')) {
+    return (
+      <UpgradePaywall
+        requiredPlan="Growth"
+        featureNameAr="طلب تمويل وإطلاق الحملات الإعلانية"
+        featureNameEn="AI Sponsored Ad Campaign Request"
+      />
+    );
+  }
 
   const handlePlatformToggle = (platformId) => {
     setSelectedPlatforms(prev => {

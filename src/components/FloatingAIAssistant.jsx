@@ -11,7 +11,8 @@ export default function FloatingAIAssistant() {
   const { leads, tasks } = useCRM();
   const { checkAILimit, incrementAICount, theme, user } = useApp();
 
-  const userEmail = user?.email || 'default';
+  // Conversations are stored per account id, matching every other user bucket.
+  const storageId = user?.id || 'default';
 
   const [isOpen, setIsOpen] = useState(false);
   const {
@@ -19,7 +20,7 @@ export default function FloatingAIAssistant() {
     setMessages,
     newConversation,
     activeConversation
-  } = useAIConversations(userEmail, lang);
+  } = useAIConversations(storageId, lang);
   
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);

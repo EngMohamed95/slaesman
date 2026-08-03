@@ -39,42 +39,9 @@ export const openWhatsAppConversation = (recipientPhone, messageText = '') => {
   return openedWindow;
 };
 
-export const sendRealWhatsAppMessage = async (recipientPhone, messageText) => {
-  const { phoneNumberId, accessToken } = getWhatsAppConfig();
-
-  // If Meta WhatsApp Business Cloud API credentials exist, make real HTTP POST request to Graph API
-  if (phoneNumberId && accessToken) {
-    const cleanedPhone = normalizeWhatsAppPhone(recipientPhone);
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: cleanedPhone,
-        type: 'text',
-        text: { preview_url: true, body: messageText }
-      })
-    });
-
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      throw new Error(errJson?.error?.message || `WhatsApp API HTTP ${response.status}`);
-    }
-
-    return await response.json();
-  }
-
-  // Fallback: Open real WhatsApp Web / App directly in browser. Opening the
-  // window is deliberately synchronous so browsers do not block it as a popup.
-  openWhatsAppConversation(recipientPhone, messageText);
-  return { success: true, mode: 'wa.me' };
-};
+// sendRealWhatsAppMessage() used to live here. It was imported nowhere, and it
+// sent a permanent Meta access token as an Authorization header straight from
+// the browser. Sending moves behind a server-side Cloud API function.
 
 const WHATSAPP_BRIDGE_URL = (import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3001').replace(/\/$/, '');
 

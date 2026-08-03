@@ -174,16 +174,6 @@ export default function SocialGeneratorPage() {
     return '$109';
   };
 
-  if (!validateFeatureAccess('socialCreator')) {
-    return (
-      <UpgradePaywall 
-        requiredPlan="Pro" 
-        featureNameAr="استوديو صناعة المحتوى العقاري" 
-        featureNameEn="AI Real Estate Content Studio" 
-      />
-    );
-  }
-
   // Active view states
   const [activeTab, setActiveTab] = useState('image'); // image, video, pdf, calendar
   const [imageFormat, setImageFormat] = useState('post'); // post (1:1), story (9:16)
@@ -246,6 +236,17 @@ export default function SocialGeneratorPage() {
     }
     return () => clearInterval(interval);
   }, [isPlaying, videoCaptions]);
+
+  // Paywall gate lives below every hook so the hook order never changes.
+  if (!validateFeatureAccess('socialCreator')) {
+    return (
+      <UpgradePaywall
+        requiredPlan="Pro"
+        featureNameAr="استوديو صناعة المحتوى العقاري"
+        featureNameEn="AI Real Estate Content Studio"
+      />
+    );
+  }
 
   // Helper: update outputs based on chat prompt keywords
   const updateGeneratedContent = (keyword) => {

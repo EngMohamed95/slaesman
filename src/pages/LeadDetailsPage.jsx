@@ -1,16 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
-import { 
-  ArrowLeft, Calendar, Mail, Phone, DollarSign, 
-  MessageSquare, Edit3, Trash2, HeartHandshake, CheckCircle2 
+import {
+  ArrowLeft, Calendar, Mail, Phone, DollarSign,
+  MessageSquare, Edit3, Trash2, HeartHandshake, CheckCircle2
 } from 'lucide-react';
 
 export default function LeadDetailsPage({ leadId, setPage }) {
   const { leads, updateLead, deleteLead } = useCRM();
   const { t, isRTL } = useLanguage();
-  
+
   const lead = leads.find(l => l.id === leadId);
+
+  // Every hook must run on every render. `lead` is undefined until the leads
+  // list resolves, so nothing below may sit behind the not-found early return.
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(lead?.name ?? '');
+  const [phone, setPhone] = useState(lead?.phone ?? '');
+  const [email, setEmail] = useState(lead?.email ?? '');
+  const [status, setStatus] = useState(lead?.status ?? 'New');
+  const [budget, setBudget] = useState(lead?.budget ?? 0);
+  const [expectedValue, setExpectedValue] = useState(lead?.expectedValue ?? 0);
+  const [interestLevel, setInterestLevel] = useState(lead?.interestLevel ?? 'Medium');
+  const [nextFollowUp, setNextFollowUp] = useState(lead?.nextFollowUp ?? '');
+  const [notes, setNotes] = useState('');
+  const [service, setService] = useState('');
+
+  // Consent levels
+  const [whatsappAllowed, setWhatsappAllowed] = useState(true);
+  const [callsAllowed, setCallsAllowed] = useState(true);
+  const [marketingAllowed, setMarketingAllowed] = useState(true);
+  const [unsubscribed, setUnsubscribed] = useState(false);
+  const [doNotContact, setDoNotContact] = useState(false);
+
+  // Initialisers only run once, so re-seed the form whenever a different lead
+  // loads (or the first fetch lands). Skipped mid-edit to avoid clobbering input.
+  useEffect(() => {
+    if (!lead || isEditing) return;
+    setName(lead.name ?? '');
+    setPhone(lead.phone ?? '');
+    setEmail(lead.email ?? '');
+    setStatus(lead.status ?? 'New');
+    setBudget(lead.budget ?? 0);
+    setExpectedValue(lead.expectedValue ?? 0);
+    setInterestLevel(lead.interestLevel ?? 'Medium');
+    setNextFollowUp(lead.nextFollowUp ?? '');
+    setNotes((isRTL ? (lead.notesAr || lead.notes) : lead.notes) ?? '');
+    setService((isRTL ? (lead.serviceAr || lead.service) : lead.service) ?? '');
+    setWhatsappAllowed(lead.consent?.whatsapp !== false);
+    setCallsAllowed(lead.consent?.calls !== false);
+    setMarketingAllowed(lead.consent?.marketing !== false);
+    setUnsubscribed(lead.consent?.unsubscribed === true);
+    setDoNotContact(lead.consent?.doNotContact === true);
+  }, [lead, isEditing, isRTL]);
 
   if (!lead) {
     return (
@@ -20,25 +62,6 @@ export default function LeadDetailsPage({ leadId, setPage }) {
       </div>
     );
   }
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(lead.name);
-  const [phone, setPhone] = useState(lead.phone);
-  const [email, setEmail] = useState(lead.email);
-  const [status, setStatus] = useState(lead.status);
-  const [budget, setBudget] = useState(lead.budget);
-  const [expectedValue, setExpectedValue] = useState(lead.expectedValue || 0);
-  const [interestLevel, setInterestLevel] = useState(lead.interestLevel);
-  const [nextFollowUp, setNextFollowUp] = useState(lead.nextFollowUp || '');
-  const [notes, setNotes] = useState(isRTL ? (lead.notesAr || lead.notes) : lead.notes);
-  const [service, setService] = useState(isRTL ? (lead.serviceAr || lead.service) : lead.service);
-
-  // Consent levels
-  const [whatsappAllowed, setWhatsappAllowed] = useState(lead.consent?.whatsapp !== false);
-  const [callsAllowed, setCallsAllowed] = useState(lead.consent?.calls !== false);
-  const [marketingAllowed, setMarketingAllowed] = useState(lead.consent?.marketing !== false);
-  const [unsubscribed, setUnsubscribed] = useState(lead.consent?.unsubscribed === true);
-  const [doNotContact, setDoNotContact] = useState(lead.consent?.doNotContact === true);
 
   const handleSave = () => {
     updateLead(lead.id, {

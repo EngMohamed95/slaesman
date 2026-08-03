@@ -4,54 +4,10 @@ import { useCRM } from '../context/CRMContext';
 import { useApp } from '../context/AppContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
 import { useAIConversations } from '../utils/aiConversations';
+import { parseChatToMessages } from '../utils/chatParser';
 import { Sparkles, MessageSquare, ShieldAlert, FileText, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 
 // Helper to parse pasted chat text into structured message bubble objects
-const parseChatToMessages = (text) => {
-  if (!text) return [];
-  const lines = text.split('\n');
-  const messages = [];
-
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-
-    let sender = 'customer';
-    let cleanLine = trimmed.replace(/^\[[^\]]+\]\s*/, ''); // strip timestamps like [20/06/2026, 14:15]
-
-    // Match Name: Message or Name - Message
-    const colonIndex = cleanLine.indexOf(':');
-    const hyphenIndex = cleanLine.indexOf(' - ');
-    let senderName = '';
-    let messageText = cleanLine;
-
-    if (colonIndex > 0) {
-      senderName = cleanLine.substring(0, colonIndex).trim();
-      messageText = cleanLine.substring(colonIndex + 1).trim();
-    } else if (hyphenIndex > 0) {
-      senderName = cleanLine.substring(0, hyphenIndex).trim();
-      messageText = cleanLine.substring(hyphenIndex + 3).trim();
-    }
-
-    if (senderName) {
-      const agentKeywords = ['agent', 'me', 'sales', 'salesman', 'salesmate', 'مندوب', 'أنا', 'المبيعات'];
-      const isAgent = agentKeywords.some(kw => senderName.toLowerCase().includes(kw));
-      sender = isAgent ? 'agent' : 'customer';
-    } else {
-      const agentSignals = ['سعر', 'المطور', 'عرض', 'خصم', 'الموقع', 'زيارة', 'معاينة', 'أهلاً بك', 'مرحباً بك', 'price', 'developer', 'discount'];
-      const isAgent = agentSignals.some(sig => cleanLine.toLowerCase().includes(sig));
-      sender = isAgent ? 'agent' : 'customer';
-    }
-
-    messages.push({
-      sender,
-      senderName: senderName || (sender === 'agent' ? 'AdToDeal' : 'Client'),
-      text: messageText
-    });
-  });
-
-  return messages;
-};
 
 // Helper parser to extract details for the custom AI response
 const analyzeChatContent = (text, isRTL) => {
@@ -125,7 +81,7 @@ export default function AIAssistantPage() {
     selectConversation,
     newConversation,
     deleteConversation
-  } = useAIConversations(user?.email || 'default', isRTL ? 'ar' : 'en');
+  } = useAIConversations(user?.id || 'default', isRTL ? 'ar' : 'en');
 
   const [selectedLeadId, setSelectedLeadId] = useState(leads[0]?.id || '');
   const [activeTab, setActiveTab] = useState('objections'); // objections, scripts, summarize

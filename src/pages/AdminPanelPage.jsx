@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
+import { supabase } from '../lib/supabase';
 import { ShieldCheck, Users, Megaphone, DollarSign, Settings2, CheckCircle, RefreshCw, Key, Sparkles, Globe, Save } from 'lucide-react';
 import { getGeminiApiKey, setGeminiApiKey } from '../utils/gemini';
 
@@ -32,14 +33,34 @@ export default function AdminPanelPage() {
     }, 3000);
   };
 
-  const mockUsers = [
-    { id: 'u1', name: 'Salma Al-Harbi', email: 'salma@adtodeal.com', plan: 'Pro', registeredDate: '2026-05-10', paymentDate: '2026-07-10', paymentMethod: 'Visa', amount: '199 SAR', status: 'Active' },
-    { id: 'u2', name: 'Khalid Mansour', email: 'khalid@example.com', plan: 'Growth', registeredDate: '2026-05-24', paymentDate: '2026-07-24', paymentMethod: 'PayPal', amount: '399 SAR', status: 'Active' },
-    { id: 'u3', name: 'Noura Salem', email: 'noura.s@example.com', plan: 'Basic', registeredDate: '2026-06-01', paymentDate: '2026-07-01', paymentMethod: 'PayPal', amount: '99 SAR', status: 'Active' },
-    { id: 'u4', name: 'Ahmad Al-Saeed', email: 'ahmad.saeed@gmail.com', plan: 'Pro', registeredDate: '2026-07-12', paymentDate: '2026-07-12', paymentMethod: 'PayPal', amount: '199 SAR', status: 'Active' },
-    { id: 'u5', name: 'John Doe', email: 'john.doe@apple.com', plan: 'Growth', registeredDate: '2026-07-15', paymentDate: '2026-07-15', paymentMethod: 'Visa', amount: '$107', status: 'Active' },
-    { id: 'u6', name: 'Fatima Al-Shammeri', email: 'f.shammeri@domain.sa', plan: 'Basic', registeredDate: '2026-06-20', paymentDate: '2026-06-20', paymentMethod: 'Mada', amount: '99 SAR', status: 'Cancelled' }
-  ];
+  /**
+   * Real accounts, read from `profiles` (admin-only RLS policy).
+   *
+   * This replaced six invented customers that were rendered as production data
+   * and fed the "total registered users" tile. Plan / payment-method / amount
+   * columns are gone with them: there is no subscription table yet, so every
+   * value in them was fiction. They come back in Phase 7 from `subscriptions`.
+   */
+  const [accounts, setAccounts] = useState([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accountsError, setAccountsError] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) { setAccountsLoading(false); return undefined; }
+    let active = true;
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, agency_name, phone, created_at')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) setAccountsError(error.message);
+        else setAccounts(data || []);
+      })
+      .catch((err) => { if (active) setAccountsError(err?.message || 'load_failed'); })
+      .finally(() => { if (active) setAccountsLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const handleStatusChange = (id, newStatus, newStatusAr) => {
     updateCampaignStatus(id, newStatus, newStatusAr);
@@ -62,7 +83,9 @@ export default function AdminPanelPage() {
           </div>
           <div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('totalRegisteredUsers')}</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{mockUsers.length}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+              {accountsLoading ? '…' : accounts.length}
+            </div>
           </div>
         </div>
 
@@ -84,8 +107,11 @@ export default function AdminPanelPage() {
           </div>
           <div>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('mrr')}</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-              {isRTL ? "697 ريال" : "$207"}
+            {/* Was the string literal "697 ريال". There is no billing data to
+                compute this from until Phase 7 creates `subscriptions`. */}
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>—</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              {isRTL ? 'بانتظار ربط الفوترة' : 'Awaiting billing integration'}
             </div>
           </div>
         </div>
@@ -226,72 +252,64 @@ export default function AdminPanelPage() {
 
           {activeSubTab === 'users' && (
             <>
-              {/* Desktop Users Table */}
-              <div className="desktop-only" style={{ overflowX: 'auto' }}>
-                <table style={{ minWidth: '900px' }}>
-                  <thead>
-                    <tr>
-                      <th>{t('name')}</th>
-                      <th>{t('email')}</th>
-                      <th>{isRTL ? 'خطة الاشتراك' : 'Subscription Tier'}</th>
-                      <th>{isRTL ? 'الحالة' : 'Status'}</th>
-                      <th>{isRTL ? 'طريقة الدفع' : 'Payment Method'}</th>
-                      <th>{isRTL ? 'تاريخ الدفع' : 'Payment Date'}</th>
-                      <th>{isRTL ? 'المبلغ المدفوع' : 'Amount Paid'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockUsers.map(user => (
-                      <tr key={user.id}>
-                        <td style={{ fontWeight: 'bold' }}>{user.name}</td>
-                        <td>{user.email}</td>
-                        <td>
-                          <span className="badge" style={{ 
-                            fontWeight: 'bold',
-                            background: user.plan === 'Growth' ? 'var(--secondary-glow)' : user.plan === 'Pro' ? 'var(--primary-glow)' : 'rgba(255,255,255,0.05)',
-                            color: user.plan === 'Growth' ? 'var(--secondary)' : user.plan === 'Pro' ? 'var(--primary)' : 'var(--text-muted)'
-                          }}>
-                            {user.plan}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="badge" style={{
-                            background: user.status === 'Active' ? 'var(--success-glow)' : 'var(--danger-glow)',
-                            color: user.status === 'Active' ? 'var(--success)' : 'var(--danger)'
-                          }}>
-                            {user.status === 'Active' ? (isRTL ? 'نشط' : 'Active') : (isRTL ? 'ملغي' : 'Cancelled')}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 600 }}>{user.paymentMethod}</td>
-                        <td>{user.paymentDate}</td>
-                        <td style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{user.amount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {accountsLoading && (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>…</div>
+              )}
 
-              {/* Mobile Users Cards */}
-              <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
-                {mockUsers.map(user => (
-                  <div key={user.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{user.name}</div>
-                      <span className="badge" style={{ 
-                        background: user.plan === 'Growth' ? 'var(--secondary-glow)' : user.plan === 'Pro' ? 'var(--primary-glow)' : 'rgba(255,255,255,0.05)',
-                        color: user.plan === 'Growth' ? 'var(--secondary)' : user.plan === 'Pro' ? 'var(--primary)' : 'var(--text-muted)'
-                      }}>
-                        {user.plan}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user.email}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '0.5rem' }}>
-                      <span>{user.paymentMethod} • {user.paymentDate}</span>
-                      <strong style={{ color: 'var(--text-main)' }}>{user.amount}</strong>
-                    </div>
+              {accountsError && (
+                <div style={{ padding: '1rem', color: 'var(--danger)', fontSize: '0.85rem', textAlign: 'start' }}>
+                  {isRTL ? 'تعذّر تحميل الحسابات: ' : 'Could not load accounts: '}{accountsError}
+                </div>
+              )}
+
+              {!accountsLoading && !accountsError && accounts.length === 0 && (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {isRTL ? 'لا توجد حسابات مسجّلة بعد.' : 'No accounts registered yet.'}
+                </div>
+              )}
+
+              {!accountsLoading && accounts.length > 0 && (
+                <>
+                  {/* Desktop Users Table */}
+                  <div className="desktop-only" style={{ overflowX: 'auto' }}>
+                    <table style={{ minWidth: '720px' }}>
+                      <thead>
+                        <tr>
+                          <th>{t('name')}</th>
+                          <th>{t('email')}</th>
+                          <th>{isRTL ? 'الجهة' : 'Agency'}</th>
+                          <th>{isRTL ? 'الجوال' : 'Phone'}</th>
+                          <th>{isRTL ? 'تاريخ التسجيل' : 'Registered'}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {accounts.map(account => (
+                          <tr key={account.id}>
+                            <td style={{ fontWeight: 'bold' }}>{account.full_name || '—'}</td>
+                            <td>{account.email || '—'}</td>
+                            <td>{account.agency_name || '—'}</td>
+                            <td>{account.phone || '—'}</td>
+                            <td>{account.created_at ? account.created_at.split('T')[0] : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
-              </div>
+
+                  {/* Mobile Users Cards */}
+                  <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
+                    {accounts.map(account => (
+                      <div key={account.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{account.full_name || '—'}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{account.email || '—'}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {account.agency_name || '—'} • {account.created_at ? account.created_at.split('T')[0] : '—'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
 

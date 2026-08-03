@@ -1,45 +1,207 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { supabase, isSupabaseConfigured, authRedirectTo } from '../lib/supabase';
+import { migrateUserStorage, userKey } from '../utils/userStorage';
 
 const AppContext = createContext();
 
-export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('salesmate_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+const DEFAULT_PROFILE = { agencyName: '', phone: '', name: '', email: '' };
 
-  const [onboarded, setOnboarded] = useState(() => {
-    return localStorage.getItem('salesmate_onboarded') === 'true';
-  });
-  const [plan, setPlan] = useState(() => {
-    return localStorage.getItem('salesmate_plan') || 'Trial'; // Default to Trial for free trial
-  });
-
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem('salesmate_profile');
-    return saved ? JSON.parse(saved) : {
-      agencyName: 'Elite Properties',
-      phone: '+966501234567',
-      name: 'Salma Al-Harbi',
-      email: 'salma@adtodeal.com'
-    };
-  });
-
-  // Global Theme Mode State ('dark' | 'light')
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('salesmate_theme') || 'dark';
-  });
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+/**
+ * Session user → the shape the app has always consumed.
+ *
+ * `role` comes from `app_metadata`, which is signed into the JWT and writable
+ * only with the service-role key. `user_metadata` is self-writable by any
+ * signed-in browser, so it must never decide authorization. The old rule
+ * (`email.includes('admin')`) handed the admin panel to anyone who could type
+ * an email address.
+ */
+const mapUser = (sessionUser) => {
+  if (!sessionUser) return null;
+  return {
+    id: sessionUser.id,
+    email: sessionUser.email,
+    role: sessionUser.app_metadata?.role === 'admin' ? 'admin' : 'salesperson',
+    name: sessionUser.user_metadata?.name || '',
   };
+};
+
+const authFailure = (error) => ({
+  ok: false,
+  code: error?.code || 'unknown_error',
+  status: error?.status,
+  message: error?.message || '',
+});
+
+const NOT_CONFIGURED = { ok: false, code: 'not_configured', message: 'Supabase is not configured' };
+
+export const AppProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+
+  /**
+   * CRITICAL. Session restore is asynchronous: on the first paint after a
+   * refresh there is no user yet. Without this flag `RequireAuth` reads
+   * `!user` and bounces every signed-in visitor to the landing page before the
+   * session comes back.
+   */
+  const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+
+  useEffect(() => {
+    // Unconfigured deploys never load a session, so `authLoading` already
+    // initialises to false — nothing to await, nothing to unset here.
+    if (!supabase) return undefined;
+
+    let active = true;
+    const applySession = (session) => {
+      const nextUser = mapUser(session?.user);
+      if (nextUser) migrateUserStorage(nextUser.id, nextUser.email);
+      setUser(nextUser);
+    };
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) console.warn('[auth] session restore failed:', error.message);
+        applySession(data?.session);
+      })
+      .catch((err) => {
+        // A rejected promise here (bad URL, offline, blocked storage) must still
+        // clear the flag. Leaving it set parks the whole app on the loader.
+        console.warn('[auth] session restore threw:', err?.message || err);
+        if (active) applySession(null);
+      })
+      .finally(() => {
+        if (active) setAuthLoading(false);
+      });
+
+    // Fires on sign-in, sign-out, token refresh and cross-tab changes.
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      applySession(session);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      active = false;
+      listener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Per-user state. Still localStorage until Phase 4, but keyed by `user.id`.
+  // ---------------------------------------------------------------------------
+  const [plan, setPlan] = useState('Trial');
+  const [onboarded, setOnboarded] = useState(false);
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+
+  // Which account the three states above were loaded for. The persist effects
+  // below refuse to write until it matches the active user, otherwise the
+  // outgoing user's plan lands under the incoming user's key.
+  const [loadedUid, setLoadedUid] = useState(null);
+
+  useEffect(() => {
+    const uid = user?.id;
+    if (!uid) {
+      setPlan('Trial');
+      setOnboarded(false);
+      setProfile(DEFAULT_PROFILE);
+      setLoadedUid(null);
+      return;
+    }
+    setPlan(localStorage.getItem(userKey('salesmate_plan_', uid)) || 'Trial');
+    setOnboarded(localStorage.getItem(userKey('salesmate_onboarded_', uid)) === 'true');
+    const savedProfile = localStorage.getItem(userKey('salesmate_profile_', uid));
+    setProfile(savedProfile
+      ? JSON.parse(savedProfile)
+      : { ...DEFAULT_PROFILE, email: user.email || '', name: user.name || '' });
+    setLoadedUid(uid);
+  }, [user]);
+
+  const canPersist = Boolean(user?.id) && loadedUid === user?.id;
+
+  // True between "session arrived" and "this account's state is in memory".
+  // Guards must wait on it before reading `onboarded` or `plan`, which still
+  // hold the previous account's values during that window.
+  const userDataLoading = Boolean(user?.id) && loadedUid !== user.id;
+
+  useEffect(() => {
+    if (!canPersist) return;
+    localStorage.setItem(userKey('salesmate_plan_', user.id), plan);
+  }, [plan, canPersist, user?.id]);
+
+  useEffect(() => {
+    if (!canPersist) return;
+    localStorage.setItem(userKey('salesmate_onboarded_', user.id), String(onboarded));
+  }, [onboarded, canPersist, user?.id]);
+
+  useEffect(() => {
+    if (!canPersist) return;
+    localStorage.setItem(userKey('salesmate_profile_', user.id), JSON.stringify(profile));
+  }, [profile, canPersist, user?.id]);
+
+  // ---------------------------------------------------------------------------
+  // Organization membership. Every row in the database carries an org_id, so
+  // nothing can be written until this resolves.
+  // ---------------------------------------------------------------------------
+  const [org, setOrg] = useState(null);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [orgError, setOrgError] = useState(null);
+
+  useEffect(() => {
+    if (!supabase || !user?.id) {
+      setOrg(null);
+      setOrgError(null);
+      return undefined;
+    }
+
+    let active = true;
+    setOrgLoading(true);
+    setOrgError(null);
+
+    supabase
+      .from('org_members')
+      .select('org_id, role')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.warn('[org] membership lookup failed:', error.message);
+          setOrgError(error.message);
+          setOrg(null);
+          return;
+        }
+        // No membership means the sign-up trigger never ran for this account —
+        // it will see an empty app and every write will fail RLS. Surface it
+        // rather than letting the user type into a void.
+        if (!data) setOrgError('no_membership');
+        setOrg(data ? { id: data.org_id, role: data.role } : null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.warn('[org] membership lookup threw:', err?.message || err);
+        setOrgError(err?.message || 'lookup_failed');
+      })
+      .finally(() => {
+        if (active) setOrgLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [user?.id]);
+
+  // ---------------------------------------------------------------------------
+  // Theme and currency are device-level, not account-level.
+  // ---------------------------------------------------------------------------
+  const [theme, setTheme] = useState(() => localStorage.getItem('salesmate_theme') || 'dark');
+
+  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
 
   useEffect(() => {
     localStorage.setItem('salesmate_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Global Currency State
   const [selectedCurrency, setSelectedCurrency] = useState('SAR');
   const [detectedCountry, setDetectedCountry] = useState('المملكة العربية السعودية 🇸🇦');
   const [isDetecting, setIsDetecting] = useState(true);
@@ -55,7 +217,7 @@ export const AppProvider = ({ children }) => {
           const countryName = data.country_name;
           const countryFlag = data.country_emoji || '';
           setDetectedCountry(`${countryName} ${countryFlag}`);
-          
+
           if (countryCode === 'SA') setSelectedCurrency('SAR');
           else if (countryCode === 'AE') setSelectedCurrency('AED');
           else if (countryCode === 'EG') setSelectedCurrency('EGP');
@@ -64,7 +226,7 @@ export const AppProvider = ({ children }) => {
         } else {
           throw new Error('Fallback to timezone');
         }
-      } catch (err) {
+      } catch {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
         if (tz.includes('Riyadh') || tz.includes('Qatar') || tz.includes('Kuwait')) {
           setSelectedCurrency('SAR');
@@ -89,103 +251,88 @@ export const AppProvider = ({ children }) => {
     detectLocation();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('salesmate_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('salesmate_user');
+  // ---------------------------------------------------------------------------
+  // Auth actions. All async, all return a result object — never a bare `true`.
+  // ---------------------------------------------------------------------------
+  const signIn = useCallback(async (email, password) => {
+    if (!supabase) return NOT_CONFIGURED;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return authFailure(error);
+    return { ok: true };
+  }, []);
+
+  const signUp = useCallback(async (email, password, name = '') => {
+    if (!supabase) return NOT_CONFIGURED;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: authRedirectTo,
+        data: name ? { name } : undefined,
+      },
+    });
+    if (error) return authFailure(error);
+    // With email confirmation enabled the user exists but has no session yet.
+    return { ok: true, needsConfirmation: !data?.session };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    if (!supabase) {
+      setUser(null);
+      return { ok: true };
     }
-  }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem('salesmate_onboarded', onboarded);
-  }, [onboarded]);
-
-  useEffect(() => {
-    localStorage.setItem('salesmate_plan', plan);
-  }, [plan]);
-
-  useEffect(() => {
-    localStorage.setItem('salesmate_profile', JSON.stringify(profile));
-  }, [profile]);
-
-  const login = (email, password) => {
-    // Mock login
-    const matchedRole = email.includes('admin') ? 'admin' : 'salesperson';
-    setUser({ email, role: matchedRole });
-    
-    // Fetch saved plan or default
-    const defaultPlan = matchedRole === 'admin' ? 'Growth' : 'Trial';
-    const savedUserPlan = localStorage.getItem(`salesmate_plan_${email}`) || defaultPlan;
-    setPlan(savedUserPlan);
-    return true;
-  };
-
-  const register = (email, password, chosenPlan = 'Trial') => {
-    // Mock register
-    setUser({ email, role: email.includes('admin') ? 'admin' : 'salesperson' });
-    setPlan(chosenPlan);
-    localStorage.setItem(`salesmate_plan_${email}`, chosenPlan);
-    setOnboarded(false);
-    // Reset query count for new basic users
-    localStorage.setItem('salesmate_ai_query_count', '0');
-    return true;
-  };
-
-  const logout = () => {
+    const { error } = await supabase.auth.signOut();
+    // Drop the local session either way: a network failure here must not leave
+    // the UI showing an account the user asked to leave.
     setUser(null);
-    setOnboarded(false);
-  };
+    if (error) return authFailure(error);
+    return { ok: true };
+  }, []);
 
+  const resetPassword = useCallback(async (email) => {
+    if (!supabase) return NOT_CONFIGURED;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: authRedirectTo,
+    });
+    if (error) return authFailure(error);
+    return { ok: true };
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Plan gating. Still client-side and still bypassable — the server takes this
+  // over in Phase 7.
+  // ---------------------------------------------------------------------------
   const validateFeatureAccess = (featureKey) => {
-    // Admin bypass
     if (user?.role === 'admin') return true;
-    
-    // admin feature is locked for everyone else
     if (featureKey === 'admin') return false;
-    
-    if (plan === 'Basic') {
-      // Basic unlocks only dashboard, crm, tasks, aiAssistant, whatsapp, reports, settings
-      const basicPages = ['dashboard', 'crm', 'tasks', 'aiAssistant', 'whatsapp', 'reports', 'settings'];
-      return basicPages.includes(featureKey);
-    }
-    
-    if (plan === 'Pro') {
-      // Pro unlocks everything except campaigns and admin
-      return featureKey !== 'campaigns';
-    }
-    
-    if (plan === 'Growth') {
-      // Growth unlocks everything except admin panel which requires admin role
-      return true;
-    }
 
-    if (plan === 'Trial') {
-      // Trial behaves like Basic: restricts socialCreator and campaigns
-      const basicPages = ['dashboard', 'crm', 'tasks', 'aiAssistant', 'whatsapp', 'reports', 'settings'];
-      return basicPages.includes(featureKey);
-    }
-    
+    const basicPages = ['dashboard', 'crm', 'tasks', 'aiAssistant', 'whatsapp', 'reports', 'settings'];
+
+    if (plan === 'Basic') return basicPages.includes(featureKey);
+    if (plan === 'Pro') return featureKey !== 'campaigns';
+    if (plan === 'Growth') return true;
+    if (plan === 'Trial') return basicPages.includes(featureKey);
+
     return true;
   };
+
+  const aiCountKey = () => userKey('salesmate_ai_query_count_', user?.id);
 
   const checkAILimit = () => {
     if (plan !== 'Basic') return { allowed: true };
-    const count = Number(localStorage.getItem('salesmate_ai_query_count') || 0);
-    if (count >= 3) {
-      return { allowed: false, count };
-    }
+    const count = Number(localStorage.getItem(aiCountKey()) || 0);
+    if (count >= 3) return { allowed: false, count };
     return { allowed: true, count };
   };
 
   const incrementAICount = () => {
     if (plan !== 'Basic') return;
-    const count = Number(localStorage.getItem('salesmate_ai_query_count') || 0);
-    localStorage.setItem('salesmate_ai_query_count', (count + 1).toString());
+    const count = Number(localStorage.getItem(aiCountKey()) || 0);
+    localStorage.setItem(aiCountKey(), (count + 1).toString());
   };
 
   const resetAICount = () => {
-    localStorage.setItem('salesmate_ai_query_count', '0');
+    localStorage.setItem(aiCountKey(), '0');
   };
 
   return (
@@ -194,10 +341,17 @@ export const AppProvider = ({ children }) => {
       setTheme,
       toggleTheme,
       user,
-      setUser,
-      login,
-      register,
-      logout,
+      authLoading,
+      userDataLoading,
+      authConfigured: isSupabaseConfigured,
+      orgId: org?.id || null,
+      orgRole: org?.role || null,
+      orgLoading,
+      orgError,
+      signIn,
+      signUp,
+      signOut,
+      resetPassword,
       onboarded,
       setOnboarded,
       plan,
@@ -220,4 +374,3 @@ export const AppProvider = ({ children }) => {
 };
 
 export const useApp = () => useContext(AppContext);
-

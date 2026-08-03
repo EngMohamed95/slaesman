@@ -23,6 +23,11 @@ jobs:
       run: npm ci
 
     - name: 🔨 Build Project
+      # Vite inlines VITE_* at build time, so these must exist here, not on the
+      # host. Both are public client keys — never add the service_role key.
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: npm run build
 
     - name: 🚀 Sync Files via FTP

@@ -2,123 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
 import { isGeminiActive, callGeminiApi } from '../utils/gemini';
+import { parseChatToMessages } from '../utils/chatParser';
 import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw, TrendingUp, Target, AlertTriangle } from 'lucide-react';
 
 const WHATSAPP_BRIDGE_URL = (import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-// Mock contacts for MacBook / phone address book fallback
-const MOCK_CONTACTS = [
-  { name: 'عبد الرحمن الدوسري', nameEn: 'Abdulrahman Al-Dawsari', phone: '+966509876543', email: 'a.dawsari@icloud.com', company: 'الرياض المحدودة' },
-  { name: 'سارة العتيبي', nameEn: 'Sarah Al-Otaibi', phone: '+966551122334', email: 'sarah.o@gmail.com', company: 'جدة العقارية' },
-  { name: 'خالد الحربي', nameEn: 'Khaled Al-Harbi', phone: '+966567788990', email: 'k.harbi@outlook.com', company: 'مستثمر مستقل' },
-  { name: 'فاطمة الشمري', nameEn: 'Fatima Al-Shammeri', phone: '+966543210987', email: 'f.shammeri@domain.sa', company: 'الفهد للإنشاءات' },
-  { name: 'John Doe', nameEn: 'John Doe', phone: '+15550199', email: 'john.doe@apple.com', company: 'Apple Inc.' },
-  { name: 'ريم القحطاني', nameEn: 'Reem Al-Qahtani', phone: '+966532223344', email: 'reem.q@yandex.com', company: 'النهدي للتطوير' },
-  { name: 'محمد الصالح', nameEn: 'Mohammad Al-Saleh', phone: '+971501234567', email: 'm.saleh@realestate.ae', company: 'دبي عقار' }
-];
-
-/* Legacy demo chats are intentionally disabled: live sync must never present
-   sample data as if it came from the connected WhatsApp account. */
-// eslint-disable-next-line no-unused-vars
-const MOCK_WHATSAPP_CHATS = [
-  {
-    id: 'w1',
-    name: 'أحمد السعيد',
-    phone: '+966501234567',
-    lastMsg: 'عاوز أعرف أسعار شقق 3 غرف وتفاصيل التقسيط',
-    time: '12:30 م',
-    messages: [
-      { sender: 'customer', text: 'أهلاً بك، شوفت إعلانكم على إنستغرام بخصوص شقق وسط الرياض.' },
-      { sender: 'agent', text: 'مرحباً بك يا فندم! نعم متوفرة شقق فاخرة 3 غرف في قلب الرياض.' },
-      { sender: 'customer', text: 'ممتاز، عاوز أعرف الأسعار وطرق السداد، ميزانيتي في حدود 850 ألف ريال.' },
-      { sender: 'agent', text: 'ميزانيتكم ممتازة وتناسب خياراتنا. نوفر تقسيط على 7 سنوات بدون فوائد.' },
-      { sender: 'customer', text: 'عاوز أعرف تفاصيل التقسيط والأسعار بالضبط.' }
-    ]
-  },
-  {
-    id: 'w2',
-    name: 'خالد الحربي',
-    phone: '+966559876543',
-    lastMsg: 'هل المشروع جاهز للسكن ولا قيد الإنشاء؟ وموقعه وين بالظبط؟',
-    time: '11:15 ص',
-    messages: [
-      { sender: 'customer', text: 'السلام عليكم، بخصوص مشروع فلل الياسمين.' },
-      { sender: 'agent', text: 'وعليكم السلام ورحمة الله وبركاته. تفضل يا فندم.' },
-      { sender: 'customer', text: 'هل المشروع جاهز للسكن ولا قيد الإنشاء؟ وموقعه وين بالظبط؟ ميزانيتي في حدود 2.5 مليون ريال.' }
-    ]
-  },
-  {
-    id: 'w3',
-    name: 'سارة العتيبي',
-    phone: '+966561122334',
-    lastMsg: 'الميزانية المتاحة معي هي 1.2 مليون كحد أقصى، هل عندكم شقة تناسبني؟',
-    time: 'أمس',
-    messages: [
-      { sender: 'customer', text: 'مرحبا، أبحث عن شقة في النرجس.' },
-      { sender: 'agent', text: 'أهلاً بك يا سارة. نعم لدينا شقق 3 غرف فاخرة في النرجس.' },
-      { sender: 'customer', text: 'الميزانية المتاحة معي هي 1.2 مليون كحد أقصى، هل عندكم شقة تناسبني؟' }
-    ]
-  },
-  {
-    id: 'w4',
-    name: 'John Doe',
-    phone: '+15550199',
-    lastMsg: 'I am looking for a penthouse in Riyadh with a private pool',
-    time: '21/07/2026',
-    messages: [
-      { sender: 'customer', text: 'Hello, do you have any penthouses available?' },
-      { sender: 'agent', text: 'Hi! Yes, we have premium penthouses in central Riyadh.' },
-      { sender: 'customer', text: 'Awesome. I am looking for one with a private pool, budget is around 4.5 million SAR.' }
-    ]
-  }
-];
+/**
+ * Device address-book import is not wired to anything yet.
+ *
+ * This used to be seven invented Saudi contacts rendered as if they had been
+ * read off the user's phone. Importing one silently created a lead for a person
+ * who does not exist. Reading real contacts needs the Contact Picker API (or a
+ * native shell), so until that exists the list is empty and the modal says so.
+ */
+const DEVICE_CONTACTS = [];
 
 // Helper to parse pasted chat text into structured message bubble objects
-const parseChatToMessages = (text) => {
-  if (!text) return [];
-  const lines = text.split('\n');
-  const messages = [];
-
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-
-    let sender = 'customer';
-    let cleanLine = trimmed.replace(/^\[[^\]]+\]\s*/, ''); // strip timestamps like [20/06/2026, 14:15]
-
-    // Match Name: Message or Name - Message
-    const colonIndex = cleanLine.indexOf(':');
-    const hyphenIndex = cleanLine.indexOf(' - ');
-    let senderName = '';
-    let messageText = cleanLine;
-
-    if (colonIndex > 0) {
-      senderName = cleanLine.substring(0, colonIndex).trim();
-      messageText = cleanLine.substring(colonIndex + 1).trim();
-    } else if (hyphenIndex > 0) {
-      senderName = cleanLine.substring(0, hyphenIndex).trim();
-      messageText = cleanLine.substring(hyphenIndex + 3).trim();
-    }
-
-    if (senderName) {
-      const agentKeywords = ['agent', 'me', 'sales', 'salesman', 'salesmate', 'مندوب', 'أنا', 'المبيعات'];
-      const isAgent = agentKeywords.some(kw => senderName.toLowerCase().includes(kw));
-      sender = isAgent ? 'agent' : 'customer';
-    } else {
-      const agentSignals = ['سعر', 'المطور', 'عرض', 'خصم', 'الموقع', 'زيارة', 'معاينة', 'أهلاً بك', 'مرحباً بك', 'price', 'developer', 'discount'];
-      const isAgent = agentSignals.some(sig => cleanLine.toLowerCase().includes(sig));
-      sender = isAgent ? 'agent' : 'customer';
-    }
-
-    messages.push({
-      sender,
-      senderName: senderName || (sender === 'agent' ? 'AdToDeal' : 'Client'),
-      text: messageText
-    });
-  });
-
-  return messages;
-};
 
 // Helper parser function for WhatsApp conversation analysis
 const analyzeWhatsAppChat = (text, isRTL) => {
@@ -2264,7 +2163,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
               gap: '0.5rem',
               paddingRight: '0.25rem'
             }}>
-              {MOCK_CONTACTS.filter(c => 
+              {DEVICE_CONTACTS.filter(c =>
                 c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) || 
                 c.nameEn.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
                 c.phone.includes(contactSearchQuery)
@@ -2342,13 +2241,15 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                   </div>
                 );
               })}
-              {MOCK_CONTACTS.filter(c => 
+              {DEVICE_CONTACTS.filter(c =>
                 c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) || 
                 c.nameEn.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
                 c.phone.includes(contactSearchQuery)
               ).length === 0 && (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  {isRTL ? "لا توجد جهات اتصال تطابق البحث." : "No contacts found matching search query."}
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.7 }}>
+                  {isRTL
+                    ? "استيراد جهات الاتصال من الجهاز غير مفعّل بعد. أضف العميل يدوياً أو استورد من ملف."
+                    : "Importing contacts from your device is not enabled yet. Add the lead manually or import from a file."}
                 </div>
               )}
             </div>

@@ -1,361 +1,103 @@
-import React, { useState } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
-import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { Suspense, lazy } from 'react';
+import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { AppProvider } from './context/AppContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { CRMProvider } from './context/CRMContext';
+import { NavigationProvider, Page, useNavigation } from './navigation';
+import { RequireAuth, RequireRole, RedirectIfAuthed } from './components/RouteGuards';
+import AppLayout from './layouts/AppLayout';
 
-// Import Pages
-import LandingPage from './pages/LandingPage';
-import AuthPages from './pages/AuthPages';
-import OnboardingPage from './pages/OnboardingPage';
-import DashboardPage from './pages/DashboardPage';
-import CRMPage from './pages/CRMPage';
-import LeadDetailsPage from './pages/LeadDetailsPage';
-import TasksPage from './pages/TasksPage';
-import AIAssistantPage from './pages/AIAssistantPage';
-import WhatsAppGeneratorPage from './pages/WhatsAppGeneratorPage';
-import SocialGeneratorPage from './pages/SocialGeneratorPage';
-import CampaignRequestPage from './pages/CampaignRequestPage';
-import ReportsPage from './pages/ReportsPage';
-import SubscriptionPage from './pages/SubscriptionPage';
-import SettingsPage from './pages/SettingsPage';
-import AdminPanelPage from './pages/AdminPanelPage';
-import FloatingAIAssistant from './components/FloatingAIAssistant';
+// Every page is split out of the entry chunk. The landing and auth screens are
+// the public entry point, so they must not ship the whole authenticated app.
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const AuthPages = lazy(() => import('./pages/AuthPages'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const CRMPage = lazy(() => import('./pages/CRMPage'));
+const LeadDetailsPage = lazy(() => import('./pages/LeadDetailsPage'));
+const TasksPage = lazy(() => import('./pages/TasksPage'));
+const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
+const WhatsAppGeneratorPage = lazy(() => import('./pages/WhatsAppGeneratorPage'));
+const SocialGeneratorPage = lazy(() => import('./pages/SocialGeneratorPage'));
+const CampaignRequestPage = lazy(() => import('./pages/CampaignRequestPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminPanelPage = lazy(() => import('./pages/AdminPanelPage'));
 
-// Import Icons
-import { 
-  Sparkles, Users, Calendar, MessageSquare, Megaphone, 
-  BarChart3, Settings, ShieldCheck, LogOut, Menu, X, Globe, User, CreditCard, Sun, Moon
-} from 'lucide-react';
+function RouteFallback() {
+  return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>…</div>;
+}
 
-function AppContent() {
-  const { user, logout, theme, toggleTheme } = useApp();
-  const { t, lang, toggleLanguage, isRTL } = useLanguage();
-  const [page, setPage] = useState(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#/lead/')) return 'leadDetails';
-    return hash.substring(2) || 'landing';
-  });
-  const [selectedLeadId, setSelectedLeadId] = useState(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#/lead/')) return hash.substring(7);
-    return null;
-  });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+/** The one parameterised route: reads :leadId out of the URL. */
+function LeadDetailsRoute() {
+  const { leadId } = useParams();
+  return <Page component={LeadDetailsPage} leadId={leadId} />;
+}
 
-  // Listen to hash changes (for back/forward browser buttons)
-  React.useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash || '#/landing';
-      if (hash.startsWith('#/lead/')) {
-        const id = hash.substring(7);
-        setSelectedLeadId(id);
-        setPage('leadDetails');
-      } else {
-        const p = hash.substring(2) || 'landing';
-        setPage(p);
-      }
-    };
+/** WhatsApp generator preselects whichever lead the user came from. */
+function WhatsAppRoute() {
+  const { selectedLeadId } = useNavigation();
+  return <Page component={WhatsAppGeneratorPage} defaultLeadId={selectedLeadId} />;
+}
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  // Sync React states to URL hash
-  React.useEffect(() => {
-    const noLayoutPages = ['landing', 'login', 'register', 'onboarding'];
-    // If not logged in, force landing or auth page
-    if (!user && !noLayoutPages.includes(page)) {
-      window.location.hash = '/landing';
-      return;
-    }
-
-    let targetHash = `/${page}`;
-    if (page === 'leadDetails' && selectedLeadId) {
-      targetHash = `/lead/${selectedLeadId}`;
-    }
-
-    if (window.location.hash !== `#${targetHash}`) {
-      window.location.hash = targetHash;
-    }
-  }, [page, selectedLeadId, user]);
-
-  // Render Page Content
-  const renderPage = () => {
-    switch (page) {
-      case 'landing':
-        return <LandingPage setPage={setPage} />;
-      case 'login':
-        return <AuthPages mode="login" setPage={setPage} />;
-      case 'register':
-        return <AuthPages mode="register" setPage={setPage} />;
-      case 'onboarding':
-        return <OnboardingPage setPage={setPage} />;
-      case 'dashboard':
-        return <DashboardPage setPage={setPage} setSelectedLeadId={setSelectedLeadId} />;
-      case 'crm':
-        return <CRMPage setPage={setPage} setSelectedLeadId={setSelectedLeadId} />;
-      case 'leadDetails':
-        return <LeadDetailsPage leadId={selectedLeadId} setPage={setPage} />;
-      case 'tasks':
-        return <TasksPage />;
-      case 'aiAssistant':
-        return <AIAssistantPage />;
-      case 'whatsapp':
-        return <WhatsAppGeneratorPage defaultLeadId={selectedLeadId} />;
-      case 'socialCreator':
-        return <SocialGeneratorPage />;
-      case 'campaigns':
-        return <CampaignRequestPage />;
-      case 'reports':
-        return <ReportsPage />;
-      case 'subscriptions':
-        return <SubscriptionPage />;
-      case 'settings':
-        return <SettingsPage />;
-      case 'admin':
-        return <AdminPanelPage />;
-      default:
-        return <LandingPage setPage={setPage} />;
-    }
-  };
-
-  // If user is not authenticated or still on landing/onboarding, render without layout
-  const noLayoutPages = ['landing', 'login', 'register', 'onboarding'];
-  if (!user || noLayoutPages.includes(page)) {
-    return renderPage();
-  }
-
-  // Sidebar Menu Config
-  const menuItems = [
-    { id: 'dashboard', label: t('navDashboard'), icon: <BarChart3 size={18} /> },
-    { id: 'crm', label: t('navCRM'), icon: <Users size={18} /> },
-    { id: 'tasks', label: t('navTasks'), icon: <Calendar size={18} /> },
-    { id: 'aiAssistant', label: t('navAIAssistant'), icon: <Sparkles size={18} /> },
-    { id: 'whatsapp', label: t('navWhatsApp'), icon: <MessageSquare size={18} /> },
-    { id: 'socialCreator', label: t('navSocial'), icon: <Sparkles size={18} /> },
-    { id: 'campaigns', label: t('navCampaigns'), icon: <Megaphone size={18} /> },
-    { id: 'reports', label: t('navReports'), icon: <BarChart3 size={18} /> },
-    { id: 'subscriptions', label: t('navSubscription'), icon: <CreditCard size={18} /> },
-    { id: 'settings', label: t('navSettings'), icon: <Settings size={18} /> },
-  ];
-
-  if (user?.role === 'admin') {
-    menuItems.push({ id: 'admin', label: t('navAdmin'), icon: <ShieldCheck size={18} /> });
-  }
-
-  const handleNav = (targetPage) => {
-    setPage(targetPage);
-    setMobileMenuOpen(false);
-  };
-
+function AppRoutes() {
   return (
-    <div className="app-container">
-      {/* Mobile Backdrop Overlay */}
-      <div 
-        className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`} 
-        onClick={() => setMobileMenuOpen(false)} 
-      />
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Navigate to="/landing" replace />} />
+        <Route path="/landing" element={<Page component={LandingPage} />} />
+        {/* Distinct keys force a remount between the two. AuthPages seeds its
+            `isRegister` state from `mode` once, so without this React reuses
+            the instance and /register keeps showing the login form. */}
+        <Route path="/login" element={<RedirectIfAuthed><Page key="login" component={AuthPages} mode="login" /></RedirectIfAuthed>} />
+        <Route path="/register" element={<RedirectIfAuthed><Page key="register" component={AuthPages} mode="register" /></RedirectIfAuthed>} />
 
-      {/* Sidebar Navigation */}
-      <aside className={`sidebar ${mobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles style={{ color: 'var(--secondary)' }} />
-            <span>{t('appName')}</span>
-          </div>
-          <button 
-            onClick={() => setMobileMenuOpen(false)}
-            className="mobile-close-btn"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'none',
-              padding: '0.25rem'
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
+        {/* Authenticated shell */}
+        <Route element={<RequireAuth />}>
+          {/* Onboarding runs full-page, outside the sidebar layout. */}
+          <Route path="/onboarding" element={<Page component={OnboardingPage} />} />
 
-        <nav className="sidebar-menu">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNav(item.id)}
-              className={`sidebar-item ${page === item.id || (item.id === 'crm' && page === 'leadDetails') ? 'active' : ''}`}
-              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'start' }}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<Page component={DashboardPage} />} />
+            <Route path="/crm" element={<Page component={CRMPage} />} />
+            <Route path="/lead/:leadId" element={<LeadDetailsRoute />} />
+            <Route path="/tasks" element={<Page component={TasksPage} />} />
+            <Route path="/aiAssistant" element={<Page component={AIAssistantPage} />} />
+            <Route path="/whatsapp" element={<WhatsAppRoute />} />
+            <Route path="/socialCreator" element={<Page component={SocialGeneratorPage} />} />
+            <Route path="/campaigns" element={<Page component={CampaignRequestPage} />} />
+            <Route path="/reports" element={<Page component={ReportsPage} />} />
+            <Route path="/subscriptions" element={<Page component={SubscriptionPage} />} />
+            <Route path="/settings" element={<Page component={SettingsPage} />} />
 
-        {/* Sidebar Footer */}
-        <div style={{ padding: '1rem', borderTop: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <button 
-            className="btn btn-secondary" 
-            onClick={toggleLanguage}
-            style={{ width: '100%', display: 'flex', gap: '0.5rem', justifyContent: 'center', padding: '0.5rem' }}
-          >
-            <Globe size={16} />
-            <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
-          </button>
-          <button 
-            className="btn btn-danger" 
-            onClick={() => {
-              logout();
-              setPage('landing');
-            }}
-            style={{ width: '100%', display: 'flex', gap: '0.5rem', justifyContent: 'center', padding: '0.5rem' }}
-          >
-            <LogOut size={16} />
-            <span>{t('navLogout')}</span>
-          </button>
-        </div>
-      </aside>
+            {/* Admin-only. The guard keeps non-admins out AND keeps the admin
+                chunk from ever being downloaded by them. */}
+            <Route element={<RequireRole role="admin" />}>
+              <Route path="/admin" element={<Page component={AdminPanelPage} />} />
+            </Route>
+          </Route>
+        </Route>
 
-      {/* Top Header & Content Area */}
-      <div className="main-content">
-        {/* Top Navbar */}
-        <header className="app-topbar" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '2rem',
-          paddingBottom: '1rem',
-          borderBottom: '1px solid var(--card-border)'
-        }}>
-          {/* Mobile menu toggle */}
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{
-              display: 'none',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-main)',
-              cursor: 'pointer'
-            }}
-            className="mobile-toggle"
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-
-          <div className="app-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginInlineStart: 'auto' }}>
-            {/* Dark / Light Theme Switcher */}
-            <button 
-              onClick={toggleTheme}
-              title={theme === 'dark' ? (isRTL ? "تفعيل الوضع النهاري" : "Switch to Light Mode") : (isRTL ? "تفعيل الوضع الليلي" : "Switch to Dark Mode")}
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--card-border)',
-                color: 'var(--text-main)',
-                padding: '0.4rem 0.8rem',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              {theme === 'dark' ? <Sun size={15} style={{ color: '#f59e0b' }} /> : <Moon size={15} style={{ color: '#4f46e5' }} />}
-              <span className="desktop-only">{theme === 'dark' ? (isRTL ? 'نهاري' : 'Light') : (isRTL ? 'ليلي' : 'Dark')}</span>
-            </button>
-
-            {/* Quick Lang Indicator */}
-            <button 
-              onClick={toggleLanguage}
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--card-border)',
-                color: 'var(--text-main)',
-                padding: '0.4rem 0.8rem',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem'
-              }}
-            >
-              <Globe size={14} />
-              <span>{lang === 'ar' ? 'EN' : 'AR'}</span>
-            </button>
-
-            {/* Profile widget */}
-            <div className="app-profile-chip" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
-              <div style={{ width: '1.5rem', height: '1.5rem', borderRadius: '50%', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <User size={12} style={{ color: '#818cf8' }} />
-              </div>
-              <span className="profile-email" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{user?.email}</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Render page element */}
-        {renderPage()}
-        <FloatingAIAssistant />
-      </div>
-
-      {/* Mobile Bottom Navigation Bar (Screens <= 768px) */}
-      <nav className="mobile-bottom-bar">
-        <button 
-          className={`mobile-bar-item ${page === 'dashboard' ? 'active' : ''}`} 
-          onClick={() => handleNav('dashboard')}
-        >
-          <BarChart3 size={20} />
-          <span>{isRTL ? 'الرئيسية' : 'Dashboard'}</span>
-        </button>
-        
-        <button 
-          className={`mobile-bar-item ${page === 'crm' || page === 'leadDetails' ? 'active' : ''}`} 
-          onClick={() => handleNav('crm')}
-        >
-          <Users size={20} />
-          <span>{isRTL ? 'العملاء' : 'CRM'}</span>
-        </button>
-
-        <button 
-          className={`mobile-bar-item ${page === 'whatsapp' ? 'active' : ''}`} 
-          onClick={() => handleNav('whatsapp')}
-        >
-          <MessageSquare size={20} />
-          <span>{isRTL ? 'واتساب' : 'WhatsApp'}</span>
-        </button>
-
-        <button 
-          className={`mobile-bar-item ${page === 'aiAssistant' ? 'active' : ''}`} 
-          onClick={() => handleNav('aiAssistant')}
-        >
-          <Sparkles size={20} />
-          <span>{isRTL ? 'المساعد' : 'AI Assistant'}</span>
-        </button>
-
-        <button 
-          className={`mobile-bar-item ${page === 'tasks' ? 'active' : ''}`} 
-          onClick={() => handleNav('tasks')}
-        >
-          <Calendar size={20} />
-          <span>{isRTL ? 'المهام' : 'Tasks'}</span>
-        </button>
-      </nav>
-
-      {/* Dynamic mobile drawer styles consolidated in index.css */}
-    </div>
+        <Route path="*" element={<Navigate to="/landing" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
 export default function App() {
   return (
-    <AppProvider>
-      <LanguageProvider>
-        <CRMProvider>
-          <AppContent />
-        </CRMProvider>
-      </LanguageProvider>
-    </AppProvider>
+    <HashRouter>
+      <AppProvider>
+        <LanguageProvider>
+          <CRMProvider>
+            <NavigationProvider>
+              <AppRoutes />
+            </NavigationProvider>
+          </CRMProvider>
+        </LanguageProvider>
+      </AppProvider>
+    </HashRouter>
   );
 }

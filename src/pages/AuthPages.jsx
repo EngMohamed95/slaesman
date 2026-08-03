@@ -1,215 +1,149 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
-import { Sparkles, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Sparkles, Mail, Lock, ArrowLeft, AlertTriangle, MailCheck } from 'lucide-react';
 
-const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" style={{ flexShrink: 0, marginInlineEnd: '0.5rem' }} xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.62-2.85c-.22-.66-.35-1.36-.35-2.09z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.62 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-  </svg>
-);
+/**
+ * Supabase error codes → a sentence the user can act on.
+ *
+ * The old screen could not fail: it accepted any email with any password. Every
+ * branch here is a real server verdict, so the message must say which one.
+ */
+const ERROR_MESSAGES = {
+  invalid_credentials: {
+    ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+    en: 'Incorrect email or password.',
+  },
+  email_not_confirmed: {
+    ar: 'لم يتم تأكيد بريدك بعد. افتح رسالة التأكيد المرسلة إليك.',
+    en: 'Your email is not confirmed yet. Open the confirmation link we sent you.',
+  },
+  user_already_exists: {
+    ar: 'هذا البريد مسجّل بالفعل. سجّل الدخول بدلاً من إنشاء حساب.',
+    en: 'This email is already registered. Sign in instead.',
+  },
+  email_exists: {
+    ar: 'هذا البريد مسجّل بالفعل. سجّل الدخول بدلاً من إنشاء حساب.',
+    en: 'This email is already registered. Sign in instead.',
+  },
+  weak_password: {
+    ar: 'كلمة المرور ضعيفة. استخدم 8 أحرف على الأقل مع أرقام ورموز.',
+    en: 'Password is too weak. Use at least 8 characters with numbers and symbols.',
+  },
+  validation_failed: {
+    ar: 'تحقق من صيغة البريد الإلكتروني وكلمة المرور.',
+    en: 'Check the email and password format.',
+  },
+  over_email_send_rate_limit: {
+    ar: 'تم إرسال رسائل كثيرة. انتظر دقيقة ثم أعد المحاولة.',
+    en: 'Too many emails sent. Wait a minute and try again.',
+  },
+  over_request_rate_limit: {
+    ar: 'محاولات كثيرة جداً. انتظر قليلاً ثم أعد المحاولة.',
+    en: 'Too many attempts. Please wait and try again.',
+  },
+  signup_disabled: {
+    ar: 'التسجيل الذاتي معطّل حالياً. تواصل مع الدعم لفتح حساب.',
+    en: 'Self sign-up is disabled. Contact support to get an account.',
+  },
+  not_configured: {
+    ar: 'خدمة الحسابات غير مهيأة على هذه النسخة. راجع إعدادات النشر.',
+    en: 'The accounts service is not configured on this deployment.',
+  },
+};
+
+const describeError = (result, isRTL) => {
+  const known = ERROR_MESSAGES[result.code];
+  if (known) return isRTL ? known.ar : known.en;
+
+  // Supabase surfaces transport failures as a bare "Failed to fetch", which
+  // reads like a bug in the app rather than a connectivity problem.
+  if (/fetch|network|timeout/i.test(result.message || '')) {
+    return isRTL
+      ? 'تعذّر الوصول إلى الخادم. تحقّق من اتصالك بالإنترنت ثم أعد المحاولة.'
+      : 'Could not reach the server. Check your connection and try again.';
+  }
+
+  if (result.message) return result.message;
+  return isRTL ? 'تعذّر إتمام العملية. حاول مرة أخرى.' : 'Something went wrong. Please try again.';
+};
 
 export default function AuthPages({ mode, setPage }) {
-  const { t, isRTL } = useLanguage();
-  const { login, register } = useApp();
-  
+  const { isRTL } = useLanguage();
+  const { signIn, signUp, resetPassword, authConfigured } = useApp();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(mode === 'register');
-  const [chosenPlan, setChosenPlan] = useState('Trial'); // Default to Trial plan
   const [error, setError] = useState('');
-  const [googleLoaded, setGoogleLoaded] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Poll for official Google API load
-  React.useEffect(() => {
-    const checkGoogleSdk = () => {
-      if (window.google && window.google.accounts) {
-        setGoogleLoaded(true);
-      }
-    };
-    const timer = setInterval(checkGoogleSdk, 300);
-    return () => clearInterval(timer);
-  }, []);
+  // Google sign-in is intentionally absent. The previous implementation decoded
+  // the Google ID token in the browser and trusted its claims, and shipped a
+  // simulated account chooser that logged in via an unchecked postMessage. Both
+  // were auth bypasses. Supabase OAuth providers can be added on top of the
+  // client in src/lib/supabase.js once the provider is configured server-side.
 
-  const handleCredentialResponse = (response) => {
-    try {
-      const jwtToken = response.credential;
-      const base64Url = jwtToken.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(window.atob(base64));
-      
-      const emailVal = payload.email;
-      if (emailVal) {
-        if (isRegister) {
-          register(emailVal, 'google-oauth', chosenPlan);
-          setPage('onboarding');
-        } else {
-          login(emailVal, 'google-oauth');
-          setPage('dashboard');
-        }
-      }
-    } catch (err) {
-      console.error("Error parsing Google credentials", err);
-      setError(isRTL ? "فشل التحقق من حساب Google" : "Google credentials validation failed.");
-    }
-  };
-
-  // Mount real Google button
-  React.useEffect(() => {
-    if (googleLoaded && document.getElementById('googleButtonContainer')) {
-      try {
-        const savedClientId = localStorage.getItem('salesmate_google_client_id') || '533191763459-98dvum3hqjvcdf6psq2c264dhq44ase5.apps.googleusercontent.com';
-        window.google.accounts.id.initialize({
-          client_id: savedClientId,
-          callback: handleCredentialResponse
-        });
-        
-        window.google.accounts.id.renderButton(
-          document.getElementById('googleButtonContainer'),
-          { 
-            theme: 'outline', 
-            size: 'large', 
-            width: 396,
-            text: isRegister ? 'signup_with' : 'signin_with',
-            locale: isRTL ? 'ar' : 'en' 
-          }
-        );
-      } catch (e) {
-        console.error("Google button render error:", e);
-      }
-    }
-  }, [googleLoaded, isRegister, chosenPlan, isRTL]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setNotice('');
+
     if (!email || !password) {
       setError(isRTL ? 'الرجاء إدخال البريد الإلكتروني وكلمة المرور' : 'Please fill all fields');
       return;
     }
 
-    if (isRegister) {
-      register(email, password, chosenPlan);
-      setPage('onboarding');
-    } else {
-      login(email, password);
-      setPage('dashboard');
-    }
-  };
+    setSubmitting(true);
+    const result = isRegister
+      ? await signUp(email.trim(), password)
+      : await signIn(email.trim(), password);
+    setSubmitting(false);
 
-  const handleGoogleSignIn = () => {
-    // Open a styled mock Google accounts OAuth chooser popup window
-    const width = 500;
-    const height = 600;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    
-    const popup = window.open(
-      '',
-      'GoogleSignIn',
-      `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no,location=no`
-    );
-
-    if (!popup) {
-      alert(isRTL ? "الرجاء تمكين النوافذ المنبثقة لتسجيل الدخول عبر جوجل" : "Please enable popups to sign in with Google.");
+    if (!result.ok) {
+      setError(describeError(result, isRTL));
       return;
     }
 
-    popup.document.write(`
-      <html>
-        <head>
-          <title>Sign in with Google</title>
-          <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-          <style>
-            body { font-family: 'Cairo', 'Roboto', sans-serif; background: #fff; margin: 0; padding: 20px; text-align: center; color: #202124; direction: ${isRTL ? 'rtl' : 'ltr'}; }
-            .header { margin-top: 20px; }
-            .logo { height: 28px; margin-bottom: 16px; }
-            .title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-            .subtitle { font-size: 14px; color: #5f6368; margin-bottom: 24px; }
-            .accounts-list { border: 1px solid #dadce0; border-radius: 8px; max-width: 380px; margin: 0 auto; overflow: hidden; text-align: ${isRTL ? 'right' : 'left'}; }
-            .account-row { display: flex; align-items: center; padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #dadce0; transition: background 0.2s; }
-            .account-row:last-child { border-bottom: none; }
-            .account-row:hover { background: #f8f9fa; }
-            .avatar { width: 32px; height: 32px; border-radius: 50%; background: #e8f0fe; color: #1a73e8; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-inline-end: 12px; }
-            .details { flex: 1; }
-            .name { font-size: 14px; font-weight: 700; }
-            .email { font-size: 12px; color: #5f6368; }
-            .custom-input { margin: 24px auto; max-width: 380px; text-align: ${isRTL ? 'right' : 'left'}; }
-            .custom-input label { display: block; font-size: 12px; font-weight: 700; color: #5f6368; margin-bottom: 6px; }
-            .custom-input input { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 13px; }
-            .submit-btn { width: 100%; padding: 12px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; margin-top: 12px; font-family: inherit; }
-            .submit-btn:hover { background: #1557b0; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <svg viewBox="0 0 24 24" width="28" height="28" class="logo" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.62-2.85c-.22-.66-.35-1.36-.35-2.09z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.62 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            <div class="title">${isRTL ? "اختر حساباً" : "Choose an account"}</div>
-            <div class="subtitle">${isRTL ? "للمتابعة إلى أد تو ديل AI" : "to continue to AdToDeal AI"}</div>
-          </div>
+    if (isRegister && result.needsConfirmation) {
+      // No session yet — sending them into the app would show a signed-out shell.
+      setNotice(isRTL
+        ? 'أرسلنا رابط تأكيد إلى بريدك. افتحه لتفعيل الحساب ثم سجّل الدخول.'
+        : 'We sent a confirmation link to your email. Open it to activate your account, then sign in.');
+      setPassword('');
+      setIsRegister(false);
+      return;
+    }
 
-          <div class="accounts-list">
-            <div class="account-row" onclick="selectAccount('عبد الله محمد', 'abdullah.mohammad@gmail.com')">
-              <div class="avatar">ع</div>
-              <div class="details">
-                <div class="name">عبد الله محمد</div>
-                <div class="email">abdullah.mohammad@gmail.com</div>
-              </div>
-            </div>
-            <div class="account-row" onclick="selectAccount('Sarah Connor', 'sarah.connor@gmail.com')">
-              <div class="avatar">S</div>
-              <div class="details">
-                <div class="name">Sarah Connor</div>
-                <div class="email">sarah.connor@gmail.com</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="custom-input">
-            <label>${isRTL ? "أو سجل بحساب جوجل آخر" : "Or sign in with another Google account"}</label>
-            <input type="email" id="customEmail" placeholder="email@gmail.com" value="user.saas@gmail.com" />
-            <button class="submit-btn" onclick="submitCustomAccount()">${isRTL ? "متابعة" : "Continue"}</button>
-          </div>
-
-          <script>
-            function selectAccount(name, email) {
-              window.opener.postMessage({ type: 'GOOGLE_SIGN_IN_SUCCESS', name, email }, '*');
-              window.close();
-            }
-            function submitCustomAccount() {
-              const email = document.getElementById('customEmail').value;
-              if (email) {
-                const name = email.split('@')[0];
-                selectAccount(name, email);
-              }
-            }
-          </script>
-        </body>
-      </html>
-    `);
-
-    const handleMessage = (event) => {
-      if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
-        const { email } = event.data;
-        if (isRegister) {
-          register(email, 'google-oauth', chosenPlan);
-          setPage('onboarding');
-        } else {
-          login(email, 'google-oauth');
-          setPage('dashboard');
-        }
-        window.removeEventListener('message', handleMessage);
-      }
-    };
-    window.addEventListener('message', handleMessage);
+    // Deliberately no navigation here. The session lands via onAuthStateChange
+    // and `RedirectIfAuthed` (which wraps this route) sends the user to
+    // /onboarding or /dashboard. Navigating from here as well raced that guard,
+    // and the guard won — new accounts skipped onboarding entirely.
   };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setNotice('');
+    if (!email) {
+      setError(isRTL ? 'أدخل بريدك الإلكتروني أولاً' : 'Enter your email address first');
+      return;
+    }
+    setSubmitting(true);
+    const result = await resetPassword(email.trim());
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(describeError(result, isRTL));
+      return;
+    }
+    setNotice(isRTL
+      ? 'إن كان البريد مسجّلاً، ستصلك رسالة لإعادة تعيين كلمة المرور.'
+      : 'If that email is registered, a password reset link is on its way.');
+  };
+
+  const submitLabel = isRegister
+    ? (isRTL ? 'إنشاء حساب' : 'Create account')
+    : (isRTL ? 'تسجيل الدخول' : 'Sign in');
 
   return (
     <div style={{
@@ -220,8 +154,8 @@ export default function AuthPages({ mode, setPage }) {
       padding: '2rem 1rem',
       background: 'var(--bg-darker)'
     }} className="fade-in">
-      <button 
-        onClick={() => setPage('landing')} 
+      <button
+        onClick={() => setPage('landing')}
         style={{
           position: 'absolute',
           top: '2rem',
@@ -246,14 +180,37 @@ export default function AuthPages({ mode, setPage }) {
             <Sparkles style={{ color: 'var(--secondary)' }} size={28} />
           </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>
-            {isRegister ? t('navRegister') : t('navLogin')}
+            {submitLabel}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            {isRegister 
+            {isRegister
               ? (isRTL ? "أنشئ حسابك التجريبي المجاني لمدة شهر وابدأ اليوم" : "Create your 1-month free trial account and start today.")
               : (isRTL ? "مرحباً بك مجدداً في لوحة تحكمك" : "Welcome back to your workspace.")}
           </p>
         </div>
+
+        {!authConfigured && (
+          <div style={{
+            background: 'var(--danger-glow)',
+            color: 'var(--danger)',
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.82rem',
+            marginBottom: '1rem',
+            textAlign: 'start',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'flex-start'
+          }}>
+            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+            <span>
+              {isRTL
+                ? 'خدمة الحسابات غير مهيأة: أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في ملف .env.local ثم أعد تشغيل الخادم.'
+                : 'Accounts are not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local, then restart the dev server.'}
+            </span>
+          </div>
+        )}
 
         {error && (
           <div style={{
@@ -270,21 +227,39 @@ export default function AuthPages({ mode, setPage }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          
+        {notice && (
+          <div style={{
+            background: 'var(--success-glow)',
+            color: 'var(--success)',
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.85rem',
+            marginBottom: '1rem',
+            textAlign: 'start',
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'flex-start'
+          }}>
+            <MailCheck size={16} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+            <span>{notice}</span>
+          </div>
+        )}
 
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', textAlign: 'start' }}>
               {isRTL ? "البريد الإلكتروني" : "Email Address"}
             </label>
             <div style={{ position: 'relative' }}>
               <Mail size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '1rem', color: 'var(--text-muted)' }} />
-              <input 
-                type="email" 
-                placeholder="you@example.com" 
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{ paddingInlineStart: '2.5rem', fontSize: '0.85rem', padding: '0.65rem 1rem 0.65rem 2.5rem' }} 
+                style={{ paddingInlineStart: '2.5rem', fontSize: '0.85rem', padding: '0.65rem 1rem 0.65rem 2.5rem' }}
               />
             </div>
           </div>
@@ -295,97 +270,71 @@ export default function AuthPages({ mode, setPage }) {
             </label>
             <div style={{ position: 'relative' }}>
               <Lock size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '1rem', color: 'var(--text-muted)' }} />
-              <input 
-                type="password" 
-                placeholder="••••••••" 
+              <input
+                type="password"
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ paddingInlineStart: '2.5rem', fontSize: '0.85rem', padding: '0.65rem 1rem 0.65rem 2.5rem' }} 
+                style={{ paddingInlineStart: '2.5rem', fontSize: '0.85rem', padding: '0.65rem 1rem 0.65rem 2.5rem' }}
               />
             </div>
+            {isRegister && (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.4rem 0 0', textAlign: 'start' }}>
+                {isRTL ? '8 أحرف على الأقل.' : 'At least 8 characters.'}
+              </p>
+            )}
           </div>
 
-          <button className="btn btn-primary" type="submit" style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            {isRegister ? t('navRegister') : t('navLogin')}
+          <button
+            className="btn btn-primary"
+            type="submit"
+            disabled={submitting || !authConfigured}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              fontSize: '0.9rem',
+              marginTop: '0.25rem',
+              opacity: (submitting || !authConfigured) ? 0.6 : 1,
+              cursor: (submitting || !authConfigured) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {submitting
+              ? (isRTL ? 'جارٍ المعالجة…' : 'Working…')
+              : submitLabel}
           </button>
         </form>
 
-
-
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
-          <span style={{ padding: '0 0.75rem' }}>{isRTL ? "أو سجل بواسطة" : "OR CONTINUE WITH"}</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
-        </div>
-
-        {/* Google OAuth Button */}
-        {googleLoaded ? (
-          <div style={{ width: '100%' }}>
-            <div 
-              id="googleButtonContainer" 
-              style={{ 
-                width: '100%', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                marginTop: '0.5rem',
-                minHeight: '44px' 
-              }}
-            />
+        {!isRegister && (
+          <div style={{ textAlign: 'center', marginTop: '0.85rem' }}>
             <button
               type="button"
-              onClick={handleGoogleSignIn}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                fontSize: '0.75rem',
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                marginTop: '0.5rem',
-                textAlign: 'center',
-                width: '100%'
-              }}
+              onClick={handleForgotPassword}
+              disabled={submitting || !authConfigured}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}
             >
-              {isRTL ? "⚠️ هل واجهت مشكلة؟ اضغط هنا للدخول السريع بالمحاكاة" : "⚠️ Facing Google login issues? Click here to bypass via simulation"}
+              {isRTL ? 'نسيت كلمة المرور؟' : 'Forgot your password?'}
             </button>
           </div>
-        ) : (
-          <button
-            onClick={handleGoogleSignIn}
-            className="btn btn-secondary"
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.75rem',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              borderRadius: '0.5rem',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--card-border)'
-            }}
-          >
-            <GoogleIcon />
-            <span>{isRTL ? "تسجيل الدخول بواسطة Google (تجريبي)" : "Sign in with Google (Simulation)"}</span>
-          </button>
         )}
 
         <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.85rem' }}>
           <span style={{ color: 'var(--text-muted)' }}>
-            {isRegister 
+            {isRegister
               ? (isRTL ? "لديك حساب بالفعل؟ " : "Already have an account? ")
               : (isRTL ? "ليس لديك حساب بعد؟ " : "Don't have an account yet? ")}
           </span>
-          <button 
+          <button
             onClick={() => {
               setIsRegister(!isRegister);
               setError('');
+              setNotice('');
             }}
             style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: 600, cursor: 'pointer', padding: 0 }}
           >
-            {isRegister ? t('navLogin') : t('navRegister')}
+            {isRegister
+              ? (isRTL ? 'تسجيل الدخول' : 'Sign in')
+              : (isRTL ? 'إنشاء حساب' : 'Create account')}
           </button>
         </div>
       </div>

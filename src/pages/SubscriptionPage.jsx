@@ -1,66 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
 import {
   Check, Sparkles, CreditCard, RefreshCw, Globe, ChevronDown, X, Info
 } from 'lucide-react';
+import { usePlanCatalog, CURRENCY_META } from '../lib/usePlanCatalog';
 
-const CURRENCIES = {
-  SAR: { 
-    id: 'SAR',
-    symbolAr: 'ريال', 
-    symbolEn: 'SAR', 
-    flag: '🇸🇦', 
-    nameAr: 'ريال سعودي', 
-    nameEn: 'Saudi Riyal', 
-    prices: { Basic: 100, Pro: 399, Growth: 999 } 
-  },
-  USD: { 
-    id: 'USD',
-    symbolAr: '$', 
-    symbolEn: '$', 
-    flag: '🇺🇸', 
-    nameAr: 'دولار أمريكي', 
-    nameEn: 'US Dollar', 
-    prices: { Basic: 27, Pro: 109, Growth: 272 } 
-  },
-  AED: { 
-    id: 'AED',
-    symbolAr: 'درهم', 
-    symbolEn: 'AED', 
-    flag: '🇦🇪', 
-    nameAr: 'درهم إماراتي', 
-    nameEn: 'UAE Dirham', 
-    prices: { Basic: 100, Pro: 399, Growth: 999 } 
-  },
-  EGP: { 
-    id: 'EGP',
-    symbolAr: 'جنيه', 
-    symbolEn: 'EGP', 
-    flag: '🇪🇬', 
-    nameAr: 'جنيه مصري', 
-    nameEn: 'Egyptian Pound', 
-    prices: { Basic: 1300, Pro: 5200, Growth: 13000 } 
-  },
-  JOD: { 
-    id: 'JOD',
-    symbolAr: 'دينار', 
-    symbolEn: 'JOD', 
-    flag: '🇯🇴', 
-    nameAr: 'دينار أردني', 
-    nameEn: 'Jordanian Dinar', 
-    prices: { Basic: 19, Pro: 76, Growth: 190 } 
-  }
-};
+// Prices are no longer here. They were duplicated in UpgradePaywall, so the two
+// could quote different numbers for the same plan. Both now read `plan_prices`
+// through usePlanCatalog(); only display metadata stays client-side.
+const CURRENCIES = Object.fromEntries(
+  Object.entries(CURRENCY_META).map(([id, meta]) => [id, { id, ...meta }])
+);
 
 export default function SubscriptionPage() {
   const { t, isRTL } = useLanguage();
   const {
     plan,
+    subscription,
     selectedCurrency, setSelectedCurrency,
     detectedCountry, setDetectedCountry,
     isDetecting
   } = useApp();
+
+  // Was the string "30 days remaining", shown no matter how much time was left.
+  // Computed in an effect rather than during render: reading the clock while
+  // rendering makes the component impure.
+  const [daysRemaining, setDaysRemaining] = useState(null);
+
+  useEffect(() => {
+    const end = subscription?.current_period_end;
+    setDaysRemaining(end
+      ? Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86400000))
+      : null);
+  }, [subscription?.current_period_end]);
+
+  const { priceFor, loading: pricesLoading, error: pricesError } = usePlanCatalog();
 
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
 
@@ -82,7 +57,7 @@ export default function SubscriptionPage() {
     {
       id: 'Basic',
       name: t('planBasic'),
-      price: currencyInfo.prices.Basic,
+      price: priceFor('Basic', selectedCurrency),
       features: [
         t('featuresCRM'),
         t('featuresReminders'),
@@ -93,7 +68,7 @@ export default function SubscriptionPage() {
     {
       id: 'Pro',
       name: t('planPro'),
-      price: currencyInfo.prices.Pro,
+      price: priceFor('Pro', selectedCurrency),
       features: [
         t('featuresCRM'),
         t('featuresReminders'),
@@ -105,7 +80,7 @@ export default function SubscriptionPage() {
     {
       id: 'Growth',
       name: t('planGrowth'),
-      price: currencyInfo.prices.Growth,
+      price: priceFor('Growth', selectedCurrency),
       features: [
         isRTL ? "نظام إدارة علاقات العملاء CRM كامل" : "Full premium CRM suite",
         t('featuresAIFull'),
@@ -264,7 +239,9 @@ export default function SubscriptionPage() {
             fontWeight: 800,
             border: '1px solid rgba(59, 130, 246, 0.3)'
           }}>
-            {isRTL ? "متبقي 30 يوماً" : "30 days remaining"}
+            {daysRemaining === null
+              ? (isRTL ? 'نشطة' : 'Active')
+              : (isRTL ? `متبقي ${daysRemaining} يوماً` : `${daysRemaining} days remaining`)}
           </div>
         </div>
       )}
@@ -278,6 +255,24 @@ export default function SubscriptionPage() {
           {isRTL ? "اختر الخطة المناسبة لحجم عملاءك وأهدافك التسويقية" : t('billingSubtitle')}
         </p>
       </div>
+
+      {pricesError && (
+        <div style={{
+          maxWidth: '1000px',
+          margin: '0 auto 1.5rem',
+          background: 'var(--danger-glow)',
+          color: 'var(--danger)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: '0.5rem',
+          padding: '0.75rem 1rem',
+          fontSize: '0.85rem',
+          textAlign: 'start'
+        }}>
+          {isRTL
+            ? 'تعذّر تحميل قائمة الأسعار من الخادم، لذلك تظهر الأسعار كـ«—». حدّث الصفحة.'
+            : 'Could not load the price list from the server, so prices show as “—”. Please refresh.'}
+        </div>
+      )}
 
       {/* Plan Card Grid */}
       <div className="grid-3" style={{ maxWidth: '1000px', margin: '0 auto', gap: '1.5rem' }}>
@@ -322,7 +317,12 @@ export default function SubscriptionPage() {
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, textAlign: 'start' }}>{p.name}</h3>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', margin: '1.5rem 0', justifyContent: 'flex-start' }}>
-                  <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>{p.price}</span>
+                  {/* Prices come from the server; never invent one locally as a
+                      fallback, or the page can quote a figure billing will not
+                      honour. */}
+                  <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    {p.price === null ? (pricesLoading ? '…' : '—') : p.price.toLocaleString('en-US')}
+                  </span>
                   <span style={{ fontSize: '1rem', color: 'var(--text-main)', marginInlineStart: '0.25rem' }}>{symbol}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginInlineStart: '0.25rem' }}>/{t('priceMonth')}</span>
                 </div>

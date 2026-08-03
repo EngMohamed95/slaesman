@@ -2,10 +2,12 @@ import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
 import { Lock, Sparkles, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { usePlanCatalog, CURRENCY_META } from '../lib/usePlanCatalog';
 
 export default function UpgradePaywall({ requiredPlan, featureNameAr, featureNameEn }) {
   const { isRTL } = useLanguage();
   const { selectedCurrency } = useApp();
+  const { priceFor, loading: pricesLoading } = usePlanCatalog();
 
   // Upgrading happens on the subscriptions page. This component must never
   // grant a plan itself — the previous version called setPlan() straight from
@@ -14,21 +16,19 @@ export default function UpgradePaywall({ requiredPlan, featureNameAr, featureNam
     window.location.hash = '/subscriptions';
   };
 
-  // Set prices dynamically based on currency
+  /**
+   * The price comes from `plan_prices`, the same row the subscriptions page
+   * reads. This used to be a hardcoded if/else per currency that also assumed
+   * "anything not Growth costs the Pro price" — so a Basic paywall quoted Pro
+   * money, and any price change had to be made in two files or they diverged.
+   */
   const getUpgradePrice = () => {
-    if (selectedCurrency === 'SAR') {
-      return requiredPlan === 'Growth' ? '999 ريال / شهرياً' : '399 ريال / شهرياً';
-    }
-    if (selectedCurrency === 'AED') {
-      return requiredPlan === 'Growth' ? '999 درهم / شهرياً' : '399 درهم / شهرياً';
-    }
-    if (selectedCurrency === 'EGP') {
-      return requiredPlan === 'Growth' ? '13,000 جنيه / شهرياً' : '5,200 جنيه / شهرياً';
-    }
-    if (selectedCurrency === 'JOD') {
-      return requiredPlan === 'Growth' ? '190 دينار / شهرياً' : '76 دينار / شهرياً';
-    }
-    return requiredPlan === 'Growth' ? '$272 / month' : '$109 / month';
+    const amount = priceFor(requiredPlan, selectedCurrency);
+    if (amount === null) return pricesLoading ? '…' : '—';
+    const meta = CURRENCY_META[selectedCurrency] || CURRENCY_META.SAR;
+    const symbol = isRTL ? meta.symbolAr : meta.symbolEn;
+    const perMonth = isRTL ? 'شهرياً' : 'month';
+    return `${amount.toLocaleString('en-US')} ${symbol} / ${perMonth}`;
   };
 
   return (

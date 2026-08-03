@@ -22,7 +22,7 @@ There is no test framework configured. `README.md` is the unmodified Vite templa
 
 This codebase is being converted from prototype to a real multi-tenant SaaS on **Supabase** (Postgres + Auth + RLS + Edge Functions), with organizations/teams, server-enforced entitlements, and the official WhatsApp Cloud API. The phased plan lives at `~/.claude/plans/humming-launching-fog.md`.
 
-**Phases 0–4 are done.** All simulated auth, payment and data flows were deleted, not refactored — do not reintroduce them:
+**Phases 0–4 and 7 are done.** All simulated auth, payment and data flows were deleted, not refactored — do not reintroduce them:
 
 - `AuthPages.jsx` has **no Google sign-in**. The old one decoded the Google ID token in the browser with `atob()` and trusted its claims, and shipped a fake account-chooser popup that signed users in via a `postMessage` with no origin check. OAuth providers can now be added through the Supabase client, never by parsing a token in the browser.
 - `SubscriptionPage.jsx` and `UpgradePaywall.jsx` **never grant a plan**. `setPlan` must not be called from any page or component — the server owns entitlements from Phase 7. The checkout modal is an informational placeholder; **do not add a card form**, real checkout redirects to the provider.
@@ -32,7 +32,7 @@ This codebase is being converted from prototype to a real multi-tenant SaaS on *
 - `AdminPanelPage.jsx` lists **real accounts** from `profiles`. The plan / payment-method / amount columns are gone because no subscription data exists yet; they return in Phase 7 from `subscriptions`. The MRR tile shows `—`, not the old `"697 ريال"` string literal.
 - The contacts-import modal (`DEVICE_CONTACTS` in `CRMPage.jsx`) is an empty list with an explanatory empty state. It used to render seven invented people as if read from the user's phone, and importing one created a lead for someone who does not exist.
 
-Still fake, pending later phases: plan storage (Phase 7), the AI layer (Phase 5), and the WhatsApp bridge (Phase 6).
+Still fake, pending later phases: the AI layer (Phase 5 — the Gemini key is still in the browser and failures fall back to canned text), the WhatsApp bridge (Phase 6), and teams/invites (Phase 8).
 
 ### Environment
 
@@ -102,9 +102,26 @@ Still there, keyed by **`user.id`**: `salesmate_plan_{uid}`, `salesmate_onboarde
 
 `src/utils/userStorage.js` re-indexes pre-Phase-1 email-keyed buckets into the id namespace once per account. `AppContext`'s `loadedUid` guard stops the outgoing user's state from being written under the incoming user's key during a switch — keep it.
 
-### Plan gating
+### Plan gating — the server owns entitlements
 
-`validateFeatureAccess(featureKey)` in `AppContext` is the single source of truth for `Trial` / `Basic` / `Pro` / `Growth`. Gated pages early-return `<UpgradePaywall requiredPlan=... featureNameAr=... featureNameEn=... />` instead of their content — see `SocialGeneratorPage.jsx:177` and `CampaignRequestPage.jsx:76`. `ReportsPage` gates a single tab rather than the whole page. `checkAILimit()` / `incrementAICount()` cap Basic at 3 AI queries.
+**`setPlan` does not exist.** It is not in the `AppContext` value at all, so any code that tries to grant a plan fails at destructuring rather than silently succeeding. `plan` is read-only and comes from the `subscriptions` table.
+
+Nothing about a plan is hardcoded in the client any more:
+
+| What | Where it lives |
+|---|---|
+| Which tier a feature needs | `plan_features` rows |
+| Prices per currency | `plan_prices` rows, read via `usePlanCatalog()` |
+| The org's current tier | `subscriptions.plan_code` |
+| AI query cap | `plan_features.limit_value` for `aiQueries` |
+
+`validateFeatureAccess(featureKey)` reads the fetched matrix and **denies while it is loading** — defaulting to allow would flash paid pages open on every load. Gated pages early-return `<UpgradePaywall requiredPlan=... />`; `ReportsPage` gates a single tab.
+
+`subscriptions` has **no insert/update/delete policy and no write grant** for `authenticated`. A browser cannot construct a request that grants itself a plan; writes come from a billing webhook using the service role. The same applies to `plans`/`plan_prices`/`plan_features` and the tenancy tables (`0005_lock_catalog_writes.sql`) — Supabase's default privileges grant ALL on new public tables, so every migration that adds one must revoke explicitly, or RLS ends up defending alone.
+
+Entitlements have teeth in Postgres: `campaign_requests` select **and** insert require `org_has_feature(org_id, 'campaigns')`, so a Trial org gets nothing from REST even with a valid token. An expired or `past_due` subscription entitles nothing — `org_has_feature` and the client's `subscriptionActive` apply the same status/period rules.
+
+Changing what a tier includes is an UPDATE on `plan_features`, not a redeploy.
 
 Shared helper: `src/utils/chatParser.js` holds `parseChatToMessages`, used by both `CRMPage.jsx` and `AIAssistantPage.jsx` (it was previously duplicated byte-for-byte in both).
 

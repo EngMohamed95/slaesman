@@ -88,9 +88,12 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Per-user state. Still localStorage until Phase 4, but keyed by `user.id`.
+  // Per-user preferences. Still localStorage, keyed by `user.id`.
+  //
+  // `plan` is NOT here any more. It used to be `salesmate_plan`, which meant
+  // localStorage.setItem('salesmate_plan', 'Growth') unlocked every paid
+  // feature. It now comes from the `subscriptions` table, below.
   // ---------------------------------------------------------------------------
-  const [plan, setPlan] = useState('Trial');
   const [onboarded, setOnboarded] = useState(false);
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
 
@@ -102,13 +105,11 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const uid = user?.id;
     if (!uid) {
-      setPlan('Trial');
       setOnboarded(false);
       setProfile(DEFAULT_PROFILE);
       setLoadedUid(null);
       return;
     }
-    setPlan(localStorage.getItem(userKey('salesmate_plan_', uid)) || 'Trial');
     setOnboarded(localStorage.getItem(userKey('salesmate_onboarded_', uid)) === 'true');
     const savedProfile = localStorage.getItem(userKey('salesmate_profile_', uid));
     setProfile(savedProfile
@@ -120,14 +121,9 @@ export const AppProvider = ({ children }) => {
   const canPersist = Boolean(user?.id) && loadedUid === user?.id;
 
   // True between "session arrived" and "this account's state is in memory".
-  // Guards must wait on it before reading `onboarded` or `plan`, which still
-  // hold the previous account's values during that window.
+  // Guards must wait on it before reading `onboarded`, which still holds the
+  // previous account's value during that window.
   const userDataLoading = Boolean(user?.id) && loadedUid !== user.id;
-
-  useEffect(() => {
-    if (!canPersist) return;
-    localStorage.setItem(userKey('salesmate_plan_', user.id), plan);
-  }, [plan, canPersist, user?.id]);
 
   useEffect(() => {
     if (!canPersist) return;
@@ -189,6 +185,74 @@ export const AppProvider = ({ children }) => {
 
     return () => { active = false; };
   }, [user?.id]);
+
+  // ---------------------------------------------------------------------------
+  // Entitlements. The plan and its feature matrix come from the server; the
+  // client only renders them. Postgres enforces the same rules through RLS, so
+  // tampering with anything here changes what is drawn, never what is allowed.
+  // ---------------------------------------------------------------------------
+  const [subscription, setSubscription] = useState(null);
+  const [features, setFeatures] = useState({});
+  const [entitlementsLoading, setEntitlementsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!supabase || !org?.id) {
+      setSubscription(null);
+      setFeatures({});
+      return undefined;
+    }
+
+    let active = true;
+    setEntitlementsLoading(true);
+
+    supabase
+      .from('subscriptions')
+      .select('plan_code, status, current_period_end')
+      .eq('org_id', org.id)
+      .maybeSingle()
+      .then(async ({ data, error }) => {
+        if (!active) return;
+        if (error || !data) {
+          if (error) console.warn('[billing] subscription lookup failed:', error.message);
+          setSubscription(null);
+          setFeatures({});
+          return;
+        }
+        setSubscription(data);
+
+        const { data: rows, error: featureError } = await supabase
+          .from('plan_features')
+          .select('feature_key, enabled, limit_value')
+          .eq('plan_code', data.plan_code);
+
+        if (!active) return;
+        if (featureError) {
+          console.warn('[billing] feature matrix failed:', featureError.message);
+          setFeatures({});
+          return;
+        }
+        setFeatures(Object.fromEntries(
+          (rows || []).map((r) => [r.feature_key, { enabled: r.enabled, limit: r.limit_value }])
+        ));
+      })
+      .catch((err) => {
+        if (active) console.warn('[billing] entitlements threw:', err?.message || err);
+      })
+      .finally(() => {
+        if (active) setEntitlementsLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [org?.id]);
+
+  // An expired or unpaid subscription entitles nothing, matching org_has_feature().
+  const subscriptionActive = Boolean(
+    subscription
+    && ['trialing', 'active'].includes(subscription.status)
+    && (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date())
+  );
+
+  const plan = subscriptionActive ? subscription.plan_code : 'Trial';
 
   // ---------------------------------------------------------------------------
   // Theme and currency are device-level, not account-level.
@@ -299,34 +363,42 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Plan gating. Still client-side and still bypassable — the server takes this
-  // over in Phase 7.
+  // Plan gating.
+  //
+  // This decides what to RENDER. It is not the security boundary — RLS is. The
+  // entitlement rules are no longer hardcoded here; they come from
+  // `plan_features`, so changing what a tier includes is a database update, not
+  // a redeploy.
   // ---------------------------------------------------------------------------
   const validateFeatureAccess = (featureKey) => {
     if (user?.role === 'admin') return true;
     if (featureKey === 'admin') return false;
 
-    const basicPages = ['dashboard', 'crm', 'tasks', 'aiAssistant', 'whatsapp', 'reports', 'settings'];
-
-    if (plan === 'Basic') return basicPages.includes(featureKey);
-    if (plan === 'Pro') return featureKey !== 'campaigns';
-    if (plan === 'Growth') return true;
-    if (plan === 'Trial') return basicPages.includes(featureKey);
-
-    return true;
+    // While the matrix is in flight, deny. Granting by default would flash paid
+    // pages open on every load.
+    const feature = features[featureKey];
+    if (!feature) return false;
+    return feature.enabled;
   };
 
   const aiCountKey = () => userKey('salesmate_ai_query_count_', user?.id);
 
+  /**
+   * Client-side counter, and it is only a courtesy: it lives in localStorage and
+   * can be reset from the console. Phase 5 moves metering into a Postgres
+   * transaction taken before the model call.
+   */
+  const aiQueryLimit = features.aiQueries?.limit ?? null;
+
   const checkAILimit = () => {
-    if (plan !== 'Basic') return { allowed: true };
+    if (aiQueryLimit === null) return { allowed: true };
     const count = Number(localStorage.getItem(aiCountKey()) || 0);
-    if (count >= 3) return { allowed: false, count };
-    return { allowed: true, count };
+    if (count >= aiQueryLimit) return { allowed: false, count, limit: aiQueryLimit };
+    return { allowed: true, count, limit: aiQueryLimit };
   };
 
   const incrementAICount = () => {
-    if (plan !== 'Basic') return;
+    if (aiQueryLimit === null) return;
     const count = Number(localStorage.getItem(aiCountKey()) || 0);
     localStorage.setItem(aiCountKey(), (count + 1).toString());
   };
@@ -354,8 +426,13 @@ export const AppProvider = ({ children }) => {
       resetPassword,
       onboarded,
       setOnboarded,
+      // `plan` is read-only. `setPlan` is deliberately absent from this object:
+      // any surviving exploit site fails at destructuring instead of silently
+      // granting a paid tier. The server owns this value.
       plan,
-      setPlan,
+      subscription,
+      subscriptionActive,
+      entitlementsLoading,
       profile,
       setProfile,
       selectedCurrency,

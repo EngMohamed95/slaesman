@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useCRM } from '../context/CRMContext';
 import { useApp } from '../context/AppContext';
-import { isGeminiActive, callGeminiApi } from '../utils/gemini';
+import { callAI, describeAIError } from '../utils/ai';
 import { useAIConversations } from '../utils/aiConversations';
 import { Sparkles, X, Send, MessageSquare, AlertCircle, HelpCircle } from 'lucide-react';
 
 export default function FloatingAIAssistant() {
-  const { t, isRTL, lang } = useLanguage();
-  const { leads, tasks } = useCRM();
+  const { isRTL, lang } = useLanguage();
   const { checkAILimit, incrementAICount, theme, user } = useApp();
 
   // Conversations are stored per account id, matching every other user bucket.
@@ -24,7 +22,6 @@ export default function FloatingAIAssistant() {
   
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const messagesEndRef = useRef(null);
 
@@ -69,89 +66,45 @@ export default function FloatingAIAssistant() {
       return;
     }
 
-    if (!isGeminiActive()) {
-      // API Key missing error response
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          sender: 'ai',
-          isWarning: true,
-          text: lang === 'ar'
-            ? "تنبيه: مفتاح Gemini API غير مضاف. يرجى التوجه لصفحة الإعدادات وتثبيت المفتاح لتفعيل الدردشة المباشرة."
-            : "Notice: Gemini API Key is missing. Please navigate to the Settings page and add your API key to activate live chat.",
-          createdAt: new Date().toISOString()
-        }]);
-      }, 500);
-      return;
-    }
+    // There is no local key to check any more, and no "is the AI switched on"
+    // question to ask: the server answers or it reports why it cannot.
 
     setLoading(true);
-    setErrorMsg('');
 
     try {
-      // Gather active leads and tasks context
-      const simplifiedLeads = leads.map(l => ({
-        name: isRTL ? (l.nameAr || l.name) : l.name,
-        status: isRTL ? (l.statusAr || l.status) : l.status,
-        budget: l.budget,
-        source: isRTL ? (l.sourceAr || l.source) : l.source,
-        interest: isRTL ? (l.interestLevelAr || l.interestLevel) : l.interestLevel,
-        service: isRTL ? (l.serviceAr || l.service) : l.service,
-        notes: isRTL ? (l.notesAr || l.notes) : l.notes
-      }));
-
-      const simplifiedTasks = tasks.map(t => ({
-        title: isRTL ? (t.titleAr || t.title) : t.title,
-        completed: t.completed,
-        priority: t.priority
-      }));
+      // Leads and tasks are NOT sent. The proxy reads them itself under this
+      // user's RLS. The old code inlined JSON.stringify(leads) into the prompt,
+      // which meant a request of hundreds of kilobytes for a large pipeline.
 
       // Gather chat history (limit to last 6 messages to avoid bloating token limit)
       const chatHistory = messages.slice(-6).map(m => 
         `${m.sender === 'user' ? 'User' : 'Assistant'}: ${m.text}`
       ).join('\n');
 
-      const systemPrompt = `
-        You are a highly efficient, supportive, and context-aware CRM Sales Assistant floating chatbot.
-        You assist the agent by looking at their real-time client leads and tasks database.
-        
-        System Language: ${lang === 'ar' ? 'Arabic' : 'English'}.
-        YOU MUST CORRESPOND AND REPLY ONLY IN ${lang === 'ar' ? 'Arabic' : 'English'}. Keep responses short, concise, and helpful (max 3 small paragraphs).
+      // No system instruction from here. The `assistant_chat` task carries its
+      // own, server-side, so nothing a customer types can rewrite it.
+      const prompt = `Conversation History:\n${chatHistory}\n\nUser Question: ${query}`;
 
-        CRM DATABASE CONTEXT:
-        - Leads list: ${JSON.stringify(simplifiedLeads)}
-        - Follow-up Tasks: ${JSON.stringify(simplifiedTasks)}
-      `;
-
-      const prompt = `
-        Conversation History:
-        ${chatHistory}
-
-        User Question: ${query}
-
-        Assistant Response:
-      `;
-
-      const aiResponseText = await callGeminiApi(prompt, systemPrompt);
+      const { text } = await callAI('assistant_chat', prompt, { lang });
       incrementAICount();
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'ai',
-        text: aiResponseText,
+        text,
         createdAt: new Date().toISOString()
       }]);
 
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Error occurred');
-      
+      // A real reason, not "check your API key" for every possible failure.
+      const message = describeAIError(err, isRTL);
+
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'ai',
-        text: lang === 'ar'
-          ? "عذراً، حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. يرجى التحقق من اتصال الإنترنت ومفتاح الـ API."
-          : "Sorry, an error occurred while connecting to the AI. Please verify your internet connection and API key.",
+        isWarning: true,
+        text: message,
         createdAt: new Date().toISOString()
       }]);
     } finally {

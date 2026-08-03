@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
 import { useApp } from '../context/AppContext';
 import UpgradePaywall from '../components/UpgradePaywall';
-import { isGeminiActive, callGeminiApi } from '../utils/gemini';
+import { callAI, describeAIError } from '../utils/ai';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -182,21 +182,10 @@ export default function ReportsPage() {
     setAiLoading(true);
     setAiError('');
     try {
-      const simplifiedLeads = filteredLeads.map(l => ({
-        name: isRTL ? (l.nameAr || l.name) : l.name,
-        status: isRTL ? (l.statusAr || l.status) : l.status,
-        budget: l.budget,
-        source: isRTL ? (l.sourceAr || l.source) : l.source,
-        interest: isRTL ? (l.interestLevelAr || l.interestLevel) : l.interestLevel,
-        service: isRTL ? (l.serviceAr || l.service) : l.service
-      }));
-
-      const simplifiedTasks = tasks.map(t => ({
-        title: isRTL ? (t.titleAr || t.title) : t.title,
-        completed: t.completed,
-        priority: t.priority
-      }));
-
+      // Leads and tasks are no longer serialised into the prompt. With 500
+      // leads that was a request of several hundred kilobytes, and it put the
+      // whole pipeline into one request regardless of what the caller may see.
+      // The proxy reads them itself, capped, under this user's RLS.
       const prompt = `
         You are a senior sales consultant and AI business analyst.
         Analyze the following real-time data from a sales CRM application to draft a comprehensive, strategic performance evaluation report.
@@ -205,8 +194,6 @@ export default function ReportsPage() {
         YOU MUST WRITE THE ENTIRE REPORT ONLY IN ${lang === 'ar' ? 'Arabic' : 'English'}. Use bullet points, bold text, emojis, and professional business layout.
 
         DATA BRIEFING:
-        - Leads Database: ${JSON.stringify(simplifiedLeads)}
-        - Follow-up Tasks: ${JSON.stringify(simplifiedTasks)}
         - Key Performance Indicators:
           * Total Leads: ${totalLeads}
           * Won Deals: ${wonLeads}
@@ -224,15 +211,13 @@ export default function ReportsPage() {
         5. **Actionable Recommendations** (توصيات عملية وخطوات قادمة): State 3-5 concrete steps the user must take immediately. Refer to actual lead names from the database for urgent action (e.g. "Draft WhatsApp reply to Sarah Connor", "Re-engage Lina Haddad").
       `;
 
-      const systemInstruction = lang === 'ar' 
-        ? "أنت خبير استشاري ومحلل مبيعات ذكي. قم بصياغة تقارير تحليلية ممتازة ومباشرة بلغة مهنية محفزة وبأعلى جودة باللغة العربية." 
-        : "You are a senior sales performance analyst. Write detailed strategic evaluations based on CRM data in a clean, encouraging, executive tone.";
-
-      const reportText = await callGeminiApi(prompt, systemInstruction);
-      setAiReport(reportText);
+      // The analyst persona and language rules are the proxy's
+      // `performance_report` task; they are not sent from here any more.
+      const { text } = await callAI('performance_report', prompt, { lang });
+      setAiReport(text);
     } catch (err) {
       console.error(err);
-      setAiError(err.message || 'Gemini API Error');
+      setAiError(describeAIError(err, isRTL));
     } finally {
       setAiLoading(false);
     }
@@ -942,20 +927,6 @@ export default function ReportsPage() {
               featureNameAr="المحلل الاستراتيجي الذكي للمبيعات" 
               featureNameEn="AI Sales Analyst Report" 
             />
-          ) : !isGeminiActive() ? (
-            <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem', border: '1px dashed var(--danger)' }}>
-              <AlertCircle size={48} style={{ color: 'var(--danger)', marginBottom: '1rem' }} />
-              <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 700 }}>{isRTL ? "مفتاح API غير متوفر" : "Gemini API Key Missing"}</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: '1.6' }}>
-                {isRTL 
-                  ? "تحليل الذكاء الاصطناعي يتطلب مفتاح API لتشغيل نموذج Gemini. يرجى التوجه لصفحة الإعدادات لإضافة مفتاح API مجاني."
-                  : "To generate dynamic SWOT and strategic reviews from your live CRM database, configure your Google Gemini API Key in Settings first."
-                }
-              </p>
-              <a href="#/settings" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-                {isRTL ? "الانتقال إلى الإعدادات" : "Go to Settings"}
-              </a>
-            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               

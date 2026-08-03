@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
 import UpgradePaywall from '../components/UpgradePaywall';
-import { isGeminiActive, callGeminiApi } from '../utils/gemini';
+import { callAIJson, describeAIError } from '../utils/ai';
 import { 
   Sparkles, Calendar, FileText, Compass, Send, 
   Paperclip, X, Download, Play, Square, Image, FileDown, Check,
@@ -194,6 +194,9 @@ export default function SocialGeneratorPage() {
 
   // Content states
   const [loadingOutput, setLoadingOutput] = useState(false);
+  // Why the last generation failed, shown in the chat instead of pre-written
+  // marketing copy that looked like a successful result.
+  const [aiErrorText, setAiErrorText] = useState('');
   const [generatedContent, setGeneratedContent] = useState(INITIAL_CONTENT);
 
   // Video Caption player simulation
@@ -249,183 +252,17 @@ export default function SocialGeneratorPage() {
   }
 
   // Helper: update outputs based on chat prompt keywords
-  const updateGeneratedContent = (keyword) => {
-    const isAr = isRTL;
-    
-    // Al-Narjis 10% promo
-    if (keyword.includes('نرجس') || keyword.includes('narjis') || keyword.includes('10%') || keyword.includes('خصم')) {
-      setGeneratedContent({
-        ...INITIAL_CONTENT,
-        imageTitle: "مشروع النرجس السكني - عرض خاص",
-        imageTitleEn: "Al-Narjis Residence - Special Offer",
-        imageBody: "خصم فوري 10% على الدفعات الأولى هذا الأسبوع فقط",
-        imageBodyEn: "Instant 10% discount on initial bookings this week only",
-        imageBadge: "خصم 10%",
-        imageBadgeEn: "10% OFF",
-        
-        videoTitle: "خصومات مشروع النرجس",
-        videoTitleEn: "Al-Narjis Project Discounts",
-        videoScriptText: isAr 
-          ? `[سيناريو ريلز/تيك توك - عرض خصم 10% النرجس]\n\n[المشهد 1: لقطة مقربة للمندوب يحمل لافتة خصم 10%]\nالصوت: "عايز توفر 10% من قيمة شقتك الجديدة؟ اسمع العرض ده..."\n\n[المشهد 2: جولة سريعة داخل شقق العرض المجهزة]\nالصوت: "أطلقنا عرضاً خاصاً في حي النرجس شمال الرياض. خصم 10% على الوحدات المتبقية."\n\n[المشهد 3: لقطة لمواقف السيارات والمرافق]\nالصوت: "العرض ساري حتى نهاية الأسبوع فقط. لا تضيع فرصة العمر."\n\n[المشهد 4: دعوة للتواصل]\nالصوت: "ارسل رسالة خاصة واحجز موعد المعاينة الآن!"`
-          : `[Reels/TikTok Script - Al-Narjis 10% Promo]\n\n[Scene 1: Close up of agent holding a 10% discount banner]\nAudio: "Want to save 10% instantly on your next home? Listen to this..."\n\n[Scene 2: Quick tour inside Al-Narjis show apartment]\nAudio: "We just launched a limited promo in Al-Narjis, North Riyadh: 10% off on all remaining apartments."\n\n[Scene 3: View of building lobby and amenities]\nAudio: "This is valid until this Sunday. Secure your flat today."\n\n[Scene 4: Call to action]\nAudio: "DM us '10' and our agent will send pricing schedules immediately!"`,
-          
-        pdfTitle: "كتيب عرض مشروع النرجس - خصم 10%",
-        pdfTitleEn: "Al-Narjis Special Offer Brochure - 10% Off",
-        pdfDescription: "تفاصيل العرض الخاص وحسابات التوفير لمشروع النرجس السكني شمال الرياض بخصم 10% لفترة محدودة.",
-        pdfDescriptionEn: "Special incentive details and payment breakdown for Al-Narjis Residence in North Riyadh with a 10% immediate discount.",
-        pdfSpecs: [
-          { label: "الموقع", val: "الرياض - حي النرجس" },
-          { label: "نسبة الخصم", val: "10% على الدفعة الأولى" },
-          { label: "الوحدات المشمولة", val: "شقق 3 غرف وصالات" },
-          { label: "تاريخ انتهاء العرض", val: "نهاية هذا الأسبوع" }
-        ],
-        pdfSpecsEn: [
-          { label: "Location", val: "Riyadh - Al-Narjis" },
-          { label: "Discount", val: "10% on Down Payment" },
-          { label: "Eligible Units", val: "3-Bedroom Apartments" },
-          { label: "Expiry Date", val: "End of this week" }
-        ]
-      });
-    }
-    // Al-Yasmin Towers
-    else if (keyword.includes('ياسمين') || keyword.includes('yasmin') || keyword.includes('تقسيط') || keyword.includes('installments')) {
-      setGeneratedContent({
-        ...INITIAL_CONTENT,
-        imageTitle: "شقق الياسمين بالتقسيط المريح",
-        imageTitleEn: "Al-Yasmin Apartments on Installments",
-        imageBody: "دفعة حجز 10% وتقسيط الباقي على 7 سنوات بدون فوائد",
-        imageBodyEn: "10% booking payment and split the rest over 7 interest-free years",
-        imageBadge: "تقسيط مريح",
-        imageBadgeEn: "7-Year Plan",
-        
-        pdfTitle: "كتيب خطة سداد مشروع الياسمين",
-        pdfTitleEn: "Al-Yasmin Financing & Floor Plans",
-        pdfDescription: "الملف الكامل لمخططات شقق الياسمين والجدول المالي للأقساط الممتدة على 7 سنوات بدون فوائد."
-      });
-    }
-    // Dubai Hills luxury villas
-    else if (keyword.includes('دبي') || keyword.includes('dubai') || keyword.includes('فيلا') || keyword.includes('villa')) {
-      setGeneratedContent({
-        ...INITIAL_CONTENT,
-        imageTitle: "Luxury Villas in Dubai Hills",
-        imageTitleEn: "Luxury Villas in Dubai Hills",
-        imageBody: "Exclusive payment plan on golf course view villas",
-        imageBodyEn: "Exclusive payment plan on golf course view villas",
-        imageBadge: "Elite Luxury",
-        imageBadgeEn: "Elite Luxury",
-        
-        videoTitle: "فلل دبي هيلز الفاخرة",
-        videoTitleEn: "Dubai Hills Premium Villas Tour",
-        videoScriptText: isAr 
-          ? `[سيناريو ريلز/تيك توك - فلل دبي هيلز]\n\n[المشهد 1: تصوير جوي رائع لملعب الغولف وفلل دبي هيلز]\nالصوت: "هل تبحث عن أعلى درجات الفخامة في دبي؟ مرحباً بك في دبي هيلز..."\n\n[المشهد 2: تصوير للمسبح اللامتناهي والحديقة الخلفية للفيلا]\nالصوت: "فلل مستقلة بتصاميم إيطالية فاخرة وإطلالات مباشرة على ملعب الغولف العالمي."\n\n[المشهد 3: مقطع داخلي للمطبخ الإيطالي المفتوح والدرج الرخامي]\nالصوت: "تشطيبات فاخرة، مساحات واسعة، وخطة دفع ميسرة من المطور مباشرة."\n\n[المشهد 4: دعوة للتواصل بالإنستغرام]\nالصوت: "تواصل معي اليوم للحصول على كتيّب الأسعار وتفاصيل الحجز!"`
-          : `[Reels/TikTok Script - Dubai Hills Premium Villas]\n\n[Scene 1: Breathtaking drone shot of Dubai Hills golf course and villas]\nAudio: "Looking for prime luxury in Dubai? Welcome to Dubai Hills..."\n\n[Scene 2: Cut to private infinity pool and landscaped garden]\nAudio: "Standalone villas featuring bespoke Italian architecture and panoramic golf course views."\n\n[Scene 3: View of internal double-height ceiling and marble staircase]\nAudio: "World-class materials, spacious bedrooms, and direct developer interest-free plans."\n\n[Scene 4: Outro call to action]\nAudio: "Send a private message to schedule a private viewing today!"`,
-          
-        pdfTitle: "كتيب فلل دبي هيلز الفاخرة",
-        pdfTitleEn: "Dubai Hills Luxury Golf Villas Catalog",
-        pdfDescription: "كتالوج المواصفات، المخططات الهندسية، والعوائد الاستثمارية لفلل دبي هيلز الفاخرة المطلة على الجولف.",
-        pdfDescriptionEn: "Complete specification manual, layout blueprints, and projected rental yields for Dubai Hills Golf Villas.",
-        pdfSpecs: [
-          { label: "الموقع", val: "دبي - دبي هيلز" },
-          { label: "المساحة", val: "تبدأ من 4,500 قدم مربع" },
-          { label: "العائد المتوقع", val: "8% سنوياً" },
-          { label: "التسليم", val: "جاهز للتسليم / قيد الإنشاء" }
-        ],
-        pdfSpecsEn: [
-          { label: "Location", val: "Dubai - Dubai Hills" },
-          { label: "Sizes", val: "Starting from 4,500 sqft" },
-          { label: "Projected ROI", val: "8% Annually" },
-          { label: "Status", val: "Ready & Under Construction" }
-        ]
-      });
-    }
-    // File upload fallback custom name
-    else {
-      setGeneratedContent({
-        ...INITIAL_CONTENT,
-        imageTitle: isAr ? `مشروع ${keyword} السكني` : `${keyword} Residence Project`,
-        imageBody: isAr ? `مستخلص من ملف البيانات المرفق \`${keyword}\`` : `Generated from the attached specs file: \`${keyword}\``,
-        pdfTitle: isAr ? `كتيب معلومات مشروع ${keyword}` : `${keyword} Project Specifications PDF`
-      });
-    }
-  };
 
-  const generateCampaignWithGemini = async (userPrompt, fileText = '') => {
+  const generateCampaignWithAI = async (userPrompt, fileText = '') => {
     try {
-      const systemInstruction = `You are a real estate creative director and marketing copywriter. Based on the user's input/chat prompt, you must generate a complete social media campaign. Return ONLY a valid JSON object matching the following structure:
-{
-  "imageTitle": "short catchy title in Arabic (max 5 words)",
-  "imageTitleEn": "short catchy title in English (max 5 words)",
-  "imageBody": "description & details in Arabic (max 12 words)",
-  "imageBodyEn": "description & details in English (max 12 words)",
-  "imageCTA": "call to action in Arabic (max 3 words)",
-  "imageCTAEn": "call to action in English (max 3 words)",
-  "imageBadge": "short badge like 'خصم 10%' or 'تقسيط مريح'",
-  "imageBadgeEn": "short badge like '10% OFF' or 'Easy Plan'",
-  "videoTitle": "video title in Arabic",
-  "videoTitleEn": "video title in English",
-  "videoScriptText": "a Reels/TikTok script in Arabic format (Scenes + Audio)",
-  "videoScriptTextEn": "a Reels/TikTok script in English format (Scenes + Audio)",
-  "pdfTitle": "PDF brochure title in Arabic",
-  "pdfTitleEn": "PDF brochure title in English",
-  "pdfDeveloper": "developer name in Arabic",
-  "pdfDeveloperEn": "developer name in English",
-  "pdfDescription": "brochure description in Arabic",
-  "pdfDescriptionEn": "brochure description in English",
-  "pdfSpecs": [
-    {"label": "الموقع", "val": "value"},
-    {"label": "المساحة", "val": "value"},
-    {"label": "تاريخ التسليم", "val": "value"},
-    {"label": "خطة السداد", "val": "value"}
-  ],
-  "pdfSpecsEn": [
-    {"label": "Location", "val": "value"},
-    {"label": "Size", "val": "value"},
-    {"label": "Delivery Date", "val": "value"},
-    {"label": "Payment Plan", "val": "value"}
-  ],
-  "pdfAmenities": [
-    "amenity 1 in Arabic",
-    "amenity 2 in Arabic",
-    "amenity 3 in Arabic",
-    "amenity 4 in Arabic",
-    "amenity 5 in Arabic"
-  ],
-  "pdfAmenitiesEn": [
-    "amenity 1 in English",
-    "amenity 2 in English",
-    "amenity 3 in English",
-    "amenity 4 in English",
-    "amenity 5 in English"
-  ],
-  "pdfPaymentPlan": [
-    {"step": "الدفعة الأولى", "pct": "value", "desc": "value"},
-    {"step": "الدفعة الثانية", "pct": "value", "desc": "value"},
-    {"step": "عند التسليم", "pct": "value", "desc": "value"}
-  ],
-  "pdfPaymentPlanEn": [
-    {"step": "Down Payment", "pct": "value", "desc": "value"},
-    {"step": "Second Installment", "pct": "value", "desc": "value"},
-    {"step": "On Handover", "pct": "value", "desc": "value"}
-  ],
-  "calendar": [
-    {"day": "الأحد", "platform": "Instagram", "topic": "topic in Arabic"},
-    {"day": "الثلاثاء", "platform": "TikTok", "topic": "topic in Arabic"},
-    {"day": "الخميس", "platform": "WhatsApp", "topic": "topic in Arabic"}
-  ],
-  "calendarEn": [
-    {"day": "Sunday", "platform": "Instagram", "topic": "topic in English"},
-    {"day": "Tuesday", "platform": "TikTok", "topic": "topic in English"},
-    {"day": "Thursday", "platform": "WhatsApp", "topic": "topic in English"}
-  ]
-}`;
+      // The campaign JSON schema is the proxy's `social_content` contract now.
       
       let fullPrompt = `Generate a campaign for this request: "${userPrompt}".`;
       if (fileText) {
         fullPrompt += `\nHere are the project details from the uploaded document:\n${fileText}`;
       }
 
-      const responseText = await callGeminiApi(fullPrompt, systemInstruction, true);
-      const data = JSON.parse(responseText);
+      const { data } = await callAIJson('social_content', fullPrompt, { lang: isRTL ? 'ar' : 'en' });
       
       setGeneratedContent(data);
 
@@ -437,7 +274,8 @@ export default function SocialGeneratorPage() {
       setLoadingOutput(false);
       return true;
     } catch (err) {
-      console.error('Gemini content studio failed:', err);
+      console.error('Content studio request failed:', err);
+      setAiErrorText(describeAIError(err, isRTL));
       return false;
     }
   };
@@ -466,40 +304,14 @@ export default function SocialGeneratorPage() {
     setLoadingOutput(true);
     setCredits(prev => Math.max(0, prev - 100));
 
-    if (isGeminiActive()) {
-      const success = await generateCampaignWithGemini(userText);
-      if (success) return;
-    }
-
-    setTimeout(() => {
-      // Analyze input keywords
-      const query = userText.toLowerCase();
-      let replyText = '';
-      
-      if (query.includes('نرجس') || query.includes('narjis') || query.includes('خصم') || query.includes('10%')) {
-        replyText = isRTL 
-          ? "بالتأكيد! قمت بتحديث التصاميم العقارية وسيناريو الفيديو وكتيب الـ PDF بناءً على خصومات مشروع النرجس (خصم 10%). يمكنك معاينتها وتحميلها الآن من اللوحة الجانبية."
-          : "Understood! I have updated the visual designs, Reels video script, and client PDF booklet specifically targeting the Al-Narjis 10% discount campaign. You can review them in the right panel.";
-        updateGeneratedContent('narjis');
-      } else if (query.includes('ياسمين') || query.includes('yasmin') || query.includes('تقسيط') || query.includes('قسط')) {
-        replyText = isRTL 
-          ? "حسناً! قمت بإعادة صياغة المحتوى الفني والسيناريو والكتيب لعرض شقق الياسمين بالتقسيط المريح على 7 سنوات بدون فوائد. تفضل بمراجعة التبويبات بالجانب الأيمن."
-          : "Done! I have refactored the image layout, reels teleprompter text, and PDF brochure to emphasize Al-Yasmin's 7-year flexible payment plans. Check the outputs panel.";
-      } else if (query.includes('دبي') || query.includes('dubai') || query.includes('فيلا') || query.includes('villa')) {
-        replyText = isRTL 
-          ? "ممتاز! قمت بتحميل بيانات فلل دبي هيلز الفاخرة وتوليد تصاميم منشورات وسيناريو فيديو تعريفي لملعب الغولف، بالإضافة لبروشور PDF كامل للعملاء جاهز للتحميل."
-          : "Excellent! I have compiled the luxury Dubai Hills Golf Villas catalog, updated the Reels preview script, and built a premium downloadable client PDF brochure.";
-        updateGeneratedContent('dubai');
-      } else {
-        replyText = isRTL
-          ? `حسناً، قمت بتحليل طلبك: "${userText}" وقمت بتحديث تصاميم الصور، نصوص السيناريوهات، وكتيب البروشور PDF العقاري بناءً على ذلك باللوحة الجانبية.`
-          : `Got it! I have processed your input: "${userText}" and dynamically updated the image layouts, video script directions, and client PDF brochure structures on the right.`;
-        updateGeneratedContent(userText);
-      }
-
-      setChatHistory(prev => [...prev, { sender: 'ai', text: replyText }]);
+    const ok = await generateCampaignWithAI(userText);
+    if (!ok) {
+      // Deleted here: ~30 lines that keyword-matched the user's message and
+      // replied with pre-written marketing copy, indistinguishable from a
+      // real generation.
+      setChatHistory(prev => [...prev, { sender: 'ai', isError: true, text: aiErrorText }]);
       setLoadingOutput(false);
-    }, 1200);
+    }
   };
 
   // Drag and drop / File upload trigger
@@ -515,8 +327,6 @@ export default function SocialGeneratorPage() {
     }
 
     setCredits(prev => Math.max(0, prev - 100));
-
-    const fileNameClean = file.name.replace(/\.[^/.]+$/, "").replace(/[_\-]/g, " ");
     setChatHistory(prev => [...prev, { 
       sender: 'user', 
       text: isRTL ? `📎 قمت بتحميل ملف البيانات: \`${file.name}\`` : `📎 Uploaded project specifications file: \`${file.name}\`` 
@@ -528,22 +338,13 @@ export default function SocialGeneratorPage() {
     reader.onload = async (event) => {
       const fileText = event.target.result;
 
-      if (isGeminiActive()) {
-        const success = await generateCampaignWithGemini(`Campaign from spec sheet ${file.name}`, fileText);
-        if (success) return;
-      }
-
-      setTimeout(() => {
-        const aiReply = isRTL
-          ? `تم استلام وتحليل ملف مواصفات المشروع \`${file.name}\` بنجاح! 
-لقد استخلصت تفاصيل الخدمة وقمت بتوليد التصاميم الإعلانية، سيناريو الفيديو للريلز، وكتيب البروشور الـ PDF المخصص للمبيعات. يمكنك استعراضها وتحميلها من التبويبات باليمين.`
-          : `Specifications file \`${file.name}\` has been parsed successfully!
-I have extracted project highlights and generated target social designs, a reels script, and a downloadable PDF sales brochure. Feel free to inspect and export them in the right column.`;
-        
-        setChatHistory(prev => [...prev, { sender: 'ai', text: aiReply }]);
-        updateGeneratedContent(fileNameClean);
+      const ok = await generateCampaignWithAI(`Campaign from spec sheet ${file.name}`, fileText);
+      if (!ok) {
+        // Deleted here: a setTimeout that claimed the specification file had
+        // been parsed and the designs generated, when nothing had run.
+        setChatHistory(prev => [...prev, { sender: 'ai', isError: true, text: aiErrorText }]);
         setLoadingOutput(false);
-      }, 1500);
+      }
     };
     reader.readAsText(file);
   };

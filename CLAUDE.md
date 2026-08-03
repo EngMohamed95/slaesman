@@ -22,7 +22,7 @@ There is no test framework configured. `README.md` is the unmodified Vite templa
 
 This codebase is being converted from prototype to a real multi-tenant SaaS on **Supabase** (Postgres + Auth + RLS + Edge Functions), with organizations/teams, server-enforced entitlements, and the official WhatsApp Cloud API. The phased plan lives at `~/.claude/plans/humming-launching-fog.md`.
 
-**Phases 0–4 and 7 are done.** All simulated auth, payment and data flows were deleted, not refactored — do not reintroduce them:
+**Phases 0–5 and 7 are done.** All simulated auth, payment, data and AI flows were deleted, not refactored — do not reintroduce them:
 
 - `AuthPages.jsx` has **no Google sign-in**. The old one decoded the Google ID token in the browser with `atob()` and trusted its claims, and shipped a fake account-chooser popup that signed users in via a `postMessage` with no origin check. OAuth providers can now be added through the Supabase client, never by parsing a token in the browser.
 - `SubscriptionPage.jsx` and `UpgradePaywall.jsx` **never grant a plan**. `setPlan` must not be called from any page or component — the server owns entitlements from Phase 7. The checkout modal is an informational placeholder; **do not add a card form**, real checkout redirects to the provider.
@@ -32,7 +32,7 @@ This codebase is being converted from prototype to a real multi-tenant SaaS on *
 - `AdminPanelPage.jsx` lists **real accounts** from `profiles`. The plan / payment-method / amount columns are gone because no subscription data exists yet; they return in Phase 7 from `subscriptions`. The MRR tile shows `—`, not the old `"697 ريال"` string literal.
 - The contacts-import modal (`DEVICE_CONTACTS` in `CRMPage.jsx`) is an empty list with an explanatory empty state. It used to render seven invented people as if read from the user's phone, and importing one created a lead for someone who does not exist.
 
-Still fake, pending later phases: the AI layer (Phase 5 — the Gemini key is still in the browser and failures fall back to canned text), the WhatsApp bridge (Phase 6), and teams/invites (Phase 8).
+Still pending: the WhatsApp bridge (Phase 6 — `whatsapp-web.js` + Puppeteer, not multi-tenant) and teams/invites (Phase 8).
 
 ### Environment
 
@@ -129,11 +129,21 @@ Shared helper: `src/utils/chatParser.js` holds `parseChatToMessages`, used by bo
 
 Domain objects carry paired fields: `name`/`nameAr`, `status`/`statusAr`, `notes`/`notesAr`, `service`/`serviceAr`. New lead/task/campaign fields that are user-visible text should follow this. UI strings come from `TRANSLATIONS` in `src/mockData.js` via `t('key')`, but much of the codebase also inlines `isRTL ? 'عربي' : 'English'` directly in JSX — both patterns are in active use; match the surrounding file.
 
-### AI layer — always dual-mode
+### AI layer — server-side only
 
-`src/utils/gemini.js` exports one entry point, `callGeminiApi(prompt, systemInstruction, returnJson)`. If the stored key is the sentinel `DEMO_MOCK_GEMINI_KEY` (the default), it returns hand-written simulated responses selected by keyword-matching the prompt. With a real key it calls `gemini-1.5-flash` REST, and **any failure silently falls back to the simulation**. This means AI features never visibly error — when debugging "the AI gave a canned answer", check the key and the console warning, not the UI.
+`src/utils/gemini.js` is **deleted**. The browser has no API key, calls no model endpoint, and cannot supply a system instruction. Everything goes through `supabase/functions/ai-proxy/index.ts`.
 
-If you add an AI feature, extend `getSimulatedResponse()` too, or it will return an unrelated canned block.
+The contract is `callAI(task, input, context)` from `src/utils/ai.js`:
+
+- **`task`** is one of a fixed set the proxy knows (`assistant_chat`, `sales_copilot`, `analyze_chat`, `performance_report`, `social_content`). The system instruction for each lives in the proxy. Adding an AI feature means adding a task there, not writing a prompt preamble in a page.
+- **`input`** is the user's own text.
+- **`context`** carries scalars only — `lang`, ids, filters. **Never put rows in it.** The proxy fetches leads and tasks itself with the caller's token so RLS decides what the model sees; the old code inlined `JSON.stringify(leads)` into the prompt, which for a large pipeline meant a request of hundreds of kilobytes.
+
+Each task declares the entitlement it needs, and the proxy calls `consume_ai_quota()` — a Postgres transaction that takes `for update` on the usage row **before** the model call, so concurrent requests cannot race past the cap. Exhausted quota returns `402`.
+
+**There is no simulated fallback.** `getSimulatedResponse()` and every page-level canned block were deleted, including one in `CRMPage` that filled the add-lead form with an invented 850,000 budget and a fictional property, then reported "parsed successfully". Failures now surface through `describeAIError()`. The one surviving fallback is `analyzeWhatsAppChat()` — it regex-extracts from the real pasted text rather than inventing, and the UI now says the values came from basic extraction, not AI.
+
+Server-side setup: deploy the function, then set `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`, `ALLOWED_ORIGIN`) as function secrets. Without the key the proxy returns `503 ai_not_configured` — loudly, by design.
 
 ### WhatsApp — two independent paths
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
-import { isGeminiActive, callGeminiApi } from '../utils/gemini';
+import { callAIJson, describeAIError } from '../utils/ai';
 import { parseChatToMessages } from '../utils/chatParser';
 import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw, TrendingUp, Target, AlertTriangle } from 'lucide-react';
 
@@ -363,20 +363,11 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     const chatText = messagesArray.map(m => `${m.sender === 'customer' ? 'Customer' : 'Agent'}: ${m.text}`).join('\n');
     
     // Populate form parameters
-    if (isGeminiActive()) {
+    {
       try {
-        const systemInstruction = `You are a sales CRM parser assistant. Your task is to extract structured lead details from the provided WhatsApp chat transcript. Respond ONLY with a valid JSON object matching this schema:
-{
-  "name": "lead name in Arabic if chat is Arabic, else English",
-  "phone": "lead phone number",
-  "email": "lead email address or empty string",
-  "service": "interested property/service",
-  "budget": "budget in numbers only",
-  "interestLevel": "High" or "Medium" or "Low",
-  "suggestions": "Three bullet points action items for the sales agent in Arabic if chat is in Arabic, else English"
-}`;
-        const responseText = await callGeminiApi(chatText, systemInstruction, true);
-        const result = JSON.parse(responseText);
+        // The extraction schema is the proxy's `analyze_chat` contract now; it
+        // used to be a systemInstruction written out twice in this file.
+        const { data: result } = await callAIJson('analyze_chat', chatText, { lang: isRTL ? 'ar' : 'en' });
 
         setNewName(result.name || chatName);
         setNewPhone(result.phone || chatPhone);
@@ -398,33 +389,21 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
         alert(isRTL ? 'تم ربط الحساب وتحليل المحادثة بنجاح وتعبئة البيانات!' : 'Account synced and conversation parsed successfully!');
         return;
       } catch (e) {
-        console.warn("Gemini synced parser failed, falling back:", e);
+        console.error('Chat analysis failed:', e);
+        // Deleted here: a fallback that filled the form with an invented
+        // 850,000 budget, a made-up "3-Bedroom Apartment in Downtown Riyadh"
+        // and three generic suggestions, then showed "parsed successfully".
+        // It fabricated a lead record out of a real customer conversation.
+        // The name and phone below are the only things actually read from the
+        // chat, so they are all that gets pre-filled.
+        setNewName(chatName);
+        setNewPhone(chatPhone);
+        setNewSource('WhatsApp Sync');
+        setIsAnalyzing(false);
+        setImportMode(null);
+        alert(describeAIError(e, isRTL));
       }
     }
-
-    // Local fallback parsing
-    setTimeout(() => {
-      setNewName(chatName);
-      setNewPhone(chatPhone);
-      setNewBudget('850000');
-      setNewExpectedValue('850000');
-      setNewInterestLevel('High');
-      setNewSource('WhatsApp Sync');
-      setNewService(isRTL ? 'شقة 3 غرف في وسط الرياض' : '3-Bedroom Apartment in Downtown Riyadh');
-
-      const finalSuggestions = isRTL
-        ? '• إرسال بروشور شقة وسط الرياض بالواتساب.\n• جدولة مكالمة هاتفية للمتابعة غداً.\n• عرض تفاصيل خطة التقسيط على 7 سنوات.'
-        : '• Send the Downtown Riyadh brochure via WhatsApp.\n• Schedule a follow-up call tomorrow.\n• Share details of the 7-year installment plan.';
-      const finalNotes = isRTL 
-        ? `[تم استيراد المحادثة مباشرة عبر واتساب ويب]:\n--- توصيات المساعد الذكي ---\n${finalSuggestions}`
-        : `[Conversation imported directly via WhatsApp Web Sync]:\n--- AI Suggestions ---\n${finalSuggestions}`;
-      setNewNotes(finalNotes);
-      setAiSuggestions(finalSuggestions);
-
-      setIsAnalyzing(false);
-      setImportMode(null);
-      alert(isRTL ? 'تم ربط الحساب وتحليل المحادثة وتعبئة البيانات!' : 'Account synced and conversation parsed successfully!');
-    }, 1200);
   };
 
   // Extract unique sources for filters
@@ -508,24 +487,15 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     setIsAnalyzing(true);
     setAnalysisStep(1);
 
-    if (isGeminiActive()) {
+    // Set when the AI path fails and the local extractor takes over, so the
+    // success alert can tell the truth about where the values came from.
+    let aiFailureNotice = '';
+
+    {
       try {
         setAnalysisStep(2);
-        const systemInstruction = `You are a sales CRM parser assistant. Your task is to extract structured lead details from the provided WhatsApp chat transcript. Respond ONLY with a valid JSON object matching this schema:
-{
-  "name": "lead full name (use Arabic if chat is in Arabic, else English)",
-  "phone": "lead phone number (keep digits and country code, e.g. +966500000000)",
-  "email": "lead email address or empty string if not found",
-  "service": "interested property/service (e.g. Apartment, 3-Bedroom Villa in Yas Island)",
-  "budget": "budget in numbers only (e.g. 1500000, do not use text, if empty use 0)",
-  "interestLevel": "High" or "Medium" or "Low",
-  "suggestions": "Three bullet points action items for the sales agent in Arabic if chat is in Arabic, else English"
-}`;
-        
-        const responseText = await callGeminiApi(pastedChat, systemInstruction, true);
+        const { data: result } = await callAIJson('analyze_chat', pastedChat, { lang: isRTL ? 'ar' : 'en' });
         setAnalysisStep(3);
-
-        const result = JSON.parse(responseText);
 
         setNewName(result.name || (isRTL ? 'عميل واتساب جديد' : 'New WhatsApp Lead'));
         setNewPhone(result.phone || '+966500000000');
@@ -541,9 +511,11 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
         setNewInterestLevel(result.interestLevel || 'Medium');
         setNewSource('WhatsApp');
 
-        const finalNotes = (isRTL 
-          ? `[ملخص محادثة واتساب بالذكاء الاصطناعي الحقيقي]:\nتم استخراج البيانات بواسطة Gemini 2.5 Flash.\n\n--- توصيات المساعد الذكي ---\n${result.suggestions}`
-          : `[Real AI WhatsApp Chat Summary]:\nData extracted by Gemini 2.5 Flash.\n\n--- AI Suggestions ---\n${result.suggestions}`
+        // The old note claimed "extracted by Gemini 2.5 Flash" even when the
+        // simulated fallback produced it, and the model name was wrong anyway.
+        const finalNotes = (isRTL
+          ? `[ملخص محادثة واتساب بالذكاء الاصطناعي]:\n\n--- توصيات المساعد الذكي ---\n${result.suggestions}`
+          : `[AI WhatsApp chat summary]:\n\n--- AI suggestions ---\n${result.suggestions}`
         );
         setNewNotes(finalNotes);
         setAiSuggestions(result.suggestions);
@@ -554,7 +526,12 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
         alert(isRTL ? 'تم تحليل المحادثة بالذكاء الاصطناعي وتعبئة البيانات بنجاح!' : 'Conversation analyzed by AI and data populated successfully!');
         return;
       } catch (err) {
-        console.error('Gemini parsing failed, falling back to local analysis:', err);
+        console.error('AI parsing failed, using local text extraction:', err);
+        // This fallback stays: unlike the deleted ones it invents nothing, it
+        // regex-extracts name/phone/budget from the actual pasted text. What
+        // changes is that we now say so, instead of reporting it as an AI
+        // analysis and letting the user trust it accordingly.
+        aiFailureNotice = describeAIError(err, isRTL);
       }
     }
 
@@ -582,7 +559,11 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     setIsAnalyzing(false);
     setAnalysisStep(0);
     setImportMode(null);
-    alert(isRTL ? 'تم تحليل المحادثة وتعبئة البيانات بنجاح!' : 'Conversation analyzed and data populated successfully!');
+    alert(aiFailureNotice
+      ? `${aiFailureNotice}\n\n${isRTL
+          ? 'تمت تعبئة الحقول باستخراج نصي بسيط بدل الذكاء الاصطناعي — راجعها قبل الحفظ.'
+          : 'Fields were filled by basic text extraction instead of AI — please review them before saving.'}`
+      : (isRTL ? 'تم تحليل المحادثة وتعبئة البيانات بنجاح!' : 'Conversation analyzed and data populated successfully!'));
   };
 
   const pasteWhatsAppChatFromClipboard = async () => {

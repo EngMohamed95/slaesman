@@ -37,6 +37,14 @@ jobs:
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
         port: 21
+        # Hostinger disables plain FTP and serves explicit FTPS on port 21.
+        # Connecting as plain `ftp` never completes the control handshake,
+        # which surfaces as "Error: Timeout (control socket)".
+        protocol: ftps
+        # Shared hosting presents a certificate for the hosting provider, not
+        # for your domain, so strict validation rejects it.
         security: loose
+        # The default 30s is tight for a first upload from a cold runner.
+        timeout: 120000
         local-dir: ./dist/
         server-dir: ./

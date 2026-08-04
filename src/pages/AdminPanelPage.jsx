@@ -2,7 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
 import { supabase } from '../lib/supabase';
-import { ShieldCheck, Users, Megaphone, DollarSign, Settings2, Save } from 'lucide-react';
+import { createAccount, describeAdminError } from '../utils/adminUsers';
+import { ShieldCheck, Users, Megaphone, DollarSign, Settings2, Save, UserPlus, RefreshCw } from 'lucide-react';
+
+/**
+ * Staff-set passwords are typed once and read to the customer, so they must not
+ * be guessable. Ambiguous glyphs (O/0, I/l/1) are excluded — they get misread
+ * over the phone and produce support tickets, not security.
+ */
+const generatePassword = () => {
+  const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '!@#%^*_-+='];
+  const all = sets.join('');
+  const rand = (max) => crypto.getRandomValues(new Uint32Array(1))[0] % max;
+  const chars = sets.map(set => set[rand(set.length)]);
+  while (chars.length < 20) chars.push(all[rand(all.length)]);
+  // Without the shuffle the first four characters always follow the set order.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = rand(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+};
+
+const EMPTY_FORM = { email: '', password: '', fullName: '', agencyName: '', phone: '', planCode: '' };
 
 export default function AdminPanelPage() {
   const { t, isRTL } = useLanguage();
@@ -52,6 +74,57 @@ export default function AdminPanelPage() {
       .finally(() => { if (active) setAccountsLoading(false); });
     return () => { active = false; };
   }, []);
+
+  /**
+   * Account creation. The browser has no service-role key and never will, so
+   * this posts to the `admin-users` Edge Function, which re-checks the caller's
+   * platform-admin claim server-side. The button below is a convenience, not
+   * the control: hiding it would gate nothing.
+   */
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [created, setCreated] = useState(null);
+  const [plans, setPlans] = useState([]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let active = true;
+    supabase
+      .from('plans')
+      .select('code, name_en, name_ar')
+      .order('rank')
+      .then(({ data }) => { if (active) setPlans(data || []); });
+    return () => { active = false; };
+  }, []);
+
+  const setField = (key) => (e) => setForm(prev => ({ ...prev, [key]: e.target.value }));
+
+  const handleCreateAccount = async (e) => {
+    e.preventDefault();
+    setCreateError('');
+    setCreated(null);
+    setCreating(true);
+    try {
+      const result = await createAccount(form);
+      // Keep the password on screen: it is hashed server-side the moment it
+      // lands, so this render is the only chance to hand it to the customer.
+      setCreated({ ...result, password: form.password });
+      setForm(EMPTY_FORM);
+      setAccounts(prev => [{
+        id: result.id,
+        full_name: form.fullName || null,
+        email: result.email,
+        agency_name: form.agencyName || null,
+        phone: form.phone || null,
+        created_at: new Date().toISOString(),
+      }, ...prev]);
+    } catch (err) {
+      setCreateError(describeAdminError(err, isRTL));
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleStatusChange = (id, newStatus, newStatusAr) => {
     updateCampaignStatus(id, newStatus, newStatusAr);
@@ -243,6 +316,142 @@ export default function AdminPanelPage() {
 
           {activeSubTab === 'users' && (
             <>
+              <form
+                onSubmit={handleCreateAccount}
+                style={{
+                  background: 'rgba(255,255,255,0.01)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: '0.75rem',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                }}
+              >
+                <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', textAlign: 'start' }}>
+                  <UserPlus size={16} style={{ color: 'var(--primary)' }} />
+                  {isRTL ? 'إنشاء حساب جديد' : 'Create a new account'}
+                </h4>
+
+                <div className="grid-3" style={{ gap: '1rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem', textAlign: 'start' }}>
+                      {t('email')} *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={setField('email')}
+                      placeholder="you@example.com"
+                      autoComplete="off"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem', textAlign: 'start' }}>
+                      {isRTL ? 'كلمة المرور *' : 'Password *'}
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        required
+                        minLength={8}
+                        value={form.password}
+                        onChange={setField('password')}
+                        autoComplete="off"
+                        style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setForm(prev => ({ ...prev, password: generatePassword() }))}
+                        title={isRTL ? 'توليد كلمة مرور قوية' : 'Generate a strong password'}
+                        style={{ padding: '0 0.75rem' }}
+                      >
+                        <RefreshCw size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem', textAlign: 'start' }}>
+                      {isRTL ? 'الباقة' : 'Plan'}
+                    </label>
+                    <select value={form.planCode} onChange={setField('planCode')} style={{ width: '100%' }}>
+                      <option value="">{isRTL ? 'بدون باقة' : 'No plan'}</option>
+                      {plans.map(plan => (
+                        <option key={plan.code} value={plan.code}>
+                          {isRTL ? plan.name_ar : plan.name_en}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem', textAlign: 'start' }}>
+                      {t('name')}
+                    </label>
+                    <input type="text" value={form.fullName} onChange={setField('fullName')} style={{ width: '100%' }} />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem', textAlign: 'start' }}>
+                      {isRTL ? 'الجهة' : 'Agency'}
+                    </label>
+                    <input type="text" value={form.agencyName} onChange={setField('agencyName')} style={{ width: '100%' }} />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem', textAlign: 'start' }}>
+                      {isRTL ? 'الجوال' : 'Phone'}
+                    </label>
+                    <input type="tel" value={form.phone} onChange={setField('phone')} style={{ width: '100%' }} />
+                  </div>
+                </div>
+
+                {createError && (
+                  <div style={{ color: 'var(--danger)', fontSize: '0.85rem', textAlign: 'start' }}>{createError}</div>
+                )}
+
+                {created && (
+                  <div style={{
+                    background: 'var(--success-glow)',
+                    color: 'var(--success)',
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    textAlign: 'start',
+                    lineHeight: 1.9,
+                  }}>
+                    <div style={{ fontWeight: 700 }}>
+                      {isRTL ? 'تم إنشاء الحساب' : 'Account created'}
+                    </div>
+                    <div style={{ fontFamily: 'monospace' }}>{created.email}</div>
+                    <div style={{ fontFamily: 'monospace' }}>{created.password}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                      {isRTL
+                        ? 'انسخ كلمة المرور الآن — تُخزَّن مجزّأة ولا يمكن عرضها مرة أخرى.'
+                        : 'Copy the password now — it is stored hashed and cannot be shown again.'}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={creating}
+                  style={{ alignSelf: 'flex-start', display: 'flex', gap: '0.5rem', opacity: creating ? 0.6 : 1 }}
+                >
+                  <UserPlus size={16} />
+                  {creating
+                    ? (isRTL ? 'جارٍ الإنشاء…' : 'Creating…')
+                    : (isRTL ? 'إنشاء الحساب' : 'Create account')}
+                </button>
+              </form>
+
               {accountsLoading && (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>…</div>
               )}

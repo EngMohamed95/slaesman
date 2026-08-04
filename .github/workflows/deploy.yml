@@ -30,21 +30,47 @@ jobs:
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: npm run build
 
-    - name: 🚀 Sync Files via FTP
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        port: 21
-        # Hostinger disables plain FTP and serves explicit FTPS on port 21.
-        # Connecting as plain `ftp` never completes the control handshake,
-        # which surfaces as "Error: Timeout (control socket)".
-        protocol: ftps
-        # Shared hosting presents a certificate for the hosting provider, not
-        # for your domain, so strict validation rejects it.
-        security: loose
-        # The default 30s is tight for a first upload from a cold runner.
-        timeout: 120000
-        local-dir: ./dist/
-        server-dir: ./
+    - name: 🚀 Sync Files via FTPS
+      # Replaces SamKirkland/FTP-Deploy-Action. That action opens a single
+      # control connection with no retry, so any throttle or dropped handshake
+      # from Hostinger ends the job as a bare "Timeout (control socket)" with
+      # nothing to diagnose from. It was patched three times (11b779e, 96ab96b,
+      # 68bf472) and kept failing. lftp retries, reconnects, and logs the FTP
+      # dialogue so the next failure names its own cause.
+      env:
+        FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      run: |
+        sudo apt-get update -qq && sudo apt-get install -y lftp
+
+        # Strip any scheme/trailing slash a hand-entered secret may carry —
+        # lftp reads "ftp://host/" as a path and never resolves the host.
+        HOST=$(printf '%s' "$FTP_SERVER" | sed -E 's#^[a-z]+://##; s#/+$##')
+        echo "Connecting to '$HOST' as '$FTP_USERNAME'"
+
+        # --env-password keeps the password out of the command string, so it
+        # never reaches the process list or an lftp parse error.
+        export LFTP_PASSWORD="$FTP_PASSWORD"
+
+        # ssl:verify-certificate no — shared hosting presents the provider
+        #   certificate, not the domain certificate, so strict validation
+        #   rejects a working server.
+        # mirror target is "." not "/" — af0a724 established that the login
+        #   directory IS the web root. Uploading to / lands a level too high
+        #   and the live site never changes.
+        # No --delete — the web root may hold files this build does not
+        #   produce (.htaccess, uploads).
+        lftp -u "$FTP_USERNAME" --env-password -p 21 -e '
+          set ftp:ssl-force true;
+          set ftp:ssl-protect-data true;
+          set ssl:verify-certificate no;
+          set ftp:passive-mode true;
+          set net:timeout 30;
+          set net:max-retries 5;
+          set net:reconnect-interval-base 15;
+          set cmd:fail-exit true;
+          debug 3;
+          mirror -R --verbose --parallel=2 dist/ .;
+          bye
+        ' "$HOST"

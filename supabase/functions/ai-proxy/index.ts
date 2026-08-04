@@ -30,15 +30,20 @@ const json = (body: unknown, status = 200) =>
   });
 
 /**
- * Pinned deliberately. `gemini-1.5-flash` was the old client's model and is now
- * retired — the API answers 404 for it, which is how this surfaced. Do NOT use
- * a floating alias like `gemini-flash-latest` here: `analyze_chat` and
- * `social_content` depend on a fixed JSON shape, and a model swapped underneath
- * you changes output without any deploy of ours.
+ * Pinned deliberately. Do NOT use a floating alias like `gemini-flash-latest`
+ * here: `analyze_chat` and `social_content` depend on a fixed JSON shape, and a
+ * model swapped underneath you changes output without any deploy of ours.
+ *
+ * This has now been retired out from under us twice. `gemini-1.5-flash` (the
+ * old browser client's model) went first. `gemini-2.5-flash` replaced it and
+ * still appears in ListModels, but generateContent answers 404 "no longer
+ * available to new users" — so a key issued today fails on a model the catalog
+ * says exists. Verify with generateContent, never with the model list, before
+ * pinning a replacement.
  *
  * Override with the GEMINI_MODEL secret to move versions without redeploying.
  */
-const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.6-flash';
 
 /** Caps on what we will pull into a prompt, whatever the org's size. */
 const MAX_LEADS = 60;

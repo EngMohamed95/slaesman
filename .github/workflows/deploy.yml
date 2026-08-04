@@ -53,19 +53,47 @@ jobs:
         # never reaches the process list or an lftp parse error.
         export LFTP_PASSWORD="$FTP_PASSWORD"
 
-        # Separate "the network refuses us" from "our FTP call is wrong".
-        # Without this, both fail identically and each fix is a guess.
-        echo "--- TCP reachability, port 21 ---"
-        if timeout 20 bash -c "cat < /dev/null > /dev/tcp/$HOST/21" 2>/dev/null; then
-          echo "port 21 is OPEN — the host accepts connections"
+        # Port 21 came back unreachable, which has two very different causes
+        # that the previous probe could not tell apart: the port is blocked, or
+        # the hostname no longer resolves to this account (Hostinger migrates
+        # accounts between servers). Resolve first, then probe alternatives, so
+        # one run names the cause instead of ruling out one guess at a time.
+        echo "--- DNS ---"
+        if getent hosts "$HOST" > /dev/null 2>&1; then
+          echo "resolves OK"
+          getent hosts "$HOST" | sed 's/^/  /'
         else
-          echo "port 21 is UNREACHABLE from this runner."
-          echo "Hostinger is refusing or dropping the connection; runner IPs"
-          echo "rotate every job, so no FTP setting fixes this. Options:"
-          echo "  - enable FTP / clear any IP restriction in hPanel, or"
-          echo "  - deploy over SSH-SFTP (Hostinger port 65002) instead."
+          echo "'$HOST' DOES NOT RESOLVE."
+          echo "FTP_SERVER is wrong or stale — nothing can connect to it."
+          echo "Copy the current hostname from hPanel > Files > FTP Accounts."
           exit 1
         fi
+
+        echo "--- port probe ---"
+        OPEN=""
+        for PORT in 21 22 65002; do
+          if timeout 15 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT" 2>/dev/null; then
+            echo "  $PORT OPEN"
+            OPEN="$OPEN $PORT"
+          else
+            echo "  $PORT closed/filtered"
+          fi
+        done
+
+        case "$OPEN" in
+          *21*) ;;
+          *)
+            echo
+            echo "The host resolves but FTP (21) is not reachable."
+            if [ -n "$OPEN" ]; then
+              echo "SSH is reachable on:$OPEN — switch this job to SFTP."
+            else
+              echo "No port answered. Hostinger is blocking this runner"
+              echo "wholesale, or the account moved servers."
+            fi
+            exit 1
+            ;;
+        esac
 
         # A script file with an explicit `open` removes every shell-quoting
         # ambiguity. Passing the host as lftp's trailing argument alongside -e

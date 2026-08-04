@@ -5,10 +5,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '../navigation';
 import FloatingAIAssistant from '../components/FloatingAIAssistant';
 import CRMBoundary, { SyncErrorBanner } from '../components/CRMBoundary';
+import { PAGE_PATHS } from '../routes/paths';
 
 import {
   Sparkles, Users, Calendar, MessageSquare, Megaphone,
-  BarChart3, Settings, ShieldCheck, LogOut, Menu, X, Globe, User, CreditCard, Sun, Moon
+  BarChart3, Settings, ShieldCheck, LogOut, Menu, X, Globe, User, CreditCard, Sun, Moon,
+  List, Plus, ChevronDown
 } from 'lucide-react';
 
 export default function AppLayout() {
@@ -17,15 +19,37 @@ export default function AppLayout() {
   const { setPage } = useNavigation();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Only holds groups the user has explicitly toggled. Anything absent falls
+  // back to "open if you are inside it", so navigating to /crm/new reveals the
+  // group without a click and without an effect writing state on every route.
+  const [openGroups, setOpenGroups] = useState({});
 
   // Sidebar highlighting used to compare a `page` string; now it reads the URL.
-  const isAt = (id) => pathname === `/${id}`;
+  // Resolving through PAGE_PATHS rather than `/${id}` is what lets a nested
+  // child like addLead (/crm/new) highlight at all — its path is not its id.
+  const isAt = (id) => pathname === PAGE_PATHS[id];
   const onLeadDetails = pathname.startsWith('/lead/');
 
   const menuItems = [
     { id: 'dashboard', label: t('navDashboard'), icon: <BarChart3 size={18} /> },
-    { id: 'crm', label: t('navCRM'), icon: <Users size={18} /> },
-    { id: 'tasks', label: t('navTasks'), icon: <Calendar size={18} /> },
+    {
+      id: 'crm',
+      label: t('navCRM'),
+      icon: <Users size={18} />,
+      children: [
+        { id: 'crm', label: isRTL ? 'قائمة العملاء' : 'All leads', icon: <List size={15} /> },
+        { id: 'addLead', label: isRTL ? 'إضافة عميل' : 'Add lead', icon: <Plus size={15} /> },
+      ],
+    },
+    {
+      id: 'tasks',
+      label: t('navTasks'),
+      icon: <Calendar size={18} />,
+      children: [
+        { id: 'tasks', label: isRTL ? 'قائمة المهام' : 'All tasks', icon: <List size={15} /> },
+        { id: 'addTask', label: isRTL ? 'إضافة مهمة' : 'Add task', icon: <Plus size={15} /> },
+      ],
+    },
     { id: 'aiAssistant', label: t('navAIAssistant'), icon: <Sparkles size={18} /> },
     { id: 'whatsapp', label: t('navWhatsApp'), icon: <MessageSquare size={18} /> },
     { id: 'socialCreator', label: t('navSocial'), icon: <Sparkles size={18} /> },
@@ -76,17 +100,73 @@ export default function AppLayout() {
         </div>
 
         <nav className="sidebar-menu">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNav(item.id)}
-              className={`sidebar-item ${isAt(item.id) || (item.id === 'crm' && onLeadDetails) ? 'active' : ''}`}
-              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'start' }}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {menuItems.map((item) => {
+            const inGroup = item.children?.some(child => isAt(child.id))
+              || (item.id === 'crm' && onLeadDetails);
+
+            if (!item.children) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNav(item.id)}
+                  className={`sidebar-item ${isAt(item.id) ? 'active' : ''}`}
+                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'start' }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              );
+            }
+
+            const expanded = openGroups[item.id] ?? inGroup;
+
+            return (
+              <div key={item.id}>
+                <button
+                  onClick={() => setOpenGroups(prev => ({ ...prev, [item.id]: !expanded }))}
+                  className={`sidebar-item ${inGroup ? 'active' : ''}`}
+                  style={{ background: 'none', border: 'none', width: '100%', textAlign: 'start' }}
+                  aria-expanded={expanded}
+                >
+                  {item.icon}
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      transform: expanded ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.15s',
+                      opacity: 0.6,
+                    }}
+                  />
+                </button>
+
+                {expanded && (
+                  // Indent with a logical property so the tree still reads as a
+                  // tree in RTL; marginLeft would flip to the wrong side.
+                  <div style={{ marginInlineStart: '1.6rem' }}>
+                    {item.children.map(child => (
+                      <button
+                        key={child.id + child.label}
+                        onClick={() => handleNav(child.id)}
+                        className={`sidebar-item ${isAt(child.id) ? 'active' : ''}`}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          width: '100%',
+                          textAlign: 'start',
+                          fontSize: '0.85rem',
+                          opacity: isAt(child.id) ? 1 : 0.75,
+                        }}
+                      >
+                        {child.icon}
+                        <span>{child.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Sidebar Footer */}

@@ -16,6 +16,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const CRMPage = lazy(() => import('./pages/CRMPage'));
 const LeadDetailsPage = lazy(() => import('./pages/LeadDetailsPage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
+const AddTaskPage = lazy(() => import('./pages/AddTaskPage'));
 const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
 const WhatsAppGeneratorPage = lazy(() => import('./pages/WhatsAppGeneratorPage'));
 const SocialGeneratorPage = lazy(() => import('./pages/SocialGeneratorPage'));
@@ -64,6 +65,10 @@ function AppRoutes() {
             <Route path="/crm" element={<Page component={CRMPage} />} />
             <Route path="/lead/:leadId" element={<LeadDetailsRoute />} />
             <Route path="/tasks" element={<Page component={TasksPage} />} />
+            {/* Declared before nothing in particular, but note /tasks/new must
+                stay a sibling of /tasks — nesting it would render the board
+                behind the form. */}
+            <Route path="/tasks/new" element={<Page component={AddTaskPage} />} />
             <Route path="/aiAssistant" element={<Page component={AIAssistantPage} />} />
             <Route path="/whatsapp" element={<WhatsAppRoute />} />
             <Route path="/socialCreator" element={<Page component={SocialGeneratorPage} />} />

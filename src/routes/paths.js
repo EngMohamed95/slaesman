@@ -8,7 +8,12 @@ export const PAGE_PATHS = {
   onboarding: '/onboarding',
   dashboard: '/dashboard',
   crm: '/crm',
+  // Creation flows are pages, not modals. They nest under their module's path
+  // so the URL says where you are and the form survives a refresh or a shared
+  // link — neither of which a modal could do.
+  addLead: '/crm/new',
   tasks: '/tasks',
+  addTask: '/tasks/new',
   aiAssistant: '/aiAssistant',
   whatsapp: '/whatsapp',
   socialCreator: '/socialCreator',

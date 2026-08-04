@@ -64,6 +64,14 @@ export const describeAIError = (error, isRTL) => {
       ar: 'تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقّق من اتصالك.',
       en: 'Could not reach the AI service. Check your connection.',
     },
+    // A 404 means the ai-proxy function was never deployed to this project.
+    // It used to fall into upstream_unreachable, which told the operator to
+    // check their connection — so a missing deployment looked like a network
+    // fault and stayed unfixed.
+    function_not_deployed: {
+      ar: 'دالة ai-proxy غير منشورة على الخادم. انشرها عبر: supabase functions deploy ai-proxy',
+      en: 'The ai-proxy function is not deployed. Deploy it with: supabase functions deploy ai-proxy',
+    },
     empty_response: {
       ar: 'أعاد النموذج رداً فارغاً. حاول بصياغة مختلفة.',
       en: 'The model returned an empty response. Try rephrasing.',
@@ -99,8 +107,13 @@ export const callAI = async (task, input, context = {}) => {
     } catch {
       payload = null;
     }
-    throw new AIError(payload?.error || 'upstream_unreachable', {
-      status: error.context?.status || 0,
+    const status = error.context?.status || 0;
+    // The gateway's own 404 body carries `code`/`message`, not our `error`,
+    // so without this the fallback swallowed it as a connectivity problem.
+    const fallback = status === 404 ? 'function_not_deployed' : 'upstream_unreachable';
+
+    throw new AIError(payload?.error || fallback, {
+      status,
       used: payload?.used ?? null,
       quota: payload?.quota ?? null,
     });

@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useApp } from '../context/AppContext';
-import { getWhatsAppConfig, setWhatsAppConfig } from '../utils/whatsapp';
+import {
+  getWhatsAppAccount,
+  connectWhatsAppAccount,
+  disconnectWhatsAppAccount,
+  describeWhatsAppError,
+} from '../utils/whatsapp';
 import { Settings, Save, User, Globe, MessageSquare, Key, PhoneCall, Sun, Moon } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -12,13 +17,33 @@ export default function SettingsPage() {
   const [email, setEmail] = useState(profile.email);
   const [agency, setAgency] = useState(profile.agencyName);
   const [whatsapp, setWhatsapp] = useState(profile.phone);
-  
-  // Real Meta WhatsApp Business Cloud API States
-  const [waPhoneId, setWaPhoneId] = useState(() => getWhatsAppConfig().phoneNumberId);
-  const [waToken, setWaToken] = useState(() => getWhatsAppConfig().accessToken);
-  const [waWabaId, setWaWabaId] = useState(() => getWhatsAppConfig().wabaId);
+
+  // WhatsApp Cloud API connection.
+  //
+  // The token is deliberately NOT seeded from anywhere and is never written
+  // anywhere: it exists in this state only long enough to be posted to
+  // whatsapp-connect, which verifies it against Graph and puts it in Vault.
+  // What comes back — and what the badge below reflects — is the number Meta
+  // confirmed, not the fact that two inputs are non-empty.
+  const [waAccount, setWaAccount] = useState(null);
+  const [waLoading, setWaLoading] = useState(true);
+  const [waPhoneId, setWaPhoneId] = useState('');
+  const [waToken, setWaToken] = useState('');
+  const [waWabaId, setWaWabaId] = useState('');
+  const [waBusy, setWaBusy] = useState(false);
+  const [waError, setWaError] = useState('');
 
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getWhatsAppAccount().then((account) => {
+      if (!active) return;
+      setWaAccount(account);
+      setWaLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -28,15 +53,55 @@ export default function SettingsPage() {
       agencyName: agency,
       phone: whatsapp
     });
-    setWhatsAppConfig({
-      phoneNumberId: waPhoneId,
-      accessToken: waToken,
-      wabaId: waWabaId
-    });
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
     }, 3000);
+  };
+
+  const handleConnectWhatsApp = async () => {
+    setWaError('');
+    setWaBusy(true);
+    try {
+      const result = await connectWhatsAppAccount({
+        phoneNumberId: waPhoneId,
+        wabaId: waWabaId,
+        accessToken: waToken,
+      });
+      setWaAccount({
+        phone_number_id: waPhoneId.trim(),
+        waba_id: waWabaId.trim() || null,
+        display_phone_number: result?.displayPhoneNumber ?? null,
+        verified_name: result?.verifiedName ?? null,
+        connected_at: new Date().toISOString(),
+      });
+      // Out of the browser the moment the server has it.
+      setWaToken('');
+    } catch (error) {
+      setWaError(describeWhatsAppError(error, isRTL));
+    } finally {
+      setWaBusy(false);
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    const warning = isRTL
+      ? 'سيتم فصل الرقم وحذف التوكن. سجل الرسائل السابق يبقى كما هو. متابعة؟'
+      : 'This disconnects the number and deletes the token. The message history is kept. Continue?';
+    if (!confirm(warning)) return;
+    setWaError('');
+    setWaBusy(true);
+    try {
+      await disconnectWhatsAppAccount();
+      setWaAccount(null);
+      setWaPhoneId('');
+      setWaWabaId('');
+      setWaToken('');
+    } catch (error) {
+      setWaError(describeWhatsAppError(error, isRTL));
+    } finally {
+      setWaBusy(false);
+    }
   };
 
   return (
@@ -159,53 +224,93 @@ export default function SettingsPage() {
               }
             </p>
 
-            <div className="grid-2">
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
-                  {isRTL ? "معرف رقم الهاتف (Phone Number ID)" : "Phone Number ID"}
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. 10492837492019" 
-                  value={waPhoneId} 
-                  onChange={e => setWaPhoneId(e.target.value)} 
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
-                  {isRTL ? "معرف حساب الواتساب (WABA ID)" : "WhatsApp Business Account ID"}
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. 983749201920" 
-                  value={waWabaId} 
-                  onChange={e => setWaWabaId(e.target.value)} 
-                />
-              </div>
-            </div>
+            {!waLoading && !waAccount && (
+              <>
+                <div className="grid-2">
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                      {isRTL ? "معرف رقم الهاتف (Phone Number ID)" : "Phone Number ID"}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 10492837492019"
+                      value={waPhoneId}
+                      onChange={e => setWaPhoneId(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                      {isRTL ? "معرف حساب الواتساب (WABA ID)" : "WhatsApp Business Account ID"}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 983749201920"
+                      value={waWabaId}
+                      onChange={e => setWaWabaId(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
-                {isRTL ? "رمز الدخول الدائم (Permanent Access Token)" : "Meta Permanent Access Token"}
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
-                <Key size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '0.75rem', color: 'var(--text-muted)' }} />
-                <input 
-                  type="password" 
-                  placeholder="EAAG..." 
-                  value={waToken} 
-                  onChange={e => setWaToken(e.target.value)} 
-                  style={{ paddingInlineStart: '2.25rem', flex: 1 }}
-                />
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-muted)', textAlign: 'start' }}>
+                    {isRTL ? "رمز الدخول الدائم (Permanent Access Token)" : "Meta Permanent Access Token"}
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+                    <Key size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '0.75rem', color: 'var(--text-muted)' }} />
+                    <input
+                      type="password"
+                      placeholder="EAAG..."
+                      autoComplete="off"
+                      value={waToken}
+                      onChange={e => setWaToken(e.target.value)}
+                      style={{ paddingInlineStart: '2.25rem', flex: 1 }}
+                    />
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.4rem 0 0', textAlign: 'start' }}>
+                    {isRTL
+                      ? 'يُرسل مرة واحدة إلى الخادم ويُحفظ مشفّراً هناك. لا يُخزَّن في المتصفح ولا يُعاد عرضه.'
+                      : 'Sent to the server once and stored encrypted there. It is not kept in the browser and is never shown again.'}
+                  </p>
+                </div>
+
+                {/* type="button": this card sits inside the profile form, and a
+                    submit here would save the profile instead of connecting. */}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={waBusy || !waPhoneId.trim() || !waToken.trim()}
+                  onClick={handleConnectWhatsApp}
+                  style={{ alignSelf: 'flex-start', display: 'flex', gap: '0.5rem' }}
+                >
+                  <MessageSquare size={16} />
+                  {waBusy
+                    ? (isRTL ? 'جارٍ التحقق…' : 'Verifying…')
+                    : (isRTL ? 'ربط الرقم' : 'Connect number')}
+                </button>
+              </>
+            )}
+
+            {waError && (
+              <div style={{
+                background: 'var(--danger-glow, rgba(239,68,68,0.12))',
+                color: 'var(--danger)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                borderRadius: '0.5rem',
+                padding: '0.75rem 1rem',
+                fontSize: '0.8rem',
+                textAlign: 'start',
+                lineHeight: 1.6
+              }}>
+                {waError}
               </div>
-            </div>
+            )}
 
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              background: (waPhoneId && waToken) ? 'var(--success-glow)' : 'rgba(255,255,255,0.03)',
-              color: (waPhoneId && waToken) ? 'var(--success)' : 'var(--text-muted)',
+              background: waAccount ? 'var(--success-glow)' : 'rgba(255,255,255,0.03)',
+              color: waAccount ? 'var(--success)' : 'var(--text-muted)',
               padding: '0.5rem 0.75rem',
               borderRadius: '0.5rem',
               fontSize: '0.8rem',
@@ -217,15 +322,33 @@ export default function SettingsPage() {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: (waPhoneId && waToken) ? 'var(--success)' : 'var(--text-muted)'
+                background: waAccount ? 'var(--success)' : 'var(--text-muted)'
               }} />
               <span>
-                {(waPhoneId && waToken)
-                  ? (isRTL ? "API الواتساب الحقيقي مفعل ومتصل" : "Real Meta WhatsApp API Connected & Active")
-                  : (isRTL ? "غير مفعل (يتم الفتح المباشر عبر تطبيق/ويب الواتساب)" : "Not Configured (Uses Direct WhatsApp Web/App Bridge)")
+                {waLoading
+                  ? (isRTL ? 'جارٍ التحقق من الربط…' : 'Checking connection…')
+                  : waAccount
+                    ? (isRTL
+                        ? `متصل بالرقم ${waAccount.display_phone_number || waAccount.phone_number_id}${waAccount.verified_name ? ` — ${waAccount.verified_name}` : ''}`
+                        : `Connected as ${waAccount.display_phone_number || waAccount.phone_number_id}${waAccount.verified_name ? ` — ${waAccount.verified_name}` : ''}`)
+                    : (isRTL ? "غير مفعل (يتم الفتح المباشر عبر تطبيق/ويب الواتساب)" : "Not Configured (Uses Direct WhatsApp Web/App Bridge)")
                 }
               </span>
             </div>
+
+            {waAccount && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={waBusy}
+                onClick={handleDisconnectWhatsApp}
+                style={{ alignSelf: 'flex-start', color: 'var(--danger)' }}
+              >
+                {waBusy
+                  ? (isRTL ? 'جارٍ…' : 'Working…')
+                  : (isRTL ? 'فصل الرقم' : 'Disconnect number')}
+              </button>
+            )}
           </div>
         </div>
 

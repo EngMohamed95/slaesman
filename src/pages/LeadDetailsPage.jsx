@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
+import WhatsAppConversation from '../components/WhatsAppConversation';
 import {
   ArrowLeft, Calendar, Mail, Phone, DollarSign,
   MessageSquare, Edit3, Trash2, HeartHandshake, CheckCircle2
@@ -290,15 +291,18 @@ export default function LeadDetailsPage({ leadId, setPage }) {
               >
                 <MessageSquare size={16} /> {t('whatsappQuickMsg')}
               </button>
-              <a 
+              <a
                 href={`tel:${lead.phone}`}
-                className="btn btn-secondary" 
+                className="btn btn-secondary"
                 style={{ width: '100%', textDecoration: 'none' }}
               >
                 <Phone size={16} /> {t('callLead')}
               </a>
             </div>
           </div>
+
+          {/* Renders nothing unless the org has connected a Cloud API number. */}
+          <WhatsAppConversation lead={lead} />
 
           {/* Compliance Checklist */}
           <div className="card">

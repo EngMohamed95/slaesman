@@ -63,6 +63,11 @@ function AppRoutes() {
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Page component={DashboardPage} />} />
             <Route path="/crm" element={<Page component={CRMPage} />} />
+            {/* Same component, different view: CRMPage renders the table for
+                /crm and the add-lead form for /crm/new. Reusing it keeps the
+                WhatsApp sync and chat-paste importers — which feed the form and
+                live in that file — working without being extracted. */}
+            <Route path="/crm/new" element={<Page component={CRMPage} view="add" />} />
             <Route path="/lead/:leadId" element={<LeadDetailsRoute />} />
             <Route path="/tasks" element={<Page component={TasksPage} />} />
             {/* Declared before nothing in particular, but note /tasks/new must

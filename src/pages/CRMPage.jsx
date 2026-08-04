@@ -3,7 +3,7 @@ import { useCRM } from '../context/CRMContext';
 import { useLanguage } from '../context/LanguageContext';
 import { callAIJson, describeAIError } from '../utils/ai';
 import { parseChatToMessages } from '../utils/chatParser';
-import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw, TrendingUp, Target, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, MessageCircle, Phone, Eye, Trash2, Sparkles, Smartphone, X, RefreshCw, TrendingUp, Target, AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react';
 
 const WHATSAPP_BRIDGE_URL = (import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -119,7 +119,7 @@ const analyzeWhatsAppChat = (text, isRTL) => {
   return { name, phone, email, service, budget, interestLevel, suggestions };
 };
 
-export default function CRMPage({ setPage, setSelectedLeadId }) {
+export default function CRMPage({ setPage, setSelectedLeadId, view }) {
   const { leads, addLead, updateLead, deleteLead, addTask } = useCRM();
   const { t, isRTL } = useLanguage();
 
@@ -138,7 +138,11 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
   );
   
   // Add Lead Form State
-  const [showAddModal, setShowAddModal] = useState(false);
+  // The add form is a route now, so its visibility is the URL rather than
+  // component state — which is exactly what lets it survive a refresh and be
+  // linked to. /crm renders the table; /crm/new renders the form.
+  const isAddView = view === 'add';
+  const BackIcon = isRTL ? ArrowRight : ArrowLeft;
   const [showAIAnalysis, setShowAIAnalysis] = useState(true);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
@@ -409,6 +413,24 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
   // Extract unique sources for filters
   const uniqueSources = [...new Set(leads.map(l => l.source))];
 
+  // Leaving /crm/new unmounts the form anyway, so the resets are belt-and-braces
+  // — but a save followed by a second "Add lead" in the same session would
+  // otherwise reopen on the previous lead's values if this ever stops unmounting.
+  const closeAddView = () => {
+    setNewName('');
+    setNewPhone('');
+    setNewEmail('');
+    setNewService('');
+    setNewBudget('');
+    setNewExpectedValue('');
+    setNewNotes('');
+    setImportMode(null);
+    setPastedChat('');
+    setAiSuggestions('');
+    setContactSearchQuery('');
+    setPage('crm');
+  };
+
   const handleAddSubmit = (e) => {
     e.preventDefault();
     if (!newName || !newPhone) {
@@ -449,34 +471,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
       });
     }
 
-    // Reset Form
-    setNewName('');
-    setNewPhone('');
-    setNewEmail('');
-    setNewService('');
-    setNewBudget('');
-    setNewExpectedValue('');
-    setNewNotes('');
-    setImportMode(null);
-    setPastedChat('');
-    setAiSuggestions('');
-    setContactSearchQuery('');
-    setShowAddModal(false);
-  };
-
-  const handleCloseModal = () => {
-    setNewName('');
-    setNewPhone('');
-    setNewEmail('');
-    setNewService('');
-    setNewBudget('');
-    setNewExpectedValue('');
-    setNewNotes('');
-    setImportMode(null);
-    setPastedChat('');
-    setAiSuggestions('');
-    setContactSearchQuery('');
-    setShowAddModal(false);
+    closeAddView();
   };
 
   const handleChatAnalysis = async () => {
@@ -694,558 +689,20 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
     .sort((a, b) => b.followUpScore - a.followUpScore)
     .slice(0, 3);
 
-  return (
-    <div className="fade-in">
-      <div className="page-heading-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{t('navCRM')}</h1>
-          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
-            {isRTL ? "إدارة وتصنيف بيانات عملائك ومتابعة صفقاتك." : "Track and manage your leads list and pipelines."}
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button
-            type="button"
-            className="btn"
-            style={{
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              color: '#a5b4fc',
-              fontSize: '0.8rem',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.5rem 1rem',
-              borderRadius: '2rem',
-              cursor: 'pointer',
-              boxShadow: '0 0 10px rgba(99, 102, 241, 0.15)',
-              transition: 'all 0.2s'
-            }}
-            onClick={() => setShowAIAnalysis(!showAIAnalysis)}
-          >
-            <Sparkles size={14} style={{ color: '#818cf8' }} />
-            <span>{isRTL ? "تحليل وتوصيات الحملات (AI)" : "AI Campaign & Lead Analysis"}</span>
-          </button>
-
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Plus size={16} /> {t('addLead')}
-          </button>
-        </div>
-      </div>
-
-      {showAIAnalysis && (
-        <div className="card" style={{
-          marginBottom: '1.5rem',
-          padding: '1.25rem',
-          background: 'linear-gradient(135deg, rgba(99,102,241,.12), rgba(6,182,212,.07))',
-          border: '1px solid rgba(99,102,241,.28)',
-          borderRadius: '0.75rem',
-          boxShadow: '0 4px 20px rgba(99, 102, 241, 0.1)'
-        }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontWeight: 800, fontSize: '1.05rem', color: '#a5b4fc' }}>
-                <Sparkles size={18} color="#818cf8" />
-                {isRTL ? 'لوحة تحليلات الذكاء الاصطناعي وتوصيات المبيعات والحملات' : 'Smart AI Sales & Campaign Intelligence'}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'start' }}>
-                {isRTL 
-                  ? 'يقوم النظام بتحليل فوري لجدوى الحملات وتحديد العملاء المؤهلين (Qualified) وتوجيه الميزانية للمصدر الأكثر تحقيقاً للأرباح.' 
-                  : 'System performs real-time campaign advice, conversion analysis, and budgets recommendation based on live CRM records.'}
-              </div>
-            </div>
-            <button className="btn btn-secondary" onClick={() => setPage('reports')} style={{ padding: '0.45rem 0.7rem', fontSize: '0.75rem' }}>
-              <TrendingUp size={14} /> {isRTL ? 'التقرير التفصيلي للمبيعات' : 'Detailed Sales Report'}
-            </button>
-          </div>
-
-          {/* Cards Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-            
-            {/* Box 1: Follow-up Priority */}
-            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                <AlertTriangle size={15} /> {isRTL ? 'عملاء المتابعة والفرص العاجلة' : 'Urgent Follow-ups & Hot Leads'}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {followUpCandidates.length ? followUpCandidates.map((lead, index) => (
-                  <div
-                    key={lead.id}
-                    onClick={() => { setSelectedLeadId(lead.id); setPage('leadDetails'); }}
-                    style={{ 
-                      width: '100%', 
-                      border: '1px solid var(--card-border)', 
-                      background: 'var(--card-bg)', 
-                      color: 'var(--text-main)', 
-                      padding: '0.6rem', 
-                      borderRadius: '0.5rem', 
-                      cursor: 'pointer', 
-                      textAlign: 'start',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-glow)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'var(--card-bg)'}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 5, fontSize: '0.8rem', fontWeight: 'bold' }}>
-                      <span>{isRTL ? lead.nameAr || lead.name : lead.name}</span>
-                      <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 800 }}>{isRTL ? `أولوية ${lead.followUpScore}` : `Score ${lead.followUpScore}`}</span>
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                      {isRTL 
-                        ? `آخر تواصل: منذ ${lead.daysSinceContact} يوم • الحالة: ${lead.statusAr || lead.status} • الميزانية: ${Number(lead.expectedValue || lead.budget || 0).toLocaleString()} ${lead.currency || 'ريال'}` 
-                        : `${lead.daysSinceContact} days ago • Status: ${lead.status} • Budget: ${Number(lead.expectedValue || lead.budget || 0).toLocaleString()}`}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-main)', marginTop: 6, display: 'flex', gap: 4, alignItems: 'center', background: 'var(--accent-glow)', padding: '4px 6px', borderRadius: '4px' }}>
-                      <Sparkles size={10} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                      <span style={{ fontWeight: '600' }}>
-                        {isRTL 
-                          ? lead.interestLevel === 'High' 
-                            ? 'عميل مهتم جداً: تواصل معه فوراً بالواتساب لتقديم العرض الفني.' 
-                            : 'فرصة جيدة: تواصل هاتفياً لمناقشة خطة السداد.'
-                          : 'Good opportunity: Reach out to lock interest.'}
-                      </span>
-                    </div>
-                  </div>
-                )) : <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{isRTL ? 'لا توجد متابعات عاجلة حالياً.' : 'No urgent follow-ups.'}</div>}
-              </div>
-            </div>
-
-            {/* Box 2: Source Quality Analysis */}
-            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--success)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                <Target size={15} /> {isRTL ? 'تحليل جودة مصادر العملاء' : 'Lead Sources Conversion Quality'}
-              </div>
-              {bestQualifiedSource ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    {isRTL ? bestQualifiedSource.sourceAr : bestQualifiedSource.source}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {isRTL 
-                      ? `المصدر الأكثر كفاءة للعملاء المؤهلين (Qualified) بناءً على إغلاق الصفقات والاهتمام.` 
-                      : `Highest conversion source for qualified leads based on CRM.`}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                    <span>{bestQualifiedSource.qualified}/{bestQualifiedSource.total} {isRTL ? 'عملاء كواليفايد' : 'qualified leads'}</span>
-                    <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{bestQualifiedSource.qualificationRate}% معدل الجودة</span>
-                  </div>
-                  <div style={{ height: 6, background: 'var(--card-border)', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${bestQualifiedSource.qualificationRate}%`, background: 'linear-gradient(90deg, var(--success), #34d399)', borderRadius: 5 }} />
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-main)', fontWeight: 'bold', marginTop: 2 }}>
-                    {isRTL 
-                      ? `القيمة المتوقعة للصفقات من هذا المصدر: ${bestQualifiedSource.value.toLocaleString()} ريال` 
-                      : `Pipeline value from this source: ${bestQualifiedSource.value.toLocaleString()} SAR`}
-                  </div>
-                </div>
-              ) : <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{isRTL ? 'أضف عملاء لبدء التحليل.' : 'Add leads to begin analysis.'}</div>}
-            </div>
-
-            {/* Box 3: Actionable Campaign Scaling & ROI Strategy */}
-            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                <Sparkles size={15} style={{ color: 'var(--primary)' }} /> {isRTL ? 'توصيات لزيادة حملات الكواليفايد' : 'Qualified Campaign Recommendations'}
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.6, color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {bestQualifiedSource ? (
-                  <>
-                    <div style={{ background: 'var(--primary-glow)', border: '1px solid rgba(79, 70, 229, 0.2)', padding: '0.6rem 0.8rem', borderRadius: '0.5rem', color: 'var(--text-main)' }}>
-                      <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>{isRTL ? "💡 خطة زيادة الميزانية:" : "💡 Budget Scaling Strategy:"}</strong>{' '}
-                      {isRTL
-                        ? bestQualifiedSource.total < 5
-                          ? `مصدر ${bestQualifiedSource.sourceAr} واعد جداً. نقترح زيادة ميزانيته بنسبة 10% تدريجياً كمرحلة أولى، مع مراقبة تكلفة العميل المؤهل قبل الزيادة الكبرى.`
-                          : `نوصي بزيادة ميزانية إعلانات ${bestQualifiedSource.sourceAr} بنسبة 20% إلى 25% فوراً مع تقليل ميزانية القنوات الأقل جودة لتعظيم العائد.`
-                        : `Scale ${bestQualifiedSource.source} budget by 20% to boost qualified leads.`}
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                      <span>• {isRTL ? "استخدم مخرجات صانع المحتوى الذكي لاستهداف فئة المهتمين بهذا المصدر." : "Use AI-generated content targeted specifically for this audience."}</span>
-                      <span>• {isRTL ? "فعّل الردود السريعة عبر الواتساب للعملاء الجدد لرفع نسبة الجودة (Qualification)." : "Enable fast WhatsApp replies to new leads to boost qualification rate."}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ color: 'var(--text-muted)' }}>
-                    {isRTL ? 'لا توجد بيانات كافية لتوصية حملة.' : 'Not enough data for campaign advice.'}
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Classification Tabs & Bulk WhatsApp Campaign action button */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-        padding: '0.5rem',
-        background: 'rgba(255, 255, 255, 0.01)',
-        border: '1px solid var(--card-border)',
-        borderRadius: '0.75rem',
-        backdropFilter: 'blur(10px)'
-      }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {[
-            { 
-              id: 'all', 
-              label: t('tabAllLeads'), 
-              count: leads.length,
-              color: 'var(--primary)',
-              glow: 'var(--primary-glow)',
-              activeBg: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)'
-            },
-            { 
-              id: 'interested', 
-              label: t('tabInterestedLeads'), 
-              count: leads.filter(l => l.interestLevel === 'High' || l.status === 'Interested' || l.status === 'Close to Deal' || l.status === 'Won').length,
-              color: 'var(--success)',
-              glow: 'var(--success-glow)',
-              activeBg: 'linear-gradient(135deg, var(--success) 0%, #34d399 100%)'
-            },
-            { 
-              id: 'followup', 
-              label: t('tabFollowUpLeads'), 
-              count: leads.filter(l => l.status === 'Needs Follow-up' || l.status === 'No Response' || l.status === 'Postponed').length,
-              color: 'var(--accent)',
-              glow: 'var(--accent-glow)',
-              activeBg: 'linear-gradient(135deg, var(--accent) 0%, #fbbf24 100%)'
-            },
-            { 
-              id: 'notinterested', 
-              label: isRTL ? 'العملاء غير المهتمين' : 'Not Interested', 
-              count: leads.filter(l => l.status === 'Not Interested' || l.status === 'Lost' || l.interestLevel === 'Low').length,
-              color: 'var(--danger)',
-              glow: 'var(--danger-glow)',
-              activeBg: 'linear-gradient(135deg, var(--danger) 0%, #f87171 100%)'
-            }
-          ].map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setSentLeadIds([]);
-                }}
-                className="btn"
-                style={{
-                  padding: '0.6rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  background: isActive ? tab.activeBg : 'rgba(255, 255, 255, 0.02)',
-                  border: isActive ? `1px solid ${tab.color}` : '1px solid var(--card-border)',
-                  color: isActive ? '#fff' : 'var(--text-muted)',
-                  boxShadow: isActive ? `0 4px 15px ${tab.glow}` : 'none',
-                }}
-              >
-                <span>{tab.label}</span>
-                <span style={{
-                  fontSize: '1rem',
-                  fontWeight: 800,
-                  padding: '0.15rem 0.55rem',
-                  borderRadius: '0.35rem',
-                  background: isActive ? 'rgba(255, 255, 255, 0.2)' : tab.glow,
-                  color: isActive ? '#fff' : tab.color,
-                  minWidth: '24px',
-                  display: 'inline-block',
-                  textAlign: 'center'
-                }}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Campaign Action Button */}
-        <button
-          className="btn"
-          onClick={() => setShowCampaignModal(true)}
-          disabled={tabLeads.length === 0}
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: '#fff',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.5rem',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
-            opacity: tabLeads.length === 0 ? 0.5 : 1,
-            cursor: tabLeads.length === 0 ? 'not-allowed' : 'pointer'
-          }}
-        >
-          <MessageCircle size={16} />
-          <span>{t('bulkWhatsAppCampaign')}</span>
-        </button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '1rem', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder={t('searchPlaceholder')} 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingInlineStart: '2.5rem' }}
-          />
-        </div>
-
-        <div style={{ minWidth: '160px' }}>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">{t('filterStatus')}</option>
-            {['New', 'Contacted', 'Interested', 'Needs Follow-up', 'No Response', 'Postponed', 'Close to Deal', 'Won', 'Lost', 'Not Interested'].map(st => (
-              <option key={st} value={st}>{st}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ minWidth: '160px' }}>
-          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
-            <option value="">{t('filterSource')}</option>
-            {uniqueSources.map(src => (
-              <option key={src} value={src}>{src}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Leads Desktop Table View */}
-      <div className="card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ minWidth: '900px' }}>
-            <thead>
-              <tr>
-                <th>{t('name')}</th>
-                <th>{t('phone')} / {t('email')}</th>
-                <th>{t('source')}</th>
-                <th>{t('budget')}</th>
-                <th>{t('status')}</th>
-                <th>{t('interestLevel')}</th>
-                <th>{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLeads.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                    {isRTL ? "لم يتم العثور على عملاء يطابقون خيارات البحث." : "No leads found matching current criteria."}
-                  </td>
-                </tr>
-              ) : (
-                filteredLeads.map((lead) => (
-                  <tr key={lead.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{isRTL ? lead.nameAr : lead.name}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{isRTL ? lead.serviceAr : lead.service}</div>
-                    </td>
-                    <td>
-                      <div>{lead.phone}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{lead.email}</div>
-                    </td>
-                    <td>{isRTL ? (lead.sourceAr || lead.source) : lead.source}</td>
-                    <td>
-                      {isRTL ? `${lead.budget.toLocaleString()} ريال` : `$${lead.budget.toLocaleString()}`}
-                    </td>
-                    <td>
-                      <span className={`badge badge-${lead.status.toLowerCase().replace(' ', '')}`}>
-                        {isRTL ? lead.statusAr : lead.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ 
-                        color: lead.interestLevel === 'High' ? 'var(--danger)' : lead.interestLevel === 'Medium' ? 'var(--accent)' : 'var(--text-muted)',
-                        fontWeight: 'bold',
-                        fontSize: '0.85rem'
-                      }}>
-                        {isRTL ? lead.interestLevelAr : lead.interestLevel}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button 
-                          className="btn btn-secondary" 
-                          style={{ padding: '0.4rem' }}
-                          onClick={() => {
-                            setSelectedLeadId(lead.id);
-                            setPage('leadDetails');
-                          }}
-                          title={t('leadDetails')}
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button 
-                          className="btn btn-secondary" 
-                          style={{ padding: '0.4rem', color: 'var(--secondary)' }}
-                          onClick={() => {
-                            setSelectedLeadId(lead.id);
-                            setPage('whatsapp');
-                          }}
-                          title={t('whatsappQuickMsg')}
-                        >
-                          <MessageCircle size={14} />
-                        </button>
-                        <button 
-                          className="btn btn-secondary" 
-                          style={{ padding: '0.4rem', color: 'var(--danger)' }}
-                          onClick={() => {
-                            if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this lead?')) {
-                              deleteLead(lead.id);
-                            }
-                          }}
-                          title={t('deleteLead')}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Leads Mobile Cards View */}
-      <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
-        {filteredLeads.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
-            {isRTL ? "لم يتم العثور على عملاء يطابقون خيارات البحث." : "No leads found matching current criteria."}
-          </div>
-        ) : (
-          filteredLeads.map((lead) => (
-            <div key={lead.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>
-                    {isRTL ? lead.nameAr : lead.name}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    {isRTL ? lead.serviceAr : lead.service}
-                  </div>
-                </div>
-                <span className={`badge badge-${lead.status.toLowerCase().replace(' ', '')}`}>
-                  {isRTL ? lead.statusAr : lead.status}
-                </span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('budget')}</span>
-                  <strong style={{ color: 'var(--success)' }}>
-                    {isRTL ? `${lead.budget.toLocaleString()} ريال` : `$${lead.budget.toLocaleString()}`}
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('source')}</span>
-                  <span style={{ fontWeight: 600 }}>{isRTL ? (lead.sourceAr || lead.source) : lead.source}</span>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('phone')}</span>
-                  <span style={{ fontFamily: 'monospace' }}>{lead.phone}</span>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('interestLevel')}</span>
-                  <span style={{ 
-                    color: lead.interestLevel === 'High' ? 'var(--danger)' : lead.interestLevel === 'Medium' ? 'var(--accent)' : 'var(--text-muted)',
-                    fontWeight: 'bold'
-                  }}>
-                    {isRTL ? lead.interestLevelAr : lead.interestLevel}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ flex: 1, padding: '0.5rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
-                  onClick={() => {
-                    setSelectedLeadId(lead.id);
-                    setPage('leadDetails');
-                  }}
-                >
-                  <Eye size={14} />
-                  <span>{t('leadDetails')}</span>
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ padding: '0.5rem', color: 'var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onClick={() => {
-                    setSelectedLeadId(lead.id);
-                    setPage('whatsapp');
-                  }}
-                >
-                  <MessageCircle size={14} />
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ padding: '0.5rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onClick={() => {
-                    if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this lead?')) {
-                      deleteLead(lead.id);
-                    }
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Add Lead Modal Overlay */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1.5rem'
-        }}>
-          <div className="card" style={{ width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+  // Lifted out of the modal overlay it used to live in. Same markup, same
+  // handlers — only the chrome changed, so the WhatsApp sync UI tangled
+  // inside it did not have to be untangled to give the form a URL.
+  const addLeadPanel = (
+    <div className="card" style={{ maxWidth: '760px' }}>
             <style>{`
               @keyframes spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
               }
             `}</style>
-            
-            <h3 style={{ margin: '0 0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{t('addLead')}</span>
-              <button 
-                type="button" 
-                onClick={handleCloseModal} 
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}
-              >
-                <X size={20} />
-              </button>
-            </h3>
+
+            {/* The title and its close button moved to the page header below —
+                a route does not need a modal's chrome repeated inside it. */}
 
             {/* Quick Import Panel */}
             <div style={{
@@ -2073,7 +1530,7 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+                <button type="button" className="btn btn-secondary" onClick={closeAddView}>
                   {isRTL ? "إلغاء" : "Cancel"}
                 </button>
                 <button type="submit" className="btn btn-primary">
@@ -2081,12 +1538,11 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+    </div>
+  );
 
-      {/* MacBook / Phone Backup Contacts Selector Modal */}
-      {showContactsModal && (
+  // Stays a modal: it is a picker opened from the form, not a create surface.
+  const contactsPanel = showContactsModal && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -2247,7 +1703,547 @@ export default function CRMPage({ setPage, setSelectedLeadId }) {
             </div>
           </div>
         </div>
+  );
+
+  if (isAddView) {
+    return (
+      <div className="fade-in">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <button className="btn btn-secondary" onClick={closeAddView} style={{ padding: '0.45rem 0.7rem' }}>
+            <BackIcon size={16} />
+          </button>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>{t('addLead')}</h1>
+            <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+              {isRTL
+                ? 'أدخل البيانات يدوياً، أو استورد العميل من محادثة واتساب أو من جهات الاتصال.'
+                : 'Enter the details by hand, or import the lead from a WhatsApp chat or your contacts.'}
+            </p>
+          </div>
+        </div>
+        {addLeadPanel}
+        {contactsPanel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade-in">
+      <div className="page-heading-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{t('navCRM')}</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+            {isRTL ? "إدارة وتصنيف بيانات عملائك ومتابعة صفقاتك." : "Track and manage your leads list and pipelines."}
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              color: '#a5b4fc',
+              fontSize: '0.8rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '2rem',
+              cursor: 'pointer',
+              boxShadow: '0 0 10px rgba(99, 102, 241, 0.15)',
+              transition: 'all 0.2s'
+            }}
+            onClick={() => setShowAIAnalysis(!showAIAnalysis)}
+          >
+            <Sparkles size={14} style={{ color: '#818cf8' }} />
+            <span>{isRTL ? "تحليل وتوصيات الحملات (AI)" : "AI Campaign & Lead Analysis"}</span>
+          </button>
+
+          <button className="btn btn-primary" onClick={() => setPage('addLead')}>
+            <Plus size={16} /> {t('addLead')}
+          </button>
+        </div>
+      </div>
+
+      {showAIAnalysis && (
+        <div className="card" style={{
+          marginBottom: '1.5rem',
+          padding: '1.25rem',
+          background: 'linear-gradient(135deg, rgba(99,102,241,.12), rgba(6,182,212,.07))',
+          border: '1px solid rgba(99,102,241,.28)',
+          borderRadius: '0.75rem',
+          boxShadow: '0 4px 20px rgba(99, 102, 241, 0.1)'
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontWeight: 800, fontSize: '1.05rem', color: '#a5b4fc' }}>
+                <Sparkles size={18} color="#818cf8" />
+                {isRTL ? 'لوحة تحليلات الذكاء الاصطناعي وتوصيات المبيعات والحملات' : 'Smart AI Sales & Campaign Intelligence'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'start' }}>
+                {isRTL 
+                  ? 'يقوم النظام بتحليل فوري لجدوى الحملات وتحديد العملاء المؤهلين (Qualified) وتوجيه الميزانية للمصدر الأكثر تحقيقاً للأرباح.' 
+                  : 'System performs real-time campaign advice, conversion analysis, and budgets recommendation based on live CRM records.'}
+              </div>
+            </div>
+            <button className="btn btn-secondary" onClick={() => setPage('reports')} style={{ padding: '0.45rem 0.7rem', fontSize: '0.75rem' }}>
+              <TrendingUp size={14} /> {isRTL ? 'التقرير التفصيلي للمبيعات' : 'Detailed Sales Report'}
+            </button>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            
+            {/* Box 1: Follow-up Priority */}
+            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+                <AlertTriangle size={15} /> {isRTL ? 'عملاء المتابعة والفرص العاجلة' : 'Urgent Follow-ups & Hot Leads'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {followUpCandidates.length ? followUpCandidates.map((lead, index) => (
+                  <div
+                    key={lead.id}
+                    onClick={() => { setSelectedLeadId(lead.id); setPage('leadDetails'); }}
+                    style={{ 
+                      width: '100%', 
+                      border: '1px solid var(--card-border)', 
+                      background: 'var(--card-bg)', 
+                      color: 'var(--text-main)', 
+                      padding: '0.6rem', 
+                      borderRadius: '0.5rem', 
+                      cursor: 'pointer', 
+                      textAlign: 'start',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-glow)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'var(--card-bg)'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 5, fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      <span>{isRTL ? lead.nameAr || lead.name : lead.name}</span>
+                      <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 800 }}>{isRTL ? `أولوية ${lead.followUpScore}` : `Score ${lead.followUpScore}`}</span>
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                      {isRTL 
+                        ? `آخر تواصل: منذ ${lead.daysSinceContact} يوم • الحالة: ${lead.statusAr || lead.status} • الميزانية: ${Number(lead.expectedValue || lead.budget || 0).toLocaleString()} ${lead.currency || 'ريال'}` 
+                        : `${lead.daysSinceContact} days ago • Status: ${lead.status} • Budget: ${Number(lead.expectedValue || lead.budget || 0).toLocaleString()}`}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-main)', marginTop: 6, display: 'flex', gap: 4, alignItems: 'center', background: 'var(--accent-glow)', padding: '4px 6px', borderRadius: '4px' }}>
+                      <Sparkles size={10} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <span style={{ fontWeight: '600' }}>
+                        {isRTL 
+                          ? lead.interestLevel === 'High' 
+                            ? 'عميل مهتم جداً: تواصل معه فوراً بالواتساب لتقديم العرض الفني.' 
+                            : 'فرصة جيدة: تواصل هاتفياً لمناقشة خطة السداد.'
+                          : 'Good opportunity: Reach out to lock interest.'}
+                      </span>
+                    </div>
+                  </div>
+                )) : <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{isRTL ? 'لا توجد متابعات عاجلة حالياً.' : 'No urgent follow-ups.'}</div>}
+              </div>
+            </div>
+
+            {/* Box 2: Source Quality Analysis */}
+            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--success)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+                <Target size={15} /> {isRTL ? 'تحليل جودة مصادر العملاء' : 'Lead Sources Conversion Quality'}
+              </div>
+              {bestQualifiedSource ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    {isRTL ? bestQualifiedSource.sourceAr : bestQualifiedSource.source}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {isRTL 
+                      ? `المصدر الأكثر كفاءة للعملاء المؤهلين (Qualified) بناءً على إغلاق الصفقات والاهتمام.` 
+                      : `Highest conversion source for qualified leads based on CRM.`}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                    <span>{bestQualifiedSource.qualified}/{bestQualifiedSource.total} {isRTL ? 'عملاء كواليفايد' : 'qualified leads'}</span>
+                    <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{bestQualifiedSource.qualificationRate}% معدل الجودة</span>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--card-border)', borderRadius: 5, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${bestQualifiedSource.qualificationRate}%`, background: 'linear-gradient(90deg, var(--success), #34d399)', borderRadius: 5 }} />
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-main)', fontWeight: 'bold', marginTop: 2 }}>
+                    {isRTL 
+                      ? `القيمة المتوقعة للصفقات من هذا المصدر: ${bestQualifiedSource.value.toLocaleString()} ريال` 
+                      : `Pipeline value from this source: ${bestQualifiedSource.value.toLocaleString()} SAR`}
+                  </div>
+                </div>
+              ) : <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{isRTL ? 'أضف عملاء لبدء التحليل.' : 'Add leads to begin analysis.'}</div>}
+            </div>
+
+            {/* Box 3: Actionable Campaign Scaling & ROI Strategy */}
+            <div style={{ padding: '1rem', borderRadius: '0.6rem', background: 'var(--bg-darker)', border: '1px solid var(--card-border)', textAlign: 'start' }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+                <Sparkles size={15} style={{ color: 'var(--primary)' }} /> {isRTL ? 'توصيات لزيادة حملات الكواليفايد' : 'Qualified Campaign Recommendations'}
+              </div>
+              <div style={{ fontSize: '0.75rem', lineHeight: 1.6, color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {bestQualifiedSource ? (
+                  <>
+                    <div style={{ background: 'var(--primary-glow)', border: '1px solid rgba(79, 70, 229, 0.2)', padding: '0.6rem 0.8rem', borderRadius: '0.5rem', color: 'var(--text-main)' }}>
+                      <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>{isRTL ? "💡 خطة زيادة الميزانية:" : "💡 Budget Scaling Strategy:"}</strong>{' '}
+                      {isRTL
+                        ? bestQualifiedSource.total < 5
+                          ? `مصدر ${bestQualifiedSource.sourceAr} واعد جداً. نقترح زيادة ميزانيته بنسبة 10% تدريجياً كمرحلة أولى، مع مراقبة تكلفة العميل المؤهل قبل الزيادة الكبرى.`
+                          : `نوصي بزيادة ميزانية إعلانات ${bestQualifiedSource.sourceAr} بنسبة 20% إلى 25% فوراً مع تقليل ميزانية القنوات الأقل جودة لتعظيم العائد.`
+                        : `Scale ${bestQualifiedSource.source} budget by 20% to boost qualified leads.`}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.3rem', flexDirection: 'column', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                      <span>• {isRTL ? "استخدم مخرجات صانع المحتوى الذكي لاستهداف فئة المهتمين بهذا المصدر." : "Use AI-generated content targeted specifically for this audience."}</span>
+                      <span>• {isRTL ? "فعّل الردود السريعة عبر الواتساب للعملاء الجدد لرفع نسبة الجودة (Qualification)." : "Enable fast WhatsApp replies to new leads to boost qualification rate."}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: 'var(--text-muted)' }}>
+                    {isRTL ? 'لا توجد بيانات كافية لتوصية حملة.' : 'Not enough data for campaign advice.'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
       )}
+
+      {/* Classification Tabs & Bulk WhatsApp Campaign action button */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        marginBottom: '1.5rem',
+        padding: '0.5rem',
+        background: 'rgba(255, 255, 255, 0.01)',
+        border: '1px solid var(--card-border)',
+        borderRadius: '0.75rem',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {[
+            { 
+              id: 'all', 
+              label: t('tabAllLeads'), 
+              count: leads.length,
+              color: 'var(--primary)',
+              glow: 'var(--primary-glow)',
+              activeBg: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)'
+            },
+            { 
+              id: 'interested', 
+              label: t('tabInterestedLeads'), 
+              count: leads.filter(l => l.interestLevel === 'High' || l.status === 'Interested' || l.status === 'Close to Deal' || l.status === 'Won').length,
+              color: 'var(--success)',
+              glow: 'var(--success-glow)',
+              activeBg: 'linear-gradient(135deg, var(--success) 0%, #34d399 100%)'
+            },
+            { 
+              id: 'followup', 
+              label: t('tabFollowUpLeads'), 
+              count: leads.filter(l => l.status === 'Needs Follow-up' || l.status === 'No Response' || l.status === 'Postponed').length,
+              color: 'var(--accent)',
+              glow: 'var(--accent-glow)',
+              activeBg: 'linear-gradient(135deg, var(--accent) 0%, #fbbf24 100%)'
+            },
+            { 
+              id: 'notinterested', 
+              label: isRTL ? 'العملاء غير المهتمين' : 'Not Interested', 
+              count: leads.filter(l => l.status === 'Not Interested' || l.status === 'Lost' || l.interestLevel === 'Low').length,
+              color: 'var(--danger)',
+              glow: 'var(--danger-glow)',
+              activeBg: 'linear-gradient(135deg, var(--danger) 0%, #f87171 100%)'
+            }
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSentLeadIds([]);
+                }}
+                className="btn"
+                style={{
+                  padding: '0.6rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: isActive ? tab.activeBg : 'rgba(255, 255, 255, 0.02)',
+                  border: isActive ? `1px solid ${tab.color}` : '1px solid var(--card-border)',
+                  color: isActive ? '#fff' : 'var(--text-muted)',
+                  boxShadow: isActive ? `0 4px 15px ${tab.glow}` : 'none',
+                }}
+              >
+                <span>{tab.label}</span>
+                <span style={{
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: '0.35rem',
+                  background: isActive ? 'rgba(255, 255, 255, 0.2)' : tab.glow,
+                  color: isActive ? '#fff' : tab.color,
+                  minWidth: '24px',
+                  display: 'inline-block',
+                  textAlign: 'center'
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Campaign Action Button */}
+        <button
+          className="btn"
+          onClick={() => setShowCampaignModal(true)}
+          disabled={tabLeads.length === 0}
+          style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: '#fff',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+            opacity: tabLeads.length === 0 ? 0.5 : 1,
+            cursor: tabLeads.length === 0 ? 'not-allowed' : 'pointer'
+          }}
+        >
+          <MessageCircle size={16} />
+          <span>{t('bulkWhatsAppCampaign')}</span>
+        </button>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
+          <Search size={16} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '1rem', color: 'var(--text-muted)' }} />
+          <input 
+            type="text" 
+            placeholder={t('searchPlaceholder')} 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ paddingInlineStart: '2.5rem' }}
+          />
+        </div>
+
+        <div style={{ minWidth: '160px' }}>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">{t('filterStatus')}</option>
+            {['New', 'Contacted', 'Interested', 'Needs Follow-up', 'No Response', 'Postponed', 'Close to Deal', 'Won', 'Lost', 'Not Interested'].map(st => (
+              <option key={st} value={st}>{st}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ minWidth: '160px' }}>
+          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+            <option value="">{t('filterSource')}</option>
+            {uniqueSources.map(src => (
+              <option key={src} value={src}>{src}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Leads Desktop Table View */}
+      <div className="card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ minWidth: '900px' }}>
+            <thead>
+              <tr>
+                <th>{t('name')}</th>
+                <th>{t('phone')} / {t('email')}</th>
+                <th>{t('source')}</th>
+                <th>{t('budget')}</th>
+                <th>{t('status')}</th>
+                <th>{t('interestLevel')}</th>
+                <th>{t('actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLeads.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    {isRTL ? "لم يتم العثور على عملاء يطابقون خيارات البحث." : "No leads found matching current criteria."}
+                  </td>
+                </tr>
+              ) : (
+                filteredLeads.map((lead) => (
+                  <tr key={lead.id}>
+                    <td>
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{isRTL ? lead.nameAr : lead.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{isRTL ? lead.serviceAr : lead.service}</div>
+                    </td>
+                    <td>
+                      <div>{lead.phone}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{lead.email}</div>
+                    </td>
+                    <td>{isRTL ? (lead.sourceAr || lead.source) : lead.source}</td>
+                    <td>
+                      {isRTL ? `${lead.budget.toLocaleString()} ريال` : `$${lead.budget.toLocaleString()}`}
+                    </td>
+                    <td>
+                      <span className={`badge badge-${lead.status.toLowerCase().replace(' ', '')}`}>
+                        {isRTL ? lead.statusAr : lead.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        color: lead.interestLevel === 'High' ? 'var(--danger)' : lead.interestLevel === 'Medium' ? 'var(--accent)' : 'var(--text-muted)',
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem'
+                      }}>
+                        {isRTL ? lead.interestLevelAr : lead.interestLevel}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.4rem' }}
+                          onClick={() => {
+                            setSelectedLeadId(lead.id);
+                            setPage('leadDetails');
+                          }}
+                          title={t('leadDetails')}
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.4rem', color: 'var(--secondary)' }}
+                          onClick={() => {
+                            setSelectedLeadId(lead.id);
+                            setPage('whatsapp');
+                          }}
+                          title={t('whatsappQuickMsg')}
+                        >
+                          <MessageCircle size={14} />
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.4rem', color: 'var(--danger)' }}
+                          onClick={() => {
+                            if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this lead?')) {
+                              deleteLead(lead.id);
+                            }
+                          }}
+                          title={t('deleteLead')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Leads Mobile Cards View */}
+      <div className="mobile-only-flex" style={{ flexDirection: 'column', gap: '1rem' }}>
+        {filteredLeads.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+            {isRTL ? "لم يتم العثور على عملاء يطابقون خيارات البحث." : "No leads found matching current criteria."}
+          </div>
+        ) : (
+          filteredLeads.map((lead) => (
+            <div key={lead.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                    {isRTL ? lead.nameAr : lead.name}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    {isRTL ? lead.serviceAr : lead.service}
+                  </div>
+                </div>
+                <span className={`badge badge-${lead.status.toLowerCase().replace(' ', '')}`}>
+                  {isRTL ? lead.statusAr : lead.status}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--card-border)' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('budget')}</span>
+                  <strong style={{ color: 'var(--success)' }}>
+                    {isRTL ? `${lead.budget.toLocaleString()} ريال` : `$${lead.budget.toLocaleString()}`}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('source')}</span>
+                  <span style={{ fontWeight: 600 }}>{isRTL ? (lead.sourceAr || lead.source) : lead.source}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('phone')}</span>
+                  <span style={{ fontFamily: 'monospace' }}>{lead.phone}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>{t('interestLevel')}</span>
+                  <span style={{ 
+                    color: lead.interestLevel === 'High' ? 'var(--danger)' : lead.interestLevel === 'Medium' ? 'var(--accent)' : 'var(--text-muted)',
+                    fontWeight: 'bold'
+                  }}>
+                    {isRTL ? lead.interestLevelAr : lead.interestLevel}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ flex: 1, padding: '0.5rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                  onClick={() => {
+                    setSelectedLeadId(lead.id);
+                    setPage('leadDetails');
+                  }}
+                >
+                  <Eye size={14} />
+                  <span>{t('leadDetails')}</span>
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ padding: '0.5rem', color: 'var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => {
+                    setSelectedLeadId(lead.id);
+                    setPage('whatsapp');
+                  }}
+                >
+                  <MessageCircle size={14} />
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ padding: '0.5rem', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => {
+                    if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this lead?')) {
+                      deleteLead(lead.id);
+                    }
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Bulk WhatsApp Campaign Modal */}
       {showCampaignModal && (

@@ -32,7 +32,7 @@ This codebase is being converted from prototype to a real multi-tenant SaaS on *
 - `AdminPanelPage.jsx` lists **real accounts** from `profiles`. The plan / payment-method / amount columns are gone because no subscription data exists yet; they return in Phase 7 from `subscriptions`. The MRR tile shows `—`, not the old `"697 ريال"` string literal.
 - The contacts-import modal (`DEVICE_CONTACTS` in `CRMPage.jsx`) is an empty list with an explanatory empty state. It used to render seven invented people as if read from the user's phone, and importing one created a lead for someone who does not exist.
 
-Still pending: the WhatsApp bridge (Phase 6 — `whatsapp-web.js` + Puppeteer, not multi-tenant) and teams/invites (Phase 8).
+**Phase 6 sends, receives and displays**: the three Cloud API functions, the migration, the per-lead conversation view over Realtime, and the approved-template picker all exist (see the WhatsApp section). Still pending inside it — media over the Cloud API (a separate upload-then-reference flow; attachments still go through the local bridge), and retiring `whatsapp-server.cjs` with its `whatsapp-web.js`/`puppeteer` dependencies once orgs have migrated. Teams/invites (Phase 8) untouched.
 
 ### Environment
 
@@ -145,19 +145,43 @@ Each task declares the entitlement it needs, and the proxy calls `consume_ai_quo
 
 Server-side setup: deploy the function, then set `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`, `ALLOWED_ORIGIN`) as function secrets. Without the key the proxy returns `503 ai_not_configured` — loudly, by design.
 
-### WhatsApp — two independent paths
+### WhatsApp — three paths, one of them official
 
-**1. Local bridge (`whatsapp-server.cjs`)** — Express on `:3001` driving `whatsapp-web.js` + headless Puppeteer with `LocalAuth` persisted to `.wwebjs_auth/` (gitignored). Endpoints: `GET /status` (connection state + QR data URL), `GET /chats`, `GET /chats/:chatId/messages`, `POST /send`, `POST /send-media`, `POST /logout`, `GET /debug`.
+**1. Cloud API (Phase 6, `supabase/functions/whatsapp-*`)** — the path that actually sends as the business. Three functions:
+
+| Function | Does | Deploy |
+|---|---|---|
+| `whatsapp-connect` | Verifies the credentials against Graph, then stores the token in **Vault**. Owner/manager only. | `supabase functions deploy whatsapp-connect` |
+| `whatsapp-send` | Entitlement → consent → 24-hour window → Graph → log the `wamid`. | `supabase functions deploy whatsapp-send` |
+| `whatsapp-webhook` | Inbound messages and delivery receipts. **Public endpoint.** | `supabase functions deploy whatsapp-webhook --no-verify-jwt` |
+
+Function secrets: `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` (optionally `WHATSAPP_GRAPH_VERSION`, default `v21.0`). Without the app secret the webhook returns 503 rather than accepting unsigned callbacks.
+
+The client sends a **lead id, never a phone number** — that is what lets the server check consent and the window against a record it trusts. `whatsapp_messages` has no insert/update policy and no write grant, so a transcript cannot be forged from a browser; both functions write with the service role.
+
+Two rules are enforced in Postgres, not in the page: `whatsapp_window_open()` (Meta forbids free-form text more than 24h after the contact's last inbound message — outside it, only an approved template) and `leads.consent->>'whatsapp'`, which had been collected and ignored since Phase 3.
+
+Idempotency rests on the unique index on `whatsapp_messages.wa_message_id`. Meta retries any callback that does not get a 200 and re-delivers the same `wamid` as normal operation. `whatsapp_apply_status()` ranks `sent < delivered < read` and only moves forward, because those three callbacks arrive unordered — applied blindly, a late `delivered` overwrites a `read`.
+
+The read side is `src/components/WhatsAppConversation.jsx`, mounted in `LeadDetailsPage`. It renders `null` unless the org has a connected number, so orgs still on the deep link see nothing new. Messages arrive over Realtime (`whatsapp_messages` is in the `supabase_realtime` publication) — no polling, and nothing is appended optimistically: a message shown as sent that was not is worse than a half-second wait.
+
+Its composer is two-faced by design. Window open → textarea. Window shut → a picker of **APPROVED** templates read live from Graph via `whatsapp-connect`'s `templates` action. Approval status is deliberately not cached in Postgres; it changes on Meta's side without telling us, and a stale "approved" is a send that fails in front of a customer.
+
+CRMPage's 2s/3s/8s polls are **untouched and still correct** — they poll the local bridge for QR state and chat history, which Realtime on `whatsapp_messages` cannot serve. They go when the bridge does.
+
+**2. Local bridge (`whatsapp-server.cjs`)** — Express on `:3001` driving `whatsapp-web.js` + headless Puppeteer with `LocalAuth` persisted to `.wwebjs_auth/` (gitignored). Endpoints: `GET /status` (connection state + QR data URL), `GET /chats`, `GET /chats/:chatId/messages`, `POST /send`, `POST /send-media`, `POST /logout`, `GET /debug`.
 
 `installWhatsAppCompatibilityPatch()` (`whatsapp-server.cjs:36`) overrides `window.WWebJS.getChatModel` inside the Puppeteer page. This is load-bearing: upstream `whatsapp-web.js` drops every chat when WhatsApp Web serves LID-style chat keys without a serialized `lastReceivedKey`. Expect this to break on `whatsapp-web.js` upgrades. `resolvePhoneNumber()` similarly reaches into WhatsApp's internal `WAWebLidMigrationUtils` to map LIDs back to phone numbers.
 
 Frontend reads the bridge URL from `VITE_WHATSAPP_BRIDGE_URL` (default `http://localhost:3001`), duplicated in `src/utils/whatsapp.js:79` and `src/pages/CRMPage.jsx:7`.
 
-**2. wa.me deep links (`src/utils/whatsapp.js`)** — `openWhatsAppConversation()` opens `web.whatsapp.com/send` with a prefilled message. The window open is deliberately synchronous to avoid popup blocking — do not wrap it in an `await`. (`sendRealWhatsAppMessage()` was removed in Phase 0: it was imported nowhere and sent a permanent Meta token as a Bearer header from the browser. Sending moves to a server-side Cloud API function in Phase 6.)
+**3. wa.me deep links (`src/utils/whatsapp.js`)** — `openWhatsAppConversation()` opens `web.whatsapp.com/send` with a prefilled message. The window open is deliberately synchronous to avoid popup blocking — do not wrap it in an `await`. This is the fallback for orgs with no connected number: `WhatsAppGeneratorPage` offers the direct-send button only when `getWhatsAppAccount()` returns a row, so both paths run side by side with the connection itself as the flag.
+
+`getWhatsAppConfig`/`setWhatsAppConfig`/`isWhatsAppCloudApiActive` are **gone**. They kept the Meta permanent token in `localStorage` and drove a Settings badge reading "Real Meta WhatsApp API Connected & Active" — while nothing in the app could send through the Cloud API at all, `sendRealWhatsAppMessage()` having been deleted in Phase 0 for putting that token in a Bearer header. Do not reintroduce a client-side WhatsApp credential store.
 
 ## Working in this codebase
 
 - Styling is CSS variables in `src/index.css` plus heavy inline `style={{}}` objects. There is no CSS-in-JS or utility framework. Theme switching sets `data-theme` on `<html>`.
 - Use logical CSS properties (`marginInlineStart`, `textAlign: 'start'`) rather than left/right so RTL keeps working.
 - `src/pages/CRMPage.jsx` is ~2700 lines and holds the lead table, filters, the add-lead modal, pasted-chat analysis, and the whole live WhatsApp sync UI. Locate work by the `importMode` / `activeTab` state values before reading linearly.
-- Credentials (Gemini key, WhatsApp tokens) are still entered through `SettingsPage`/`AdminPanelPage` and stored in localStorage. This is a known defect: Phases 5–6 move them into Supabase Vault behind Edge Functions. Do not add new secret fields to the client — the Supabase anon key in `.env.local` is public by design and is the only key that belongs in the bundle.
+- No secret is stored in the client any more. The Gemini key is a function secret (Phase 5) and the WhatsApp token is in Vault (Phase 6); `SettingsPage` posts the token to `whatsapp-connect` once and never reads it back. Do not add new secret fields to the client — the Supabase anon key in `.env.local` is public by design and is the only key that belongs in the bundle. `AdminPanelPage` is the last place worth auditing for leftovers.

@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCRM } from '../context/CRMContext';
-import { openWhatsAppConversation, sendWhatsAppAttachment } from '../utils/whatsapp';
+import {
+  openWhatsAppConversation,
+  sendWhatsAppAttachment,
+  sendWhatsAppCloudMessage,
+  getWhatsAppAccount,
+  describeWhatsAppError,
+} from '../utils/whatsapp';
 import { MessageSquare, ExternalLink, Send, Paperclip, X } from 'lucide-react';
 
 export default function WhatsAppGeneratorPage({ defaultLeadId }) {
@@ -14,6 +20,13 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
   const [isSending, setIsSending] = useState(false);
   const [attachment, setAttachment] = useState(null);
   const [attachmentPreview, setAttachmentPreview] = useState('');
+
+  // The Cloud API path is offered only when the org has actually connected a
+  // number — this is the "both paths side by side" step, with the connection
+  // itself as the flag rather than a build-time switch. Orgs that have not
+  // onboarded with Meta keep the wa.me deep link they have today.
+  const [cloudAccount, setCloudAccount] = useState(null);
+  const [cloudResult, setCloudResult] = useState(null);
 
   const selectedLead = leads.find(l => l.id === selectedLeadId);
 
@@ -59,6 +72,42 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
 
     setMessage(text);
   }, [selectedLeadId, template, isRTL]);
+
+  useEffect(() => {
+    let active = true;
+    getWhatsAppAccount().then((account) => {
+      if (active) setCloudAccount(account);
+    });
+    return () => { active = false; };
+  }, []);
+
+  /**
+   * Real delivery. Consent, entitlement and the 24-hour window are all checked
+   * server-side — this handler deliberately does not pre-check them, so the
+   * rule that stops the send is the same one in every code path rather than a
+   * client-side copy that can drift.
+   */
+  const handleCloudSend = async () => {
+    if (!selectedLead) return;
+    setIsSending(true);
+    setCloudResult(null);
+    try {
+      const result = await sendWhatsAppCloudMessage({
+        leadId: selectedLead.id,
+        text: message,
+      });
+      setCloudResult({
+        ok: true,
+        text: isRTL
+          ? `تم الإرسال فعلياً إلى ${selectedLead.phone} (معرّف الرسالة: ${result?.wamid ?? '—'})`
+          : `Delivered to ${selectedLead.phone} (message id: ${result?.wamid ?? '—'})`,
+      });
+    } catch (error) {
+      setCloudResult({ ok: false, text: describeWhatsAppError(error, isRTL) });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const handleOpenWhatsApp = async () => {
     if (!selectedLead) return;
@@ -223,9 +272,45 @@ export default function WhatsAppGeneratorPage({ defaultLeadId }) {
               </div>
             )}
 
-            <button 
-              className="btn btn-primary" 
-              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)' }}
+            {cloudResult && (
+              <div style={{
+                background: cloudResult.ok ? 'var(--success-glow)' : 'var(--danger-glow)',
+                color: cloudResult.ok ? 'var(--success)' : 'var(--danger)',
+                border: `1px solid ${cloudResult.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                padding: '0.75rem 1rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.82rem',
+                lineHeight: 1.6,
+                textAlign: 'start'
+              }}>
+                {cloudResult.text}
+              </div>
+            )}
+
+            {/* Attachments still go over the local bridge: Cloud API media is a
+                separate upload-then-reference flow, not part of this step. So
+                the direct-send button is offered for text only. */}
+            {cloudAccount && !attachment && (
+              <button
+                className="btn btn-primary"
+                style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)' }}
+                onClick={handleCloudSend}
+                disabled={!selectedLeadId || isSending || !message.trim()}
+              >
+                <Send size={16} />
+                {isSending
+                  ? (isRTL ? 'جاري الإرسال...' : 'Sending...')
+                  : (isRTL
+                      ? `إرسال مباشر من ${cloudAccount.display_phone_number || 'رقم الشركة'}`
+                      : `Send from ${cloudAccount.display_phone_number || 'the business number'}`)}
+              </button>
+            )}
+
+            <button
+              className={cloudAccount ? 'btn btn-secondary' : 'btn btn-primary'}
+              style={cloudAccount
+                ? undefined
+                : { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)' }}
               onClick={handleOpenWhatsApp}
               disabled={!selectedLeadId || isSending || (!message.trim() && !attachment)}
             >

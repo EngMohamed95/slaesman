@@ -53,6 +53,25 @@ jobs:
         # never reaches the process list or an lftp parse error.
         export LFTP_PASSWORD="$FTP_PASSWORD"
 
+        # Separate "the network refuses us" from "our FTP call is wrong".
+        # Without this, both fail identically and each fix is a guess.
+        echo "--- TCP reachability, port 21 ---"
+        if timeout 20 bash -c "cat < /dev/null > /dev/tcp/$HOST/21" 2>/dev/null; then
+          echo "port 21 is OPEN — the host accepts connections"
+        else
+          echo "port 21 is UNREACHABLE from this runner."
+          echo "Hostinger is refusing or dropping the connection; runner IPs"
+          echo "rotate every job, so no FTP setting fixes this. Options:"
+          echo "  - enable FTP / clear any IP restriction in hPanel, or"
+          echo "  - deploy over SSH-SFTP (Hostinger port 65002) instead."
+          exit 1
+        fi
+
+        # A script file with an explicit `open` removes every shell-quoting
+        # ambiguity. Passing the host as lftp's trailing argument alongside -e
+        # left no session open at all — mirror aborted with "Not connected"
+        # before a single packet was sent.
+        #
         # ssl:verify-certificate no — shared hosting presents the provider
         #   certificate, not the domain certificate, so strict validation
         #   rejects a working server.
@@ -61,16 +80,21 @@ jobs:
         #   and the live site never changes.
         # No --delete — the web root may hold files this build does not
         #   produce (.htaccess, uploads).
-        lftp -u "$FTP_USERNAME" --env-password -p 21 -e '
-          set ftp:ssl-force true;
-          set ftp:ssl-protect-data true;
-          set ssl:verify-certificate no;
-          set ftp:passive-mode true;
-          set net:timeout 30;
-          set net:max-retries 5;
-          set net:reconnect-interval-base 15;
-          set cmd:fail-exit true;
-          debug 3;
-          mirror -R --verbose --parallel=2 dist/ .;
-          bye
-        ' "$HOST"
+        cat > /tmp/deploy.lftp <<SCRIPT
+        set ftp:ssl-force true
+        set ftp:ssl-protect-data true
+        set ssl:verify-certificate no
+        set ftp:passive-mode true
+        set net:timeout 30
+        set net:max-retries 5
+        set net:reconnect-interval-base 15
+        set cmd:fail-exit true
+        debug 3
+        open -p 21 $HOST
+        user $FTP_USERNAME $FTP_PASSWORD
+        mirror -R --verbose --parallel=2 dist/ .
+        bye
+        SCRIPT
+
+        echo "--- lftp transfer ---"
+        lftp -f /tmp/deploy.lftp
